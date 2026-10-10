@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
+using Hearthsheet.Core.Rules;
 using Hearthsheet.Core.Serialization;
 using Hearthsheet.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
@@ -53,6 +54,29 @@ public class SerializationTests
     }
 
     [Fact]
+    public void SchemaOneCharacter_KeepsItsEntriesAsTheyWere()
+    {
+        // Shape written by 1.2.x: no weapons, wondrous items or feature modifiers.
+        const string v1 = """
+            {"abilities":{"strength":16},
+             "attacks":[{"name":"Longsword","ability":"Strength","proficient":true,"bonus":1,"damage":"1d8+4 slashing","notes":"silvered"}],
+             "items":[{"name":"Cloak of Protection","equipped":true,"modifiers":[{"target":"ac","kind":"Bonus","value":1}]}],
+             "features":[{"name":"Dueling","source":"Class","description":"+2 damage one-handed"}]}
+            """;
+        var c = CharacterJson.Deserialize(v1, 1);
+
+        var attack = Assert.Single(c.Attacks);
+        Assert.Null(attack.WeaponId);
+        Assert.Equal("1d8+4 slashing", CharacterRules.DamageRoll(c, attack));
+        Assert.Equal(6, CharacterRules.AttackBonus(c, attack));
+        Assert.Equal("Cloak of Protection", Assert.Single(c.Items).Name);
+        Assert.Equal(11, CharacterRules.ArmorClass(c));
+        Assert.Equal("+2 damage one-handed", Assert.Single(c.Features).Description);
+        Assert.Empty(c.Weapons);
+        Assert.Empty(c.WondrousItems);
+    }
+
+    [Fact]
     public void ExportImport_ProducesEquivalentCharacterWithNewId()
     {
         var original = Samples.Rich();
@@ -78,7 +102,7 @@ public class SerializationTests
     [Fact]
     public void Import_RejectsNewerSchema()
     {
-        var text = _portable.Export(new Character(), "9.0.0").Replace("\"schemaVersion\": 1", "\"schemaVersion\": 99");
+        var text = _portable.Export(new Character(), "9.0.0").Replace($"\"schemaVersion\": {CharacterJson.CurrentSchemaVersion}", "\"schemaVersion\": 99");
         var ex = Assert.Throws<CharacterFormatException>(() => _portable.Import(text));
         Assert.Contains("newer version", ex.Message);
     }

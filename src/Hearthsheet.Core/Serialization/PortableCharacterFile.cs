@@ -89,8 +89,9 @@ public sealed class PortableCharacterFile
         int[] counts =
         [
             c.Attacks.Count, c.Proficiencies.Count, c.Features.Count, c.Items.Count, c.Resources.Count,
-            c.Effects.Count, c.Spellcasting.Spells.Count,
-            c.Items.Sum(i => i.Modifiers.Count), c.Effects.Sum(e => e.Modifiers.Count),
+            c.Effects.Count, c.Spellcasting.Spells.Count, c.Weapons.Count, c.WondrousItems.Count,
+            c.Items.Sum(i => i.Modifiers.Count), c.Effects.Sum(e => e.Modifiers.Count), c.WondrousItems.Sum(i => i.Modifiers.Count),
+            c.Features.Sum(f => f.Modifiers.Count), c.Weapons.Sum(w => w.Effects.Count),
         ];
         if (counts.Any(n => n > MaxListEntries))
             throw new CharacterFormatException("The character file contains an unreasonable number of entries.");

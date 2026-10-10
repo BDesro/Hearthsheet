@@ -42,6 +42,16 @@ public static class SrdCatalog
 
     public static IReadOnlyList<int> HitDieSizes { get; } = [6, 8, 10, 12];
 
+    /// <summary>Suggested weapon types and weapon proficiencies: the categories, then the SRD weapons.</summary>
+    public static IReadOnlyList<string> WeaponTypes { get; } =
+    [
+        "Simple", "Martial", "Melee", "Ranged",
+        "Battleaxe", "Blowgun", "Club", "Dagger", "Dart", "Flail", "Glaive", "Greataxe", "Greatclub", "Greatsword",
+        "Halberd", "Hand crossbow", "Handaxe", "Heavy crossbow", "Javelin", "Lance", "Light crossbow", "Light hammer",
+        "Longbow", "Longsword", "Mace", "Maul", "Morningstar", "Net", "Pike", "Quarterstaff", "Rapier", "Scimitar",
+        "Shortbow", "Shortsword", "Sickle", "Sling", "Spear", "Trident", "War pick", "Warhammer", "Whip",
+    ];
+
     // Full-caster slots per character level (index 0 = level 1), spell levels 1..9.
     private static readonly int[][] FullCasterSlots =
     [

@@ -14,9 +14,10 @@ public static class CharacterJson
 {
     /// <summary>
     /// Bump when the stored shape changes, and migrate the raw <see cref="JsonObject"/> from the old version in
-    /// <see cref="Deserialize(JsonObject, int)"/> before it is materialized. No migrations exist yet: version 1 is the first release.
+    /// <see cref="Deserialize(JsonObject, int)"/> before it is materialized. Version 2 only added fields (weapons, wondrous
+    /// items, feature modifiers), so version 1 reads as is; the bump stops older apps from loading and dropping them.
     /// </summary>
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public static readonly JsonSerializerOptions Options = new()
     {

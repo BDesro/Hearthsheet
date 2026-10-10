@@ -59,10 +59,12 @@ Character (aggregate root, Guid Id)
 ├── SavingThrows[6]  proficient + extra bonus
 ├── Skills[18]       None / Half / Proficient / Expertise + extra bonus
 ├── Combat           base AC, initiative bonus, base speed, base max HP, current/temp HP, hit die, hit dice left, death saves, stable
-├── Attacks[]        name, ability (or none), proficient, bonus, damage text
-├── Proficiencies[]  category (armor/weapon/tool/language/other) + name
-├── Features[]       name, source (class/subclass/species/background/feat/trait/custom), description
+├── Attacks[]        name, ability (or none), proficient, bonus, damage text; or a WeaponId (+ dice override) that derives them
+├── Proficiencies[]  category (armor/weapon/tool/language/other) + name; weapon entries decide weapon proficiency by name or type
+├── Features[]       name, source (class/subclass/species/background/feat/trait/custom), description, Modifiers[] (always on)
 ├── Items[]          qty, weight, equipped, attunement, description, Modifiers[]
+├── Weapons[]        id, types, ability, damage dice/type, notes, Effects[] (to-hit, damage, type): every bonus comes from effects
+├── WondrousItems[]  same shape as Items, listed separately
 ├── Currency         cp/sp/ep/gp/pp
 ├── Spellcasting     ability, class, concentration, Slots[1..9] (max/expended), Spells[]
 ├── Resources[]      current/max, recovers on (manual/short/long), optional partial amount
@@ -78,7 +80,7 @@ Character (aggregate root, Guid Id)
 - `Bonus` adds to the value.
 - `Set` replaces the base value; the highest `Set` wins, then bonuses apply.
 
-Modifiers are active on effects, and on items that are equipped (and attuned, if the item requires attunement). This covers Bless-style bonuses, a Ring of Protection, Gauntlets of Ogre Power and ad-hoc DM rulings, without a general rules engine. Per-skill and per-save `Bonus` fields cover one-off permanent adjustments.
+Modifiers are active on features, on effects, and on items and wondrous items that are equipped (and attuned, if the item requires attunement). Weapon attacks also read `attack`/`damage` targets qualified by ability or weapon type (`attack.str`, `damage.melee`). This covers Bless-style bonuses, a Ring of Protection, Gauntlets of Ogre Power and ad-hoc DM rulings, without a general rules engine. Per-skill and per-save `Bonus` fields cover one-off permanent adjustments.
 
 **Behaviour lives on the aggregate** (`Character.Play.cs`): `TakeDamage` (temp HP first, massive-damage death, failures at 0 HP), `Heal`, `SetHitPoints`, `GrantTemporaryHitPoints` (non-stacking), `RecordDeathSave`, `SpendHitDie`, `UseResource`, `ExpendSpellSlot`, `CastSpell` (lowest available slot, concentration swap, free cantrips and rituals), and conditions. These keep invariants together, for example dropping to 0 HP adds *Unconscious* and healing removes it. Property setters clamp to legal ranges, which also sanitizes imported data.
 
@@ -129,9 +131,9 @@ To change rest rules (another edition, a variant or a homebrew rule), replace or
 ## 7. Versioning and schema changes
 
 - App version: `<Version>` in `Directory.Build.props`, shown in the status bar and used by the updater.
-- Character schema version: `CharacterJson.CurrentSchemaVersion` (currently **1**).
+- Character schema version: `CharacterJson.CurrentSchemaVersion` (currently **2**; 2 only added fields, so 1 reads unchanged).
 
-There are no migrations yet: schema 1 is the first release. To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
+There are no migrations yet. To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
 
 ## 8. Import / export
 
@@ -214,7 +216,7 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 
 - Single class per character: level, hit die and hit dice are single values. Multiclassing needs per-class entries and hit-dice pools, which would be a schema-2 migration.
 - Conditions and exhaustion are tracked but apply no automatic mechanics (advantage and disadvantage are not modelled), because the rules differ between 2014 and 2024 editions.
-- Attack damage is free text; there are no dice roller or damage-type mechanics.
+- Damage is text: weapon attacks assemble a roll string by damage type, but there is no dice roller or resistance mechanics.
 - Half-caster slot progression follows SRD 5.1 (no slots at level 1). "Apply class defaults" can be ignored for 2024-style rules.
 - No bundled spell, feature or item content (see NOTICE.md).
 - A very long spell or feature list grows its sheet page beyond one printed page and is clipped when printing.
