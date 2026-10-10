@@ -11,6 +11,8 @@
     <SolidColorBrush x:Key="AccentHover" Color="#A63A30" />
     <SolidColorBrush x:Key="AccentSoft" Color="#F3E3DF" />
     <SolidColorBrush x:Key="Surface" Color="#FFFFFF" />
+    <!-- Read-only (computed) table cells: a shade off white, so editable cells stand out. -->
+    <SolidColorBrush x:Key="ReadOnlyFill" Color="#F5F2EC" />
     <SolidColorBrush x:Key="Canvas" Color="#F4F1EB" />
     <SolidColorBrush x:Key="Sidebar" Color="#ECE7DE" />
     <SolidColorBrush x:Key="Line" Color="#D8D1C5" />

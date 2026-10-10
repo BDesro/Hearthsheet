@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using Hearthsheet.Core.Rules;
 
@@ -20,7 +22,16 @@ public partial class TokenPicker : UserControl
         new PropertyMetadata(null, (d, _) => ((TokenPicker)d).Toggle.Visibility =
             ((TokenPicker)d).Options?.Any() == true ? Visibility.Visible : Visibility.Collapsed));
 
-    public TokenPicker() => InitializeComponent();
+    public TokenPicker()
+    {
+        InitializeComponent();
+        // Inside a DataGrid cell, clicks in the dropdown would bubble up to the cell, which takes focus mid-click and
+        // swallows the checkbox's click. Taking the popup out of the tree ends its event route at the popup itself.
+        ((Panel)Content).Children.Remove(DropDown);
+        DropDown.PlacementTarget = this;
+        DropDown.SetBinding(Popup.IsOpenProperty, new Binding(nameof(ToggleButton.IsChecked)) { Source = Toggle, Mode = BindingMode.TwoWay });
+        DropContent.SetBinding(MinWidthProperty, new Binding(nameof(ActualWidth)) { Source = this });
+    }
 
     public string Text
     {
