@@ -1,9 +1,9 @@
-<Window x:Class="Hearthsheet.App.MainWindow"
+﻿<Window x:Class="Hearthsheet.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:Hearthsheet.App.Views"
         xmlns:app="clr-namespace:Hearthsheet.Core.Application;assembly=Hearthsheet.Core"
-        Title="{Binding Current.Title, StringFormat={}{0} — Hearthsheet, FallbackValue=Hearthsheet, TargetNullValue=Hearthsheet}"
+        Title="Hearthsheet"
         Style="{StaticResource AppWindow}" Width="1360" Height="900" MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized" Closing="OnClosing">
     <Window.InputBindings>
@@ -23,7 +23,9 @@
         <CommandBinding Command="ApplicationCommands.Print" Executed="OnPrint" CanExecute="CanPrint" />
     </Window.CommandBindings>
 
-    <DockPanel>
+    <Grid>
+    <!-- Hidden (laid out but not drawn) while the intro plays, so the software-rendered video has the renderer to itself. -->
+    <DockPanel x:Name="AppRoot" Visibility="Hidden">
         <DockPanel DockPanel.Dock="Top" Background="{StaticResource Surface}">
         <TextBlock DockPanel.Dock="Right" Margin="12,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    AutomationProperties.Name="Signed in to cloud sync" ToolTip="Signed in to cloud sync"
@@ -202,4 +204,11 @@
             </TabControl>
         </Grid>
     </DockPanel>
+
+    <!-- Logo intro: plays over black on launch; a click skips it. -->
+    <Grid x:Name="Intro" Background="#101212" ClipToBounds="True" Cursor="Hand" MouseDown="OnIntroDown">
+        <MediaElement x:Name="IntroVideo" LoadedBehavior="Manual" Stretch="Uniform" IsHitTestVisible="False"
+                      Loaded="OnIntroLoaded" MediaOpened="OnIntroOpened" MediaEnded="OnIntroDone" MediaFailed="OnIntroDone" />
+    </Grid>
+    </Grid>
 </Window>

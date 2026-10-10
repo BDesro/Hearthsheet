@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Assets\tigrisoft-intro-short.mp4" CopyToOutputDirectory="PreserveNewest" />
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
