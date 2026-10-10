@@ -33,6 +33,8 @@
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding}" AutomationProperties.Name="Remove" />
         </DataTemplate>
+        <!-- Template columns that host their own controls (pickers, combo boxes) are IsReadOnly so the grid never puts the
+             cell in edit mode: entering edit mode rebuilds the cell and discards the control being clicked. -->
         <!-- A weapon attack's damage is computed and only its dice override is editable; the reverse for a plain attack. -->
         <Style x:Key="ReadOnlyForWeapon" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
             <Style.Triggers>
@@ -49,6 +51,22 @@
                 <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger>
             </Style.Triggers>
         </Style>
+        <!-- Computed cells are tinted (ReadOnlyFill); editable ones stay white. Per-row variants for attacks. -->
+        <Style x:Key="ComputedCell" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="Background" Value="{StaticResource ReadOnlyFill}" />
+        </Style>
+        <Style x:Key="ComputedForWeapon" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="Background" Value="{StaticResource ReadOnlyFill}" /></DataTrigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="ComputedForPlain" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="Background" Value="{StaticResource ReadOnlyFill}" /></DataTrigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+            </Style.Triggers>
+        </Style>
         <!-- Modifier editor used by items, features and effects. DataContext = Item, Feature or Effect. -->
         <DataTemplate x:Key="ModifierEditor">
             <StackPanel>
@@ -60,7 +78,7 @@
                 </DockPanel>
                 <DataGrid ItemsSource="{Binding Modifiers}" MaxHeight="180">
                     <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="Target" Width="Auto" MinWidth="200">
+                        <DataGridTemplateColumn Header="Target" Width="Auto" MinWidth="200" IsReadOnly="True">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ComboBox IsEditable="True" ItemsSource="{x:Static mvvm:Lookups.StatTargetKeys}" BorderThickness="0"
@@ -262,7 +280,7 @@
                     <DataGrid ItemsSource="{Binding Attacks}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" MinWidth="120" Binding="{Binding Name}" />
-                            <DataGridTemplateColumn Header="Weapon" Width="Auto" MinWidth="120">
+                            <DataGridTemplateColumn Header="Weapon" Width="Auto" MinWidth="120" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox BorderThickness="0" ItemsSource="{Binding DataContext.Character.Weapons, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -272,18 +290,18 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="100" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Ability}" />
-                            <DataGridCheckBoxColumn Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}"
+                            <DataGridCheckBoxColumn Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource ComputedForWeapon}"
                                                     EditingElementStyle="{StaticResource LockedForWeapon}" />
                             <DataGridTextColumn Header="Extra bonus" Width="Auto" Binding="{Binding Model.Bonus}" />
-                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" />
-                            <DataGridTextColumn Header="Dice override" Width="Auto" MinWidth="50" Binding="{Binding Model.Dice}" EditingElementStyle="{StaticResource ReadOnlyForPlain}">
+                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
+                            <DataGridTextColumn Header="Dice override" CellStyle="{StaticResource ComputedForPlain}" Width="Auto" MinWidth="50" Binding="{Binding Model.Dice}" EditingElementStyle="{StaticResource ReadOnlyForPlain}">
                                 <DataGridTextColumn.HeaderStyle>
                                     <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                         <Setter Property="ToolTip" Value="Weapon attacks only: dice that replace the weapon's, e.g. 1d10 for a two-handed versatile attack. Leave empty to use the weapon's dice." />
                                     </Style>
                                 </DataGridTextColumn.HeaderStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Damage / type" Width="Auto" MinWidth="150" Binding="{Binding DamageRoll}" EditingElementStyle="{StaticResource ReadOnlyForWeapon}" />
+                            <DataGridTextColumn Header="Damage / type" Width="Auto" MinWidth="150" Binding="{Binding DamageRoll}" EditingElementStyle="{StaticResource ReadOnlyForWeapon}" CellStyle="{StaticResource ComputedForWeapon}" />
                             <DataGridTextColumn Header="Notes" Width="*" MinWidth="80" Binding="{Binding Model.Notes}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
@@ -308,7 +326,7 @@
                     <DataGrid ItemsSource="{Binding Character.Proficiencies}" MaxHeight="600">
                         <DataGrid.Columns>
                             <DataGridComboBoxColumn Header="Category" Width="Auto" MinWidth="140" ItemsSource="{x:Static mvvm:Lookups.ProficiencyCategories}" SelectedItemBinding="{Binding Category}" />
-                            <DataGridTemplateColumn Header="Name" Width="*">
+                            <DataGridTemplateColumn Header="Name" Width="*" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <!-- Weapon entries suggest the standard weapon types, so they match the weapons' types exactly. -->
@@ -405,7 +423,7 @@
                     <DataGrid x:Name="WeaponGrid" ItemsSource="{Binding Weapons}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" MinWidth="100" Binding="{Binding Model.Name}" />
-                            <DataGridTemplateColumn Header="Types" Width="Auto" MinWidth="130">
+                            <DataGridTemplateColumn Header="Types" Width="Auto" MinWidth="130" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <views:TokenPicker Text="{Binding Model.Types, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Weapon types"
@@ -415,12 +433,12 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="95" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Model.Ability}" />
-                            <DataGridCheckBoxColumn Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" />
-                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" />
+                            <DataGridCheckBoxColumn Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" CellStyle="{StaticResource ComputedCell}" />
+                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="Damage" Width="Auto" MinWidth="55" Binding="{Binding Model.Damage}" />
                             <DataGridTextColumn Header="Type" Width="Auto" MinWidth="60" Binding="{Binding Model.DamageType}" />
-                            <DataGridTextColumn Header="Bonus dmg" Width="Auto" IsReadOnly="True" Binding="{Binding DamageBonus, Converter={StaticResource Mod}}" />
-                            <DataGridTextColumn Header="Additional damage" Width="Auto" IsReadOnly="True" Binding="{Binding AdditionalDamage}" />
+                            <DataGridTextColumn Header="Bonus dmg" Width="Auto" IsReadOnly="True" Binding="{Binding DamageBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
+                            <DataGridTextColumn Header="Additional damage" Width="Auto" IsReadOnly="True" Binding="{Binding AdditionalDamage}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="Special effects" Width="*" MinWidth="100" Binding="{Binding Model.Notes}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
@@ -521,7 +539,7 @@
                             <DataGridCheckBoxColumn Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridComboBoxColumn Header="Lvl" Width="Auto" MinWidth="55" ItemsSource="{x:Static mvvm:Lookups.SpellLevels}" SelectedItemBinding="{Binding Level}" />
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
-                            <DataGridTemplateColumn Header="School" Width="Auto" MinWidth="120">
+                            <DataGridTemplateColumn Header="School" Width="Auto" MinWidth="120" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox IsEditable="True" BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.SpellSchools}"
