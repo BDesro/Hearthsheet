@@ -56,7 +56,8 @@ public sealed class CharacterViewModel : Observable, IDisposable
         AddProficiency = new RelayCommand(p => c.Proficiencies.Add(new Proficiency
         {
             Category = p is ProficiencyCategory cat ? cat : ProficiencyCategory.Other,
-            Name = "New proficiency",
+            // A weapon entry starts blank for picking types; a placeholder would show up as a custom type.
+            Name = p is ProficiencyCategory.Weapon ? "" : "New proficiency",
         }));
         AddSpell = new RelayCommand(p => c.Spellcasting.Spells.Add(new Spell { Name = "New spell", Level = p is int l ? l : 0 }));
         AddResource = new RelayCommand(() => c.Resources.Add(new Resource { Name = "New resource" }));
@@ -119,6 +120,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public string VitalStatus => IsDead ? "Dead" : IsStable ? "Stable" : IsDying ? "Dying" : "";
     public string Title => string.IsNullOrWhiteSpace(Character.Identity.Name) ? "Unnamed character" : Character.Identity.Name;
     public string Summary => $"{Character.Identity.Species} {Character.Identity.ClassName} {Character.Identity.Level}".Trim();
+    public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
     public bool HasSpellcasting => Character.Spellcasting.Ability is not null || Character.Spellcasting.Spells.Count > 0;
 
     public ICommand CycleSkillProficiency { get; }

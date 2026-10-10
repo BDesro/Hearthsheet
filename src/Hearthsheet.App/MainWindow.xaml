@@ -5,7 +5,7 @@
         xmlns:app="clr-namespace:Hearthsheet.Core.Application;assembly=Hearthsheet.Core"
         Title="{Binding Current.Title, StringFormat={}{0} — Hearthsheet, FallbackValue=Hearthsheet, TargetNullValue=Hearthsheet}"
         Style="{StaticResource AppWindow}" Width="1360" Height="900" MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen" Closing="OnClosing">
+        WindowStartupLocation="CenterScreen" WindowState="Maximized" Closing="OnClosing">
     <Window.InputBindings>
         <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCharacter}" />
         <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewCharacter}" />

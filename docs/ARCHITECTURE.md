@@ -60,10 +60,10 @@ Character (aggregate root, Guid Id)
 ├── Skills[18]       None / Half / Proficient / Expertise + extra bonus
 ├── Combat           base AC, initiative bonus, base speed, base max HP, current/temp HP, hit die, hit dice left, death saves, stable
 ├── Attacks[]        name, ability (or none), proficient, bonus, damage text; or a WeaponId (+ dice override) that derives them
-├── Proficiencies[]  category (armor/weapon/tool/language/other) + name
+├── Proficiencies[]  category (armor/weapon/tool/language/other) + name; weapon entries decide weapon proficiency by name or type
 ├── Features[]       name, source (class/subclass/species/background/feat/trait/custom), description, Modifiers[] (always on)
 ├── Items[]          qty, weight, equipped, attunement, description, Modifiers[]
-├── Weapons[]        id, types, ability, proficient, to-hit/damage dice/type/bonus, additional damage, notes, Effects[] (to-hit, damage, type)
+├── Weapons[]        id, types, ability, damage dice/type, notes, Effects[] (to-hit, damage, type): every bonus comes from effects
 ├── WondrousItems[]  same shape as Items, listed separately
 ├── Currency         cp/sp/ep/gp/pp
 ├── Spellcasting     ability, class, concentration, Slots[1..9] (max/expended), Spells[]

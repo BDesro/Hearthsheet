@@ -128,18 +128,15 @@ public sealed class Weapon : Observable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set => Set(ref field, value ?? ""); } = "";
-    /// <summary>Comma or space separated, e.g. "martial, melee"; each one is a modifier target (attack.melee).</summary>
+    /// <summary>Comma separated, e.g. "Martial, Melee, Longsword"; each one is a modifier target (attack.melee) and can match a weapon proficiency.</summary>
     public string Types { get; set => Set(ref field, value ?? ""); } = "";
+    /// <remarks>Proficiency isn't stored: it comes from the character's weapon proficiencies.</remarks>
     public Ability? Ability { get; set => Set(ref field, value); } = Domain.Ability.Strength;
-    public bool Proficient { get; set => Set(ref field, value); } = true;
-    public int ToHitBonus { get; set => SetClamped(ref field, value, -50, 50); }
     /// <summary>Dice such as "1d8".</summary>
     public string Damage { get; set => Set(ref field, value ?? ""); } = "";
     public string DamageType { get; set => Set(ref field, value ?? ""); } = "";
-    public int BonusDamage { get; set => SetClamped(ref field, value, -50, 50); }
-    /// <summary>Free text appended to the damage roll, e.g. "1d6 poison".</summary>
-    public string AdditionalDamage { get; set => Set(ref field, value ?? ""); } = "";
     public string Notes { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>Everything the weapon adds: a +1 enchantment, silvering, extra fire damage…</summary>
     public ObservableCollection<WeaponEffect> Effects { get; init; } = [];
 }
 

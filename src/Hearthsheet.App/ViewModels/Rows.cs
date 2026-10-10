@@ -47,7 +47,7 @@ public sealed class SkillRow(Character c, SkillEntry entry) : RowBase
     public int Modifier => CharacterRules.SkillModifier(c, entry.Skill);
 }
 
-/// <summary>A weapon attack shows and edits its weapon's ability and proficiency; a blank name follows the weapon's.</summary>
+/// <summary>A weapon attack shows and edits its weapon's ability, shows its derived proficiency, and a blank name follows the weapon's.</summary>
 public sealed class AttackRow(Character c, Attack attack) : RowBase
 {
     public Attack Model => attack;
@@ -66,10 +66,11 @@ public sealed class AttackRow(Character c, Attack attack) : RowBase
         set { if (Weapon is { } w) w.Ability = value; else attack.Ability = value; }
     }
 
+    /// <summary>Read-only for a weapon attack: it comes from the weapon proficiencies.</summary>
     public bool Proficient
     {
-        get => Weapon?.Proficient ?? attack.Proficient;
-        set { if (Weapon is { } w) w.Proficient = value; else attack.Proficient = value; }
+        get => Weapon is { } w ? CharacterRules.IsProficient(c, w) : attack.Proficient;
+        set { if (Weapon is null) attack.Proficient = value; }
     }
 
     public int AttackBonus => CharacterRules.AttackBonus(c, attack);
@@ -85,8 +86,10 @@ public sealed class AttackRow(Character c, Attack attack) : RowBase
 public sealed class WeaponRow(Character c, Weapon weapon) : RowBase
 {
     public Weapon Model => weapon;
+    public bool Proficient => CharacterRules.IsProficient(c, weapon);
     public int AttackBonus => CharacterRules.AttackBonus(c, weapon);
     public int DamageBonus => CharacterRules.DamageBonus(c, weapon);
+    public string AdditionalDamage => CharacterRules.AdditionalDamage(c, weapon);
 }
 
 public sealed class SlotPip(int level, int index, bool expended)

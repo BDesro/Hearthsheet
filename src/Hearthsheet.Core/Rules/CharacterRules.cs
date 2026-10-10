@@ -1,3 +1,4 @@
+using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 
 namespace Hearthsheet.Core.Rules;
@@ -130,7 +131,43 @@ public static class CharacterRules
         : ToHit(c, attack.Ability, attack.Proficient, attack.Bonus, []);
 
     public static int AttackBonus(Character c, Weapon w) =>
-        ToHit(c, w.Ability, w.Proficient, w.ToHitBonus + w.Effects.Sum(e => e.ToHit), WeaponTypes(w));
+        ToHit(c, w.Ability, IsProficient(c, w), w.Effects.Sum(e => e.ToHit), WeaponTypes(w));
+
+    /// <summary>
+    /// True when a weapon proficiency names the weapon or one of its types. An entry may list several
+    /// ("Simple, Martial"); a trailing "weapon(s)" and plural s are ignored ("Martial weapons", "Longswords").
+    /// </summary>
+    public static bool IsProficient(Character c, Weapon w)
+    {
+        var keys = WeaponTypes(w).Append(w.Name).Select(ProficiencyKey).Where(k => k.Length > 0).ToHashSet();
+        return c.Proficiencies.Where(p => p.Category == ProficiencyCategory.Weapon)
+            .SelectMany(p => SplitList(p.Name))
+            .Any(name => keys.Contains(ProficiencyKey(name)));
+    }
+
+    /// <summary>
+    /// Choices for weapon types and weapon proficiencies: the categories, then the custom types already used on this
+    /// character's weapons or weapon proficiencies, then the SRD weapons. Custom types live only where they're used.
+    /// </summary>
+    public static IReadOnlyList<string> WeaponTypeOptions(Character c)
+    {
+        var standard = SrdCatalog.WeaponTypes;
+        var standardKeys = standard.Select(ProficiencyKey).ToHashSet();
+        var custom = c.Weapons.SelectMany(w => SplitList(w.Types))
+            .Concat(c.Proficiencies.Where(p => p.Category == ProficiencyCategory.Weapon).SelectMany(p => SplitList(p.Name)))
+            .Where(t => !standardKeys.Contains(ProficiencyKey(t)))
+            .DistinctBy(ProficiencyKey)
+            .Order(StringComparer.OrdinalIgnoreCase);
+        return [.. standard.Take(4), .. custom, .. standard.Skip(4)];
+    }
+
+    private static string ProficiencyKey(string name)
+    {
+        var key = name.Trim().ToLowerInvariant();
+        foreach (var suffix in (string[])[" weapons", " weapon"])
+            if (key.EndsWith(suffix, StringComparison.Ordinal)) key = key[..^suffix.Length];
+        return key.TrimEnd('s');
+    }
 
     private static int ToHit(Character c, Ability? ability, bool proficient, int bonus, string[] types)
     {
@@ -138,10 +175,10 @@ public static class CharacterRules
         return Resolve(c, baseValue, [StatTargets.Attack, .. Qualifiers(ability, types).Select(StatTargets.AttackWith)]);
     }
 
-    /// <summary>The flat number in the weapon's main damage: ability modifier, bonus damage, untyped flat effects and damage modifiers.</summary>
+    /// <summary>The flat number in the weapon's main damage: ability modifier, untyped flat effects and damage modifiers.</summary>
     public static int DamageBonus(Character c, Weapon w)
     {
-        var baseValue = (w.Ability is { } a ? AbilityModifier(c, a) : 0) + w.BonusDamage
+        var baseValue = (w.Ability is { } a ? AbilityModifier(c, a) : 0)
                         + w.Effects.Where(e => IsMainDamage(w, e)).Sum(e => int.TryParse(e.Damage, out var n) ? n : 0);
         return Resolve(c, baseValue, [StatTargets.Damage, .. Qualifiers(w.Ability, WeaponTypes(w)).Select(StatTargets.DamageWith)]);
     }
@@ -150,13 +187,17 @@ public static class CharacterRules
     /// The attack's full damage, grouped by type with the weapon's main type first,
     /// e.g. "1d8 + 3 slashing + 2d6 fire". A non-weapon attack's free text is returned as is.
     /// </summary>
-    public static string DamageRoll(Character c, Attack attack)
+    public static string DamageRoll(Character c, Attack attack) => WeaponOf(c, attack) is { } w
+        ? string.Join(" + ", DamageParts(c, w, string.IsNullOrWhiteSpace(attack.Dice) ? w.Damage : attack.Dice).Where(p => p.Length > 0))
+        : attack.Damage;
+
+    /// <summary>The weapon's extra typed damage from its effects, e.g. "2d6 fire".</summary>
+    public static string AdditionalDamage(Character c, Weapon w) => string.Join(" + ", DamageParts(c, w, w.Damage).Skip(1));
+
+    /// <summary>One part per damage type; the first is always the weapon's main damage (possibly empty).</summary>
+    private static List<string> DamageParts(Character c, Weapon w, string dice)
     {
-        if (WeaponOf(c, attack) is not { } w) return attack.Damage;
-        var groups = new List<(string Type, List<string> Dice, int Flat)>
-        {
-            (w.DamageType.Trim(), [string.IsNullOrWhiteSpace(attack.Dice) ? w.Damage.Trim() : attack.Dice.Trim()], DamageBonus(c, w)),
-        };
+        var groups = new List<(string Type, List<string> Dice, int Flat)> { (w.DamageType.Trim(), [dice.Trim()], DamageBonus(c, w)) };
         foreach (var e in w.Effects.Where(e => !string.IsNullOrWhiteSpace(e.Damage)))
         {
             var main = IsMainDamage(w, e);
@@ -171,9 +212,7 @@ public static class CharacterRules
             if (int.TryParse(e.Damage, out var flat)) groups[i] = (groups[i].Type, groups[i].Dice, groups[i].Flat + flat);
             else groups[i].Dice.Add(e.Damage.Trim());
         }
-        var parts = groups.Select(g => $"{FormatDice(g.Dice.Where(d => d.Length > 0).ToList(), g.Flat)} {g.Type}".Trim())
-            .Append(w.AdditionalDamage.Trim());
-        return string.Join(" + ", parts.Where(p => p.Length > 0));
+        return [.. groups.Select(g => $"{FormatDice(g.Dice.Where(d => d.Length > 0).ToList(), g.Flat)} {g.Type}".Trim())];
     }
 
     private static string FormatDice(List<string> dice, int flat) =>
@@ -183,8 +222,11 @@ public static class CharacterRules
     private static bool IsMainDamage(Weapon w, WeaponEffect e) =>
         string.IsNullOrWhiteSpace(e.DamageType) || string.Equals(e.DamageType.Trim(), w.DamageType.Trim(), StringComparison.OrdinalIgnoreCase);
 
-    private static string[] WeaponTypes(Weapon w) =>
-        w.Types.Split([',', ' ', '/', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    /// <summary>Splits a comma-separated list such as a weapon's types ("Martial, Melee, Light crossbow").</summary>
+    public static string[] SplitList(string list) =>
+        list.Split([',', ';', '/'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private static string[] WeaponTypes(Weapon w) => SplitList(w.Types);
 
     private static IEnumerable<string> Qualifiers(Ability? ability, string[] types) =>
         ability is { } a ? types.Prepend(a.Abbreviation()) : types;

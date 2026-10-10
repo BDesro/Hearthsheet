@@ -1,0 +1,40 @@
+<UserControl x:Class="Hearthsheet.App.Views.TokenPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root" IsTabStop="False">
+    <!-- A comma-separated list: type freely, or tick suggestions in the dropdown to add or remove them. -->
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center"
+                 Text="{Binding Text, ElementName=Root, UpdateSourceTrigger=LostFocus}"
+                 AutomationProperties.Name="{Binding (AutomationProperties.Name), ElementName=Root}" />
+        <ToggleButton x:Name="Toggle" Grid.Column="1" Content="▾" Width="20" Padding="0" BorderThickness="0" Background="Transparent"
+                      Foreground="{StaticResource InkMuted}" ToolTip="Choose from the list" Visibility="Collapsed"
+                      AutomationProperties.Name="{Binding (AutomationProperties.Name), ElementName=Root, StringFormat={}{0} choices}" />
+        <Popup IsOpen="{Binding IsChecked, ElementName=Toggle}" PlacementTarget="{Binding ElementName=Root}"
+               StaysOpen="False" AllowsTransparency="True" Opened="OnOpened" Closed="OnClosed">
+            <Border Background="{StaticResource Surface}" BorderBrush="{StaticResource LineStrong}" BorderThickness="1" Padding="8,4"
+                    MinWidth="{Binding ActualWidth, ElementName=Root}">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,2">
+                        <TextBlock Text="Custom" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource InkMuted}" />
+                        <Button DockPanel.Dock="Right" Content="Add" Margin="6,0,0,0" Padding="8,1" Click="OnAddCustom" />
+                        <TextBox x:Name="Custom" MinWidth="90" KeyDown="OnCustomKeyDown" AutomationProperties.Name="Custom type" />
+                    </DockPanel>
+                    <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto" Focusable="False">
+                        <ItemsControl x:Name="Choices" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsChecked}" Margin="0,2" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

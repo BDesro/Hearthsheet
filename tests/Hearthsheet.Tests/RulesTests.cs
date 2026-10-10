@@ -161,11 +161,13 @@ public class RulesTests
         sword.Effects.Add(new WeaponEffect { Name = "Silver", Damage = "1" });
         sword.Effects.Add(new WeaponEffect { Name = "Flame", Damage = "2d6", DamageType = "fire" });
         c.Weapons.Add(sword);
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Weapon, Name = "Simple, Martial weapons" });
         var attack = new Attack { WeaponId = sword.Id, Ability = null, Proficient = false };
         c.Attacks.Add(attack);
 
         Assert.Equal(5, CharacterRules.AttackBonus(c, attack)); // the weapon's ability and proficiency, not the attack's
         Assert.Equal("1d8 + 4 slashing + 2d6 fire", CharacterRules.DamageRoll(c, attack));
+        Assert.Equal("2d6 fire", CharacterRules.AdditionalDamage(c, sword));
 
         var style = new Feature { Name = "Fighting style" };
         style.Modifiers.Add(new Modifier { Target = "attack.melee", Value = 1 });
@@ -198,5 +200,48 @@ public class RulesTests
 
         cloak.Equipped = false;
         Assert.Equal(0, CharacterRules.SavingThrow(c, Ability.Wisdom));
+    }
+
+    [Theory]
+    [InlineData("Martial", true)]
+    [InlineData("Simple, Martial", true)]
+    [InlineData("martial weapons", true)]
+    [InlineData("Longswords", true)]
+    [InlineData("Simple", false)]
+    [InlineData("Shortswords", false)]
+    public void WeaponProficiency_MatchesNameOrType(string proficiency, bool expected)
+    {
+        var c = new Character();
+        var sword = new Weapon { Name = "Longsword", Types = "martial, melee" };
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Weapon, Name = proficiency });
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Armor, Name = "Longsword" }); // wrong category: ignored
+        Assert.Equal(expected, CharacterRules.IsProficient(c, sword));
+    }
+
+    [Fact]
+    public void WeaponTypes_SplitOnCommasOnly()
+    {
+        var c = new Character();
+        var bow = new Weapon { Name = "Kaya's Bow", Types = "Simple, Ranged, Light crossbow" };
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Weapon, Name = "Light crossbows" });
+        Assert.True(CharacterRules.IsProficient(c, bow));
+
+        c.Proficiencies[0].Name = "Light";
+        Assert.False(CharacterRules.IsProficient(c, bow));
+    }
+
+    [Fact]
+    public void WeaponTypeOptions_ListCustomTypesInUseOnce()
+    {
+        var c = new Character();
+        c.Weapons.Add(new Weapon { Types = "Martial, Melee, Katana" });
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Weapon, Name = "katanas, Longswords, Firearms" });
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Tool, Name = "Thieves' tools" });
+
+        var options = CharacterRules.WeaponTypeOptions(c);
+
+        Assert.Equal(["Simple", "Martial", "Melee", "Ranged", "Firearms", "Katana"], options.Take(6));
+        Assert.Single(options, o => o.Equals("Longsword", StringComparison.OrdinalIgnoreCase)); // plural matched the standard one
+        Assert.DoesNotContain("Thieves' tools", options);
     }
 }
