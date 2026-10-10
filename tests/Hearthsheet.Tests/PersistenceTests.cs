@@ -78,7 +78,7 @@ public class SerializationTests
     [Fact]
     public void Import_RejectsNewerSchema()
     {
-        var text = _portable.Export(new Character(), "9.0.0").Replace("\"schemaVersion\": 1", "\"schemaVersion\": 99");
+        var text = _portable.Export(new Character(), "9.0.0").Replace($"\"schemaVersion\": {CharacterJson.CurrentSchemaVersion}", "\"schemaVersion\": 99");
         var ex = Assert.Throws<CharacterFormatException>(() => _portable.Import(text));
         Assert.Contains("newer version", ex.Message);
     }

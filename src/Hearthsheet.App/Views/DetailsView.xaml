@@ -32,7 +32,18 @@
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding}" AutomationProperties.Name="Remove" />
         </DataTemplate>
-        <!-- Modifier editor used by items and effects. DataContext = Item or Effect. -->
+        <!-- A weapon attack's damage is computed and only its dice override is editable; the reverse for a plain attack. -->
+        <Style x:Key="ReadOnlyForWeapon" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="IsReadOnly" Value="True" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="ReadOnlyForPlain" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="IsReadOnly" Value="True" /></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Modifier editor used by items, features and effects. DataContext = Item, Feature or Effect. -->
         <DataTemplate x:Key="ModifierEditor">
             <StackPanel>
                 <DockPanel Margin="0,4,0,4">
@@ -241,16 +252,26 @@
                         <Button DockPanel.Dock="Right" Content="+ Add attack" Command="{Binding AddAttack}" />
                         <TextBlock Text="Attacks" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text="Pick a weapon to fill in ability, proficiency, to-hit and damage from Equipment. On a weapon attack, Dice replaces the weapon's dice (e.g. versatile 1d10)." />
                     <DataGrid ItemsSource="{Binding Attacks}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Model.Name}" />
-                            <DataGridComboBoxColumn Header="Ability" Width="120" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}"
-                                                    DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Model.Ability}" />
-                            <DataGridCheckBoxColumn Header="Proficient" Width="80" Binding="{Binding Model.Proficient, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridTextColumn Header="Extra bonus" Width="90" Binding="{Binding Model.Bonus}" />
-                            <DataGridTextColumn Header="To hit" Width="70" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" />
-                            <DataGridTextColumn Header="Damage / type" Width="150" Binding="{Binding Model.Damage}" />
-                            <DataGridTextColumn Header="Notes" Width="*" Binding="{Binding Model.Notes}" />
+                            <DataGridTextColumn Header="Name" Width="*" MinWidth="120" Binding="{Binding Name}" />
+                            <DataGridTemplateColumn Header="Weapon" Width="120">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox BorderThickness="0" ItemsSource="{Binding DataContext.Character.Weapons, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding Model.WeaponId}" AutomationProperties.Name="Weapon" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridComboBoxColumn Header="Ability" Width="100" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}"
+                                                    DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Ability}" />
+                            <DataGridCheckBoxColumn Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridTextColumn Header="Extra bonus" Width="Auto" Binding="{Binding Model.Bonus}" />
+                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" />
+                            <DataGridTextColumn Header="Dice" Width="Auto" MinWidth="50" Binding="{Binding Model.Dice}" EditingElementStyle="{StaticResource ReadOnlyForPlain}" />
+                            <DataGridTextColumn Header="Damage / type" Width="Auto" MinWidth="150" Binding="{Binding DamageRoll}" EditingElementStyle="{StaticResource ReadOnlyForWeapon}" />
+                            <DataGridTextColumn Header="Notes" Width="*" MinWidth="80" Binding="{Binding Model.Notes}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -287,7 +308,7 @@
             <ScrollViewer Style="{StaticResource Page}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitle}" Text="Features &amp; Traits" />
-                    <TextBlock Style="{StaticResource Hint}" Text="Class, subclass, species and background features, feats, traits and anything custom. Select a row to edit its description." />
+                    <TextBlock Style="{StaticResource Hint}" Text="Class, subclass, species and background features, feats, traits and anything custom. Select a row to edit its description and its permanent effects (modifiers that always apply)." />
                     <StackPanel Style="{StaticResource Toolbar}">
                         <Button Content="+ Add feature" Command="{Binding AddFeature}" />
                     </StackPanel>
@@ -298,11 +319,13 @@
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
-                    <HeaderedContentControl Header="Description" Style="{StaticResource Field}"
-                                            Visibility="{Binding SelectedItem, ElementName=FeatureGrid, Converter={StaticResource VisibleWhen}}">
-                        <TextBox Style="{StaticResource MultilineBox}" MinHeight="140" Text="{Binding SelectedItem.Description, ElementName=FeatureGrid}"
-                                 AutomationProperties.Name="Feature description" />
-                    </HeaderedContentControl>
+                    <StackPanel Visibility="{Binding SelectedItem, ElementName=FeatureGrid, Converter={StaticResource VisibleWhen}}">
+                        <HeaderedContentControl Header="Description" Style="{StaticResource Field}">
+                            <TextBox Style="{StaticResource MultilineBox}" MinHeight="140" Text="{Binding SelectedItem.Description, ElementName=FeatureGrid}"
+                                     AutomationProperties.Name="Feature description" />
+                        </HeaderedContentControl>
+                        <ContentControl Content="{Binding SelectedItem, ElementName=FeatureGrid}" ContentTemplate="{StaticResource ModifierEditor}" IsTabStop="False" />
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
         </TabItem>
@@ -342,6 +365,70 @@
                             <TextBox Style="{StaticResource MultilineBox}" Text="{Binding SelectedItem.Description, ElementName=ItemGrid}" AutomationProperties.Name="Item description" />
                         </HeaderedContentControl>
                         <ContentControl Content="{Binding SelectedItem, ElementName=ItemGrid}" ContentTemplate="{StaticResource ModifierEditor}" IsTabStop="False" />
+                    </StackPanel>
+
+                    <DockPanel Margin="0,18,0,6">
+                        <Button DockPanel.Dock="Right" Content="+ Add weapon" Command="{Binding AddWeapon}" />
+                        <TextBlock Text="Weapons" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text="Each weapon adds an attack on the Combat page. Hit + and Dmg + are the weapon's own bonuses (a +1 weapon); To hit and Bonus dmg are the totals with your ability, proficiency, effects and modifiers. Types (e.g. martial, melee) can be targeted by modifiers such as attack.melee or damage.ranged. Select a weapon to edit its effects." />
+                    <DataGrid x:Name="WeaponGrid" ItemsSource="{Binding Weapons}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Width="*" MinWidth="100" Binding="{Binding Model.Name}" />
+                            <DataGridTextColumn Header="Types" Width="Auto" MinWidth="80" Binding="{Binding Model.Types}" />
+                            <DataGridComboBoxColumn Header="Ability" Width="95" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}"
+                                                    DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Model.Ability}" />
+                            <DataGridCheckBoxColumn Header="Prof." Width="Auto" Binding="{Binding Model.Proficient, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridTextColumn Header="Hit +" Width="Auto" Binding="{Binding Model.ToHitBonus}" />
+                            <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" />
+                            <DataGridTextColumn Header="Damage" Width="Auto" MinWidth="55" Binding="{Binding Model.Damage}" />
+                            <DataGridTextColumn Header="Type" Width="Auto" MinWidth="60" Binding="{Binding Model.DamageType}" />
+                            <DataGridTextColumn Header="Dmg +" Width="Auto" Binding="{Binding Model.BonusDamage}" />
+                            <DataGridTextColumn Header="Bonus dmg" Width="Auto" IsReadOnly="True" Binding="{Binding DamageBonus, Converter={StaticResource Mod}}" />
+                            <DataGridTextColumn Header="Add'l damage" Width="Auto" Binding="{Binding Model.AdditionalDamage}" />
+                            <DataGridTextColumn Header="Special effects" Width="*" MinWidth="100" Binding="{Binding Model.Notes}" />
+                            <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Visibility="{Binding SelectedItem, ElementName=WeaponGrid, Converter={StaticResource VisibleWhen}}">
+                        <DockPanel Margin="0,8,0,4">
+                            <Button DockPanel.Dock="Right" Content="+ Add weapon effect" Command="{Binding AddWeaponEffect}" CommandParameter="{Binding SelectedItem.Model, ElementName=WeaponGrid}" />
+                            <TextBlock VerticalAlignment="Center" TextWrapping="Wrap">
+                                <Run Text="{Binding SelectedItem.Model.Name, ElementName=WeaponGrid, Mode=OneWay, StringFormat=Effects on {0}}" FontWeight="SemiBold" />
+                                <Run Text="  Damage with no type (or the weapon's type) joins its main damage." Foreground="{StaticResource InkMuted}" />
+                            </TextBlock>
+                        </DockPanel>
+                        <DataGrid ItemsSource="{Binding SelectedItem.Model.Effects, ElementName=WeaponGrid}" MaxHeight="180">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Effect" Width="*" Binding="{Binding Name}" />
+                                <DataGridTextColumn Header="To hit" Width="60" Binding="{Binding ToHit}" />
+                                <DataGridTextColumn Header="Damage" Width="80" Binding="{Binding Damage}" />
+                                <DataGridTextColumn Header="Damage type" Width="110" Binding="{Binding DamageType}" />
+                                <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+
+                    <DockPanel Margin="0,18,0,6">
+                        <Button DockPanel.Dock="Right" Content="+ Add wondrous item" Command="{Binding AddWondrousItem}" />
+                        <TextBlock Text="Wondrous items" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text="Select an item to set what it changes (e.g. Cloak of Protection: ac +1, save.all +1). Its modifiers apply only while it is equipped (and attuned, if it needs attunement)." />
+                    <DataGrid x:Name="WondrousGrid" ItemsSource="{Binding Character.WondrousItems}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
+                            <DataGridTextColumn Header="Weight (lb)" Width="90" Binding="{Binding Weight}" />
+                            <DataGridCheckBoxColumn Header="Equipped" Width="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn Header="Needs attunement" Width="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn Header="Attuned" Width="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Visibility="{Binding SelectedItem, ElementName=WondrousGrid, Converter={StaticResource VisibleWhen}}">
+                        <HeaderedContentControl Header="Description" Style="{StaticResource Field}">
+                            <TextBox Style="{StaticResource MultilineBox}" Text="{Binding SelectedItem.Description, ElementName=WondrousGrid}" AutomationProperties.Name="Wondrous item description" />
+                        </HeaderedContentControl>
+                        <ContentControl Content="{Binding SelectedItem, ElementName=WondrousGrid}" ContentTemplate="{StaticResource ModifierEditor}" IsTabStop="False" />
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

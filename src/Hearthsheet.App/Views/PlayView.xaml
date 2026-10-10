@@ -315,8 +315,8 @@
                         </DockPanel>
                         <TextBlock Style="{StaticResource Hint}" Margin="0" Text="Nothing carried."
                                    Visibility="{Binding Character.Items.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
-                        <ItemsControl ItemsSource="{Binding Character.Items}" IsTabStop="False">
-                            <ItemsControl.ItemTemplate>
+                        <StackPanel>
+                            <StackPanel.Resources>
                                 <DataTemplate DataType="{x:Type domain:Item}">
                                     <DockPanel Margin="0,0,0,2">
                                         <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="✕" ToolTip="Remove item"
@@ -330,8 +330,12 @@
                                         </TextBlock>
                                     </DockPanel>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                            </StackPanel.Resources>
+                            <ItemsControl ItemsSource="{Binding Character.Items}" IsTabStop="False" />
+                            <TextBlock Style="{StaticResource CardTitle}" Text="WONDROUS ITEMS" Margin="0,8,0,2"
+                                       Visibility="{Binding Character.WondrousItems.Count, Converter={StaticResource VisibleWhen}}" />
+                            <ItemsControl ItemsSource="{Binding Character.WondrousItems}" IsTabStop="False" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 

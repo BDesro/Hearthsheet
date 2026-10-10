@@ -151,4 +151,52 @@ public class RulesTests
         Assert.Equal(1, c.Identity.Level);
         Assert.Equal(0, c.Combat.CurrentHp);
     }
+
+    [Fact]
+    public void WeaponAttack_CombinesWeaponEffectsAndModifiersIntoToHitAndDamage()
+    {
+        var c = new Character();
+        c.Abilities.Strength = 16; // +3, PB +2
+        var sword = new Weapon { Name = "Longsword", Types = "martial, melee", Damage = "1d8", DamageType = "slashing" };
+        sword.Effects.Add(new WeaponEffect { Name = "Silver", Damage = "1" });
+        sword.Effects.Add(new WeaponEffect { Name = "Flame", Damage = "2d6", DamageType = "fire" });
+        c.Weapons.Add(sword);
+        var attack = new Attack { WeaponId = sword.Id, Ability = null, Proficient = false };
+        c.Attacks.Add(attack);
+
+        Assert.Equal(5, CharacterRules.AttackBonus(c, attack)); // the weapon's ability and proficiency, not the attack's
+        Assert.Equal("1d8 + 4 slashing + 2d6 fire", CharacterRules.DamageRoll(c, attack));
+
+        var style = new Feature { Name = "Fighting style" };
+        style.Modifiers.Add(new Modifier { Target = "attack.melee", Value = 1 });
+        style.Modifiers.Add(new Modifier { Target = "damage.str", Value = 2 });
+        c.Features.Add(style);
+        Assert.Equal(6, CharacterRules.AttackBonus(c, attack));
+        Assert.Equal("1d8 + 6 slashing + 2d6 fire", CharacterRules.DamageRoll(c, attack));
+
+        var twoHanded = new Attack { WeaponId = sword.Id, Dice = "1d10", Damage = "ignored", Bonus = -1 };
+        Assert.Equal(5, CharacterRules.AttackBonus(c, twoHanded));
+        Assert.Equal("1d10 + 6 slashing + 2d6 fire", CharacterRules.DamageRoll(c, twoHanded));
+
+        c.Weapons.Clear();
+        Assert.Equal("ignored", CharacterRules.DamageRoll(c, twoHanded)); // orphaned: plain attack
+    }
+
+    [Fact]
+    public void WondrousItem_AppliesOnlyWhileEquipped()
+    {
+        var c = new Character();
+        var cloak = new Item { Name = "Cloak of Protection" };
+        cloak.Modifiers.Add(new Modifier { Target = StatTargets.ArmorClass, Value = 1 });
+        cloak.Modifiers.Add(new Modifier { Target = StatTargets.AllSaves, Value = 1 });
+        c.WondrousItems.Add(cloak);
+        Assert.Equal(10, CharacterRules.ArmorClass(c));
+
+        cloak.Equipped = true;
+        Assert.Equal(11, CharacterRules.ArmorClass(c));
+        Assert.Equal(1, CharacterRules.SavingThrow(c, Ability.Wisdom));
+
+        cloak.Equipped = false;
+        Assert.Equal(0, CharacterRules.SavingThrow(c, Ability.Wisdom));
+    }
 }
