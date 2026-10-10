@@ -44,11 +44,20 @@ public sealed class CharacterViewModel : Observable, IDisposable
         });
         AddAttack = new RelayCommand(() => c.Attacks.Add(new Attack { Name = "New attack" }));
         AddItem = new RelayCommand(() => c.Items.Add(new Item { Name = "New item" }));
+        AddWondrousItem = new RelayCommand(() => c.WondrousItems.Add(new Item { Name = "New wondrous item" }));
+        AddWeapon = new RelayCommand(() =>
+        {
+            var weapon = new Weapon { Name = "New weapon" };
+            c.Weapons.Add(weapon);
+            c.Attacks.Add(new Attack { WeaponId = weapon.Id });
+        });
+        AddWeaponEffect = new RelayCommand(p => (p as Weapon)?.Effects.Add(new WeaponEffect { Name = "New effect" }));
         AddFeature = new RelayCommand(() => c.Features.Add(new Feature { Name = "New feature" }));
         AddProficiency = new RelayCommand(p => c.Proficiencies.Add(new Proficiency
         {
             Category = p is ProficiencyCategory cat ? cat : ProficiencyCategory.Other,
-            Name = "New proficiency",
+            // A weapon entry starts blank for picking types; a placeholder would show up as a custom type.
+            Name = p is ProficiencyCategory.Weapon ? "" : "New proficiency",
         }));
         AddSpell = new RelayCommand(p => c.Spellcasting.Spells.Add(new Spell { Name = "New spell", Level = p is int l ? l : 0 }));
         AddResource = new RelayCommand(() => c.Resources.Add(new Resource { Name = "New resource" }));
@@ -57,6 +66,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
         {
             Item i => i.Modifiers,
             Effect e => e.Modifiers,
+            Feature f => f.Modifiers,
             _ => null,
         })?.Add(new Modifier { Target = StatTargets.ArmorClass, Value = 1 }));
         RemoveEntry = new RelayCommand(RemoveEntryWithConfirmation, p => p is not null);
@@ -89,6 +99,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public IReadOnlyList<SpellLevelRow> SpellLevels { get; }
     public IReadOnlyList<ConditionToggle> Conditions { get; }
     public ObservableCollection<AttackRow> Attacks { get; } = [];
+    public ObservableCollection<WeaponRow> Weapons { get; } = [];
 
     // Derived values.
     public int ProficiencyBonus => CharacterRules.ProficiencyBonus(Character);
@@ -109,11 +120,15 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public string VitalStatus => IsDead ? "Dead" : IsStable ? "Stable" : IsDying ? "Dying" : "";
     public string Title => string.IsNullOrWhiteSpace(Character.Identity.Name) ? "Unnamed character" : Character.Identity.Name;
     public string Summary => $"{Character.Identity.Species} {Character.Identity.ClassName} {Character.Identity.Level}".Trim();
+    public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
     public bool HasSpellcasting => Character.Spellcasting.Ability is not null || Character.Spellcasting.Spells.Count > 0;
 
     public ICommand CycleSkillProficiency { get; }
     public ICommand AddAttack { get; }
     public ICommand AddItem { get; }
+    public ICommand AddWondrousItem { get; }
+    public ICommand AddWeapon { get; }
+    public ICommand AddWeaponEffect { get; }
     public ICommand AddFeature { get; }
     public ICommand AddProficiency { get; }
     public ICommand AddSpell { get; }
@@ -139,6 +154,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
         foreach (var row in Saves) row.Refresh();
         foreach (var row in Skills) row.Refresh();
         foreach (var row in Attacks) row.Refresh();
+        foreach (var row in Weapons) row.Refresh();
         foreach (var row in SpellLevels) row.Refresh();
         foreach (var row in Conditions) row.Refresh();
         Raise(string.Empty);
@@ -148,6 +164,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     private void SyncCollections()
     {
         Sync(Attacks, Character.Attacks, r => r.Model, a => new AttackRow(Character, a));
+        Sync(Weapons, Character.Weapons, r => r.Model, w => new WeaponRow(Character, w));
         foreach (var level in SpellLevels)
             Sync(level.Spells, Character.Spellcasting.Spells.Where(s => s.Level == level.Level).ToList(), s => s, s => s);
     }
@@ -173,25 +190,29 @@ public sealed class CharacterViewModel : Observable, IDisposable
         var c = Character;
         (IList? list, string name) = entry switch
         {
-            AttackRow r => (c.Attacks, r.Model.Name),
+            AttackRow r => (c.Attacks, r.Name),
             Attack a => (c.Attacks, a.Name),
-            Item i => (c.Items, i.Name),
+            WeaponRow r => (c.Weapons, r.Model.Name),
+            WeaponEffect e => (c.Weapons.Select(w => w.Effects).FirstOrDefault(list => list.Contains(e)), e.Name),
+            Item i => (c.Items.Contains(i) ? c.Items : c.WondrousItems, i.Name),
             Feature f => (c.Features, f.Name),
             Proficiency p => (c.Proficiencies, p.Name),
             Spell s => (c.Spellcasting.Spells, s.Name),
             Resource r => (c.Resources, r.Name),
             Effect e => (c.Effects, e.Name),
-            Modifier m => ((IList?)c.Items.Select(i => i.Modifiers).Concat(c.Effects.Select(e => e.Modifiers))
-                .FirstOrDefault(list => list.Contains(m)), $"{m.Target} modifier"),
+            Modifier m => ((IList?)c.Items.Concat(c.WondrousItems).Select(i => i.Modifiers).Concat(c.Effects.Select(e => e.Modifiers))
+                .Concat(c.Features.Select(f => f.Modifiers)).FirstOrDefault(list => list.Contains(m)), $"{m.Target} modifier"),
             _ => (null, ""),
         };
         if (list is null) return;
-        var model = entry is AttackRow row ? row.Model : entry;
+        var model = entry switch { AttackRow r => r.Model, WeaponRow r => r.Model, _ => entry };
         // Confirm only when there's something to lose; blank placeholder entries go without asking.
         if (!string.IsNullOrWhiteSpace(name) && !name.StartsWith("New ", StringComparison.Ordinal)
             && !_dialogs.Confirm($"Remove “{name}”?"))
             return;
         list.Remove(model);
+        if (model is Weapon weapon)
+            foreach (var attack in c.Attacks.Where(a => a.WeaponId == weapon.Id).ToList()) c.Attacks.Remove(attack);
         _log.LogDebug("Removed {Type}: {Name}", model!.GetType().Name, name);
     }
 

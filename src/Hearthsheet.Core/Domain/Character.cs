@@ -26,6 +26,8 @@ public sealed partial class Character : Observable
     public ObservableCollection<Proficiency> Proficiencies { get; init; } = [];
     public ObservableCollection<Feature> Features { get; init; } = [];
     public ObservableCollection<Item> Items { get; init; } = [];
+    public ObservableCollection<Weapon> Weapons { get; init; } = [];
+    public ObservableCollection<Item> WondrousItems { get; init; } = [];
     public ObservableCollection<Resource> Resources { get; init; } = [];
     public ObservableCollection<Effect> Effects { get; init; } = [];
     public ObservableCollection<Condition> Conditions { get; init; } = [];

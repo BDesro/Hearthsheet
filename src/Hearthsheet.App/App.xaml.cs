@@ -25,6 +25,7 @@ public partial class App
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Mvvm.DataGridHeaders.KeepWordsWhole();
 
         AppSettings settings;
         try

@@ -452,13 +452,14 @@
                                                             <ColumnDefinition Width="18" />
                                                         </Grid.ColumnDefinitions>
                                                         <Border Background="{StaticResource SheetShade}" CornerRadius="2" Margin="0,0,2,0">
-                                                            <TextBox Style="{StaticResource SheetInput}" FontSize="11" Text="{Binding Model.Name}" AutomationProperties.Name="Attack name" />
+                                                            <TextBox Style="{StaticResource SheetInput}" FontSize="11" Text="{Binding Name}" AutomationProperties.Name="Attack name" />
                                                         </Border>
                                                         <Border Grid.Column="1" Background="{StaticResource SheetShade}" CornerRadius="2" Margin="0,0,2,0">
                                                             <TextBlock Text="{Binding AttackBonus, Converter={StaticResource Mod}}" HorizontalAlignment="Center" FontSize="11" VerticalAlignment="Center" />
                                                         </Border>
                                                         <Border Grid.Column="2" Background="{StaticResource SheetShade}" CornerRadius="2">
-                                                            <TextBox Style="{StaticResource SheetInput}" FontSize="11" Text="{Binding Model.Damage}" AutomationProperties.Name="Damage" />
+                                                            <TextBox Style="{StaticResource SheetInput}" FontSize="11" Text="{Binding DamageRoll}" IsReadOnly="{Binding IsWeaponAttack, Mode=OneWay}" TextWrapping="Wrap"
+                                                                     ToolTip="{Binding DamageRoll}" AutomationProperties.Name="Damage" />
                                                         </Border>
                                                         <Button Grid.Column="3" Style="{StaticResource SheetRowButton}" Content="✕" ToolTip="Remove attack"
                                                                 Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -490,8 +491,9 @@
                                             <Border><StackPanel><TextBlock Style="{StaticResource SheetLabel}" Text="PP" /><TextBox Style="{StaticResource SheetNumber}" FontSize="11" Text="{Binding Character.Currency.Platinum}" AutomationProperties.Name="Platinum pieces" /></StackPanel></Border>
                                         </StackPanel>
                                         <Button DockPanel.Dock="Top" Style="{StaticResource SheetAddButton}" Command="{Binding AddItem}" ToolTip="Add item" />
-                                        <ItemsControl ItemsSource="{Binding Character.Items}" IsTabStop="False">
-                                            <ItemsControl.ItemTemplate>
+                                        <!-- Wondrous items are listed with the rest of the gear; they're only separated in Details for configuring. -->
+                                        <StackPanel>
+                                            <StackPanel.Resources>
                                                 <DataTemplate DataType="{x:Type domain:Item}">
                                                     <Grid Background="Transparent">
                                                         <Grid.ColumnDefinitions>
@@ -506,8 +508,10 @@
                                                                 CommandParameter="{Binding}" />
                                                     </Grid>
                                                 </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                            </StackPanel.Resources>
+                                            <ItemsControl ItemsSource="{Binding Character.Items}" IsTabStop="False" />
+                                            <ItemsControl ItemsSource="{Binding Character.WondrousItems}" IsTabStop="False" />
+                                        </StackPanel>
                                     </DockPanel>
                                 </Border>
                             </Grid>

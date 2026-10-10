@@ -118,6 +118,36 @@ public sealed class Attack : Observable
     public int Bonus { get; set => SetClamped(ref field, value, -50, 50); }
     public string Damage { get; set => Set(ref field, value ?? ""); } = "";
     public string Notes { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>When set, ability, proficiency, to-hit and damage come from that <see cref="Weapon"/>.</summary>
+    public Guid? WeaponId { get; set => Set(ref field, value); }
+    /// <summary>For a weapon attack, dice that replace the weapon's (e.g. versatile "1d10"); blank uses the weapon's.</summary>
+    public string Dice { get; set => Set(ref field, value ?? ""); } = "";
+}
+
+public sealed class Weapon : Observable
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Name { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>Comma separated, e.g. "Martial, Melee, Longsword"; each one is a modifier target (attack.melee) and can match a weapon proficiency.</summary>
+    public string Types { get; set => Set(ref field, value ?? ""); } = "";
+    /// <remarks>Proficiency isn't stored: it comes from the character's weapon proficiencies.</remarks>
+    public Ability? Ability { get; set => Set(ref field, value); } = Domain.Ability.Strength;
+    /// <summary>Dice such as "1d8".</summary>
+    public string Damage { get; set => Set(ref field, value ?? ""); } = "";
+    public string DamageType { get; set => Set(ref field, value ?? ""); } = "";
+    public string Notes { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>Everything the weapon adds: a +1 enchantment, silvering, extra fire damage…</summary>
+    public ObservableCollection<WeaponEffect> Effects { get; init; } = [];
+}
+
+/// <summary>A property of one weapon, e.g. "Silvered" (+1 damage) or "Flame tongue" (2d6 fire).</summary>
+public sealed class WeaponEffect : Observable
+{
+    public string Name { get; set => Set(ref field, value ?? ""); } = "";
+    public int ToHit { get; set => SetClamped(ref field, value, -50, 50); }
+    /// <summary>A flat number or dice. With no type (or the weapon's type) it joins the weapon's main damage.</summary>
+    public string Damage { get; set => Set(ref field, value ?? ""); } = "";
+    public string DamageType { get; set => Set(ref field, value ?? ""); } = "";
 }
 
 public sealed class Proficiency : Observable
@@ -131,6 +161,8 @@ public sealed class Feature : Observable
     public string Name { get; set => Set(ref field, value ?? ""); } = "";
     public FeatureSource Source { get; set => Set(ref field, value); } = FeatureSource.Custom;
     public string Description { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>Permanent character effects, always applied.</summary>
+    public ObservableCollection<Modifier> Modifiers { get; init; } = [];
 }
 
 public sealed class Item : Observable
