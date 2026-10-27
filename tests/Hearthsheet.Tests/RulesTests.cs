@@ -318,4 +318,42 @@ public class RulesTests
         Assert.Equal(14, CharacterRules.SpellSaveDc(c, cleric));
         Assert.Equal(16, CharacterRules.SpellSaveDc(c, plain));
     }
+
+    [Fact]
+    public void Catalog_BloodHunterFacts()
+    {
+        var bh = SrdCatalog.FindClass("blood hunter")!;
+        Assert.Equal(10, bh.HitDie);
+        Assert.Equal([Ability.Dexterity, Ability.Intelligence], bh.SavingThrows);
+        Assert.Equal(CasterType.None, bh.Caster);
+        Assert.Equal(6, bh.MulticlassProficiencies.Length);
+        Assert.Contains((ProficiencyCategory.Tool, "Alchemist's supplies"), bh.MulticlassProficiencies);
+    }
+
+    [Fact]
+    public void Catalog_EveryClassHasPrerequisites()
+    {
+        Assert.Equal(13, SrdCatalog.Classes.Count);
+        Assert.All(SrdCatalog.Classes, c => Assert.NotEmpty(c.MulticlassPrerequisites));
+    }
+
+    [Fact]
+    public void Catalog_MonkNeedsDexAndWis()
+    {
+        var alt = Assert.Single(SrdCatalog.FindClass("Monk")!.MulticlassPrerequisites);
+        Assert.Equal([(Ability.Dexterity, 13), (Ability.Wisdom, 13)], alt);
+    }
+
+    [Theory]
+    [InlineData("Eldritch Knight", CasterType.None, CasterType.Third)]
+    [InlineData("  arcane trickster ", CasterType.None, CasterType.Third)]
+    [InlineData("Eldritch Knight", CasterType.Half, CasterType.Half)]
+    [InlineData("Champion", CasterType.None, CasterType.None)]
+    public void Subclass_EldritchKnight_MakesThirdCaster(string subclass, CasterType start, CasterType want)
+    {
+        var e = new ClassLevel { Name = "Fighter", Caster = start };
+        e.Subclass = subclass;
+        Assert.Equal(want, e.Caster);
+        Assert.Equal(want == CasterType.Third ? Ability.Intelligence : null, e.SpellcastingAbility);
+    }
 }

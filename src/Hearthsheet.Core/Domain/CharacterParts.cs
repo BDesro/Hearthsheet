@@ -25,7 +25,22 @@ public sealed class Identity : Observable
 public sealed class ClassLevel : Observable
 {
     public string Name { get; set => Set(ref field, value ?? ""); } = "";
-    public string Subclass { get; set => Set(ref field, value ?? ""); } = "";
+    public string Subclass
+    {
+        get;
+        set
+        {
+            if (!Set(ref field, value ?? "")) return;
+            // The two SRD third-caster subclasses; the user can change the caster type back.
+            if (Caster == CasterType.None && field.Trim() is var s
+                && (s.Equals("Eldritch Knight", StringComparison.OrdinalIgnoreCase)
+                    || s.Equals("Arcane Trickster", StringComparison.OrdinalIgnoreCase)))
+            {
+                Caster = CasterType.Third;
+                SpellcastingAbility ??= Ability.Intelligence;
+            }
+        }
+    } = "";
     public int Level { get; set => SetClamped(ref field, value, 1, 20); } = 1;
     public int HitDie { get; set => SetClamped(ref field, value, 4, 20); } = 8;
     public int HitDiceRemaining { get; set => SetClamped(ref field, value, 0, 20); } = 1;

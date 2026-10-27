@@ -3,8 +3,20 @@ using Hearthsheet.Core.Rules;
 
 namespace Hearthsheet.Core.Content;
 
+/// <summary>
+/// <c>MulticlassPrerequisites</c> are alternatives (any one suffices), each a set of minimum scores (all required).
+/// <c>MulticlassChoices</c> are gains the player must pick by hand (a skill, an instrument).
+/// </summary>
 public sealed record ClassDefinition(
-    string Name, int HitDie, Ability[] SavingThrows, Ability? SpellcastingAbility, CasterType Caster);
+    string Name, int HitDie, Ability[] SavingThrows, Ability? SpellcastingAbility, CasterType Caster,
+    (Ability Ability, int Minimum)[][]? MulticlassPrerequisites = null,
+    (ProficiencyCategory Category, string Name)[]? MulticlassProficiencies = null,
+    string[]? MulticlassChoices = null)
+{
+    public (Ability Ability, int Minimum)[][] MulticlassPrerequisites { get; } = MulticlassPrerequisites ?? [];
+    public (ProficiencyCategory Category, string Name)[] MulticlassProficiencies { get; } = MulticlassProficiencies ?? [];
+    public string[] MulticlassChoices { get; } = MulticlassChoices ?? [];
+}
 
 /// <summary>
 /// Mechanical facts from the System Reference Document 5.1 (CC-BY-4.0, see NOTICE.md): class names,
@@ -13,20 +25,43 @@ public sealed record ClassDefinition(
 /// </summary>
 public static class SrdCatalog
 {
+    private static readonly (Ability, int) Str = (Ability.Strength, 13), Dex = (Ability.Dexterity, 13),
+        Int = (Ability.Intelligence, 13), Wis = (Ability.Wisdom, 13), Cha = (Ability.Charisma, 13);
+    private static readonly (ProficiencyCategory, string) Light = (ProficiencyCategory.Armor, "Light armor"),
+        Medium = (ProficiencyCategory.Armor, "Medium armor"), Shields = (ProficiencyCategory.Armor, "Shields"),
+        Simple = (ProficiencyCategory.Weapon, "Simple weapons"), Martial = (ProficiencyCategory.Weapon, "Martial weapons"),
+        Shortswords = (ProficiencyCategory.Weapon, "Shortswords"), Thieves = (ProficiencyCategory.Tool, "Thieves' tools"),
+        Alchemist = (ProficiencyCategory.Tool, "Alchemist's supplies");
+    private static (Ability, int)[][] Req((Ability, int) one) => [[one]];
+    private static (ProficiencyCategory, string)[] Profs(params (ProficiencyCategory, string)[] p) => p;
+
     public static IReadOnlyList<ClassDefinition> Classes { get; } =
     [
-        new("Barbarian", 12, [Ability.Strength, Ability.Constitution], null, CasterType.None),
-        new("Bard", 8, [Ability.Dexterity, Ability.Charisma], Ability.Charisma, CasterType.Full),
-        new("Cleric", 8, [Ability.Wisdom, Ability.Charisma], Ability.Wisdom, CasterType.Full),
-        new("Druid", 8, [Ability.Intelligence, Ability.Wisdom], Ability.Wisdom, CasterType.Full),
-        new("Fighter", 10, [Ability.Strength, Ability.Constitution], null, CasterType.None),
-        new("Monk", 8, [Ability.Strength, Ability.Dexterity], null, CasterType.None),
-        new("Paladin", 10, [Ability.Wisdom, Ability.Charisma], Ability.Charisma, CasterType.Half),
-        new("Ranger", 10, [Ability.Strength, Ability.Dexterity], Ability.Wisdom, CasterType.Half),
-        new("Rogue", 8, [Ability.Dexterity, Ability.Intelligence], null, CasterType.None),
-        new("Sorcerer", 6, [Ability.Constitution, Ability.Charisma], Ability.Charisma, CasterType.Full),
-        new("Warlock", 8, [Ability.Wisdom, Ability.Charisma], Ability.Charisma, CasterType.Pact),
-        new("Wizard", 6, [Ability.Intelligence, Ability.Wisdom], Ability.Intelligence, CasterType.Full),
+        new("Barbarian", 12, [Ability.Strength, Ability.Constitution], null, CasterType.None,
+            Req(Str), Profs(Shields, Simple, Martial)),
+        new("Bard", 8, [Ability.Dexterity, Ability.Charisma], Ability.Charisma, CasterType.Full,
+            Req(Cha), Profs(Light), ["one skill", "one musical instrument"]),
+        new("Blood Hunter", 10, [Ability.Dexterity, Ability.Intelligence], null, CasterType.None,
+            [[(Ability.Intelligence, 13), (Ability.Strength, 13)], [(Ability.Intelligence, 13), (Ability.Dexterity, 13)]],
+            Profs(Light, Medium, Shields, Simple, Martial, Alchemist)),
+        new("Cleric", 8, [Ability.Wisdom, Ability.Charisma], Ability.Wisdom, CasterType.Full,
+            Req(Wis), Profs(Light, Medium, Shields)),
+        new("Druid", 8, [Ability.Intelligence, Ability.Wisdom], Ability.Wisdom, CasterType.Full,
+            Req(Wis), Profs(Light, Medium, Shields)),
+        new("Fighter", 10, [Ability.Strength, Ability.Constitution], null, CasterType.None,
+            [[(Ability.Strength, 13)], [(Ability.Dexterity, 13)]], Profs(Light, Medium, Shields, Simple, Martial)),
+        new("Monk", 8, [Ability.Strength, Ability.Dexterity], null, CasterType.None,
+            [[(Ability.Dexterity, 13), (Ability.Wisdom, 13)]], Profs(Simple, Shortswords)),
+        new("Paladin", 10, [Ability.Wisdom, Ability.Charisma], Ability.Charisma, CasterType.Half,
+            [[(Ability.Strength, 13), (Ability.Charisma, 13)]], Profs(Light, Medium, Shields, Simple, Martial)),
+        new("Ranger", 10, [Ability.Strength, Ability.Dexterity], Ability.Wisdom, CasterType.Half,
+            [[(Ability.Dexterity, 13), (Ability.Wisdom, 13)]], Profs(Light, Medium, Shields, Simple, Martial), ["one class skill"]),
+        new("Rogue", 8, [Ability.Dexterity, Ability.Intelligence], null, CasterType.None,
+            Req(Dex), Profs(Light, Thieves), ["one class skill"]),
+        new("Sorcerer", 6, [Ability.Constitution, Ability.Charisma], Ability.Charisma, CasterType.Full, Req(Cha)),
+        new("Warlock", 8, [Ability.Wisdom, Ability.Charisma], Ability.Charisma, CasterType.Pact,
+            Req(Cha), Profs(Light, Simple)),
+        new("Wizard", 6, [Ability.Intelligence, Ability.Wisdom], Ability.Intelligence, CasterType.Full, Req(Int)),
     ];
 
     public static IReadOnlyList<string> Species { get; } =
