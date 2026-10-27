@@ -237,13 +237,21 @@ public static class CharacterFactory
         }
 
         var classes = c.Identity.Classes;
-        var entry = classes.FirstOrDefault(e => string.Equals(e.Name.Trim(), className, StringComparison.OrdinalIgnoreCase));
+        var existing = classes.FirstOrDefault(e => string.Equals(e.Name.Trim(), className, StringComparison.OrdinalIgnoreCase));
         var def = SrdCatalog.FindClass(className);
-        var die = entry?.HitDie ?? def?.HitDie ?? options.HitDie ?? 8;
+        // The entry's setters clamp, so HP and roll validation use the stored die.
+        var entry = existing ?? new ClassLevel
+        {
+            Name = def?.Name ?? className,
+            HitDie = def?.HitDie ?? options.HitDie ?? 8,
+            Caster = def?.Caster ?? options.Caster ?? CasterType.None,
+            SpellcastingAbility = def?.SpellcastingAbility ?? options.Ability,
+        };
+        var die = entry.HitDie;
         if (options.Roll is { } r && (r < 1 || r > die))
             throw new ArgumentOutOfRangeException(nameof(options), $"Roll must be between 1 and {die}.");
 
-        if (entry is not null)
+        if (existing is not null)
         {
             entry.Level++;
             entry.HitDiceRemaining++;
@@ -251,30 +259,19 @@ public static class CharacterFactory
         else
         {
             report.Warnings.AddRange(MulticlassWarnings(c, className));
-            // A blank first entry is filled in rather than appended to.
-            var isFirst = classes.All(e => e.Name.Trim().Length == 0);
-            entry = isFirst ? classes[0] : new ClassLevel();
-            entry.Name = def?.Name ?? className;
-            entry.Level = 1;
-            entry.HitDie = die;
-            entry.Caster = def?.Caster ?? options.Caster ?? CasterType.None;
-            entry.SpellcastingAbility = def?.SpellcastingAbility ?? options.Ability;
             entry.HitDiceRemaining = 1;
-            if (!isFirst)
+            classes.Add(entry);
+            if (def is null) report.NeedsAttention.Add($"Add {entry.Name} proficiencies by hand.");
+            else
             {
-                classes.Add(entry);
-                if (def is null) report.NeedsAttention.Add($"Add {entry.Name} proficiencies by hand.");
-                else
+                foreach (var (category, name) in def.MulticlassProficiencies)
                 {
-                    foreach (var (category, name) in def.MulticlassProficiencies)
-                    {
-                        if (CharacterRules.HasProficiency(c, category, name)) continue;
-                        c.Proficiencies.Add(new Proficiency { Category = category, Name = name });
-                        report.Changes.Add($"Gained {name} proficiency.");
-                    }
-                    foreach (var choice in def.MulticlassChoices)
-                        report.NeedsAttention.Add($"Choose {choice} ({def.Name} multiclass).");
+                    if (CharacterRules.HasProficiency(c, category, name)) continue;
+                    c.Proficiencies.Add(new Proficiency { Category = category, Name = name });
+                    report.Changes.Add($"Gained {name} proficiency.");
                 }
+                foreach (var choice in def.MulticlassChoices)
+                    report.NeedsAttention.Add($"Choose {choice} ({def.Name} multiclass).");
             }
         }
 

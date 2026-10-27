@@ -48,8 +48,9 @@ public class LevelUpTests
         Assert.Equal(108, c.Combat.CurrentHp);
         Assert.Single(report.Warnings);
         Assert.Contains("Intelligence 13", report.Warnings[0]);
-        Assert.True(CharacterRules.HasProficiency(c, ProficiencyCategory.Tool, "Alchemist's supplies"));
-        Assert.True(CharacterRules.HasProficiency(c, ProficiencyCategory.Armor, "Light armor"));
+        foreach (var (cat, name) in SrdCatalog.FindClass("Blood Hunter")!.MulticlassProficiencies)
+            Assert.True(CharacterRules.HasProficiency(c, cat, name), name);
+        Assert.Equal(6, c.Proficiencies.Count);
         Assert.Contains("Add Blood Hunter 1 features by hand.", report.NeedsAttention);
     }
 
@@ -200,5 +201,40 @@ public class LevelUpTests
         Assert.Equal(6, e.HitDie);
         Assert.Equal(6 + 2 * 4, c.Combat.MaxHp);
         Assert.Equal(3, e.HitDiceRemaining);
+    }
+
+    [Fact]
+    public void LevelUp_CustomHitDieIsClamped()
+    {
+        var c = Fighter11(); // CON +2
+        CharacterFactory.LevelUp(c, "Witch", new(HitDie: 100));
+        Assert.Equal(20, c.Identity.Classes[1].HitDie);
+        Assert.Equal(100 + 11 + 2, c.Combat.MaxHp);
+        Assert.Throws<ArgumentOutOfRangeException>(() => CharacterFactory.LevelUp(c, "Witch", new(Roll: 21)));
+    }
+
+    [Fact]
+    public void LevelUp_BlankEntryIsKeptAndNewClassAppended()
+    {
+        var c = new Character();
+        c.Identity.Classes[0].Level = 3;
+        var report = CharacterFactory.LevelUp(c, "Fighter", new());
+        Assert.Equal(3, c.Identity.Classes[0].Level);
+        Assert.Equal(("Fighter", 1), (c.Identity.Classes[1].Name, c.Identity.Classes[1].Level));
+        Assert.Empty(report.Warnings);
+    }
+
+    [Fact]
+    public void LevelUp_SlotRecomputeClampsExpended()
+    {
+        var c = new Character();
+        c.Identity.Classes[0].Name = "Paladin";
+        c.Identity.Classes[0].Level = 3;
+        c.Identity.Classes[0].Caster = CasterType.Half;
+        c.Abilities.Dexterity = 14;
+        c.Abilities.Wisdom = 14;
+        (c.Spellcasting.SlotLevel(1).Maximum, c.Spellcasting.SlotLevel(1).Expended) = (3, 3);
+        CharacterFactory.LevelUp(c, "Ranger", new());
+        Assert.Equal((2, 2), (c.Spellcasting.SlotLevel(1).Maximum, c.Spellcasting.SlotLevel(1).Expended));
     }
 }
