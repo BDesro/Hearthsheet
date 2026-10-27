@@ -31,7 +31,7 @@
         </WrapPanel>
 
         <TextBlock Text="Hit points" FontWeight="SemiBold" Margin="0,2,0,4" />
-        <RadioButton x:Name="AverageRadio" IsChecked="True" GroupName="Hp" Margin="0,0,0,4" Checked="OnChanged" AutomationProperties.Name="Take average hit points" />
+        <RadioButton x:Name="AverageRadio" IsChecked="True" GroupName="Hp" Margin="0,0,0,4" Checked="OnChanged" />
         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
             <RadioButton x:Name="RollRadio" GroupName="Hp" Content="Roll" VerticalAlignment="Center" Checked="OnChanged" AutomationProperties.Name="Roll hit points" />
             <TextBox x:Name="RollBox" Width="56" Margin="8,0,0,0" HorizontalContentAlignment="Center" IsEnabled="{Binding IsChecked, ElementName=RollRadio}"

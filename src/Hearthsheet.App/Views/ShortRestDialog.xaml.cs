@@ -40,7 +40,7 @@ public partial class ShortRestDialog
 
     private void OnPoolChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_refreshing) UpdateState();
+        if (!_refreshing) UpdateButtons();
     }
 
     /// <summary>The hit die pool picked in the combo box (the only one, when there's a single pool).</summary>
@@ -77,8 +77,11 @@ public partial class ShortRestDialog
         DiceText.Text = pools is [var only]
             ? $"Hit dice remaining: {only.Remaining} of {only.Total} (d{only.Size})"
             : "Hit dice remaining: " + string.Join(", ", pools.Select(p => $"{p.Remaining} of {p.Total} d{p.Size}"));
-        SpendButton.IsEnabled = RollButton.IsEnabled = RollBox.IsEnabled = Pool.Remaining > 0 && !CharacterRules.IsDead(_character);
+        UpdateButtons();
     }
+
+    private void UpdateButtons() =>
+        SpendButton.IsEnabled = RollButton.IsEnabled = RollBox.IsEnabled = Pool.Remaining > 0 && !CharacterRules.IsDead(_character);
 
     private void OnFinish(object sender, RoutedEventArgs e) => DialogResult = true;
 }

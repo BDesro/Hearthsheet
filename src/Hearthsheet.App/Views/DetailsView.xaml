@@ -8,6 +8,7 @@
     <!-- Categorized editor over the same CharacterViewModel as the sheet and dashboard. -->
     <UserControl.Resources>
         <mvvm:BindingProxy x:Key="Proxy" Data="{Binding}" />
+        <mvvm:ClassNameConverter x:Key="ClassName" />
         <Style x:Key="Page" TargetType="ScrollViewer">
             <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
@@ -35,13 +36,13 @@
                     CommandParameter="{Binding}" AutomationProperties.Name="Remove" />
         </DataTemplate>
         <Style x:Key="ClassSubclassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
-            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} subclass}" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} subclass}" />
         </Style>
         <Style x:Key="ClassLevelBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
-            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} level}" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} level}" />
         </Style>
         <Style x:Key="ClassDiceBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
-            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} hit dice left}" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} hit dice left}" />
         </Style>
         <Style x:Key="SpellClassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
             <Setter Property="AutomationProperties.Name" Value="Spell class" />
@@ -49,7 +50,7 @@
         <DataTemplate x:Key="RemoveClassCell">
             <Button Content="✕" ToolTip="Remove class"
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name, StringFormat=Remove {0}}">
+                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat=Remove {0}}">
                 <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
                         <Style.Triggers>
@@ -189,7 +190,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.HitDieSizes}" SelectedItem="{Binding HitDie}" ItemStringFormat="d{0}"
-                                                  AutomationProperties.Name="{Binding Name, StringFormat={}{0} hit die}" />
+                                                  AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} hit die}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -198,7 +199,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.CasterTypes}" SelectedItem="{Binding Caster}"
-                                                  AutomationProperties.Name="{Binding Name, StringFormat={}{0} caster type}" />
+                                                  AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} caster type}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -206,7 +207,7 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                                  SelectedValue="{Binding SpellcastingAbility}" AutomationProperties.Name="{Binding Name, StringFormat={}{0} spellcasting ability}" />
+                                                  SelectedValue="{Binding SpellcastingAbility}" AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} spellcasting ability}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -216,10 +217,10 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Button Style="{StaticResource IconButton}" Content="▲" ToolTip="Move up"
                                                     Command="{Binding DataContext.MoveClassUp, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}" />
+                                                    AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat=Move {0} up}" />
                                             <Button Style="{StaticResource IconButton}" Content="▼" ToolTip="Move down"
                                                     Command="{Binding DataContext.MoveClassDown, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
+                                                    AutomationProperties.Name="{Binding Name, Converter={StaticResource ClassName}, StringFormat=Move {0} down}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -288,7 +289,7 @@
                     </ItemsControl>
                     <TextBlock Margin="0,18,0,0" Foreground="{StaticResource InkMuted}">
                         <Run Text="Proficiency bonus" /> <Run Text="{Binding ProficiencyBonus, Mode=OneWay, Converter={StaticResource Mod}}" FontWeight="SemiBold" />
-                        <Run Text="  (from level)" />
+                        <Run Text="{Binding TotalLevel, Mode=OneWay, StringFormat=  (total level {0})}" />
                     </TextBlock>
                 </StackPanel>
             </ScrollViewer>

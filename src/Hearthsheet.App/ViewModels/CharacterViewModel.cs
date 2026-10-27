@@ -79,8 +79,8 @@ public sealed class CharacterViewModel : Observable, IDisposable
             _log.LogInformation("Class defaults applied: {Class}", CharacterRules.ClassAndLevelText(c));
         });
 
-        AddClass = new RelayCommand(() => DoLevelUp(null));
-        LevelUp = new RelayCommand(() => DoLevelUp(c.Identity.Classes[0].Name));
+        AddClass = new RelayCommand(() => DoLevelUp(null), CanLevelUp);
+        LevelUp = new RelayCommand(() => DoLevelUp(c.Identity.Classes[0].Name), CanLevelUp);
         MoveClassUp = new RelayCommand<ClassLevel>(e => MoveClass(e, -1));
         MoveClassDown = new RelayCommand<ClassLevel>(e => MoveClass(e, 1));
 
@@ -134,6 +134,8 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public ClassLevel FirstClass => Character.Identity.Classes[0];
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
     /// <summary>True when two or more class entries cast, so spells carry a class and their own DC.</summary>
+    public int TotalLevel => CharacterRules.TotalLevel(Character);
+    private bool CanLevelUp() => TotalLevel < 20;
     public bool IsMultiCaster => Character.Identity.Classes.Count(e => e.SpellcastingAbility is not null) >= 2;
     public bool HasSpellcasting => Character.Identity.Classes.Any(e => e.SpellcastingAbility is not null) || Character.Spellcasting.Spells.Count > 0;
 
@@ -162,6 +164,11 @@ public sealed class CharacterViewModel : Observable, IDisposable
         if (_dialogs.LevelUp(Character, className) is not { } choice) return;
         var (name, options) = choice;
         var report = CharacterFactory.LevelUp(Character, name, options);
+        if (!report.Completed)
+        {
+            _dialogs.Info(string.Join(Environment.NewLine, report.NeedsAttention));
+            return;
+        }
         var lines = report.Changes.ToList();
         var check = report.Warnings.Concat(report.NeedsAttention).ToList();
         if (check.Count > 0) lines.Add("Check: " + string.Join(" ", check));

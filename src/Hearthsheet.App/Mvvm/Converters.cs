@@ -48,6 +48,16 @@ public sealed class AtLeastConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>A class name for automation text, "Class" while it is blank.</summary>
+public sealed class ClassNameConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string { Length: > 0 } s && s.Trim().Length > 0 ? s : "Class";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Per-spell save DC ("DC 15") from [spell, character]; empty when the spell's class has no ability.</summary>
 public sealed class SpellDcConverter : IMultiValueConverter
 {
