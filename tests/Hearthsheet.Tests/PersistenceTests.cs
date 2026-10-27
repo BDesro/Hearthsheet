@@ -112,6 +112,36 @@ public class SerializationTests
     }
 
     [Fact]
+    public void SchemaThree_KeyOrderDoesNotTriggerSubclassRule()
+    {
+        const string v3 = """{"identity":{"classes":[{"caster":"None","subclass":"Eldritch Knight","name":"Fighter","level":7}]}}""";
+        Assert.Equal(CasterType.None, Assert.Single(CharacterJson.Deserialize(v3, 3).Identity.Classes).Caster);
+    }
+
+    [Fact]
+    public void SchemaTwo_EldritchKnight_MigratesToThirdCaster()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","subclass":"Eldritch Knight","level":7}}""";
+        var e = Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes);
+        Assert.Equal((CasterType.Third, Ability.Intelligence), (e.Caster, e.SpellcastingAbility!.Value));
+    }
+
+    [Fact]
+    public void SchemaTwo_MissingHitDiceRemaining_FallsBackToLevel()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","level":5}}""";
+        Assert.Equal(5, Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes).HitDiceRemaining);
+    }
+
+    [Fact]
+    public void Import_SchemaTwoEnvelope_MigratesToOneEntry()
+    {
+        const string text = """{"format":"dndsheet.character","schemaVersion":2,"character":{"identity":{"className":"Fighter","level":11}}}""";
+        var e = Assert.Single(_portable.Import(text).Identity.Classes);
+        Assert.Equal(("Fighter", 11), (e.Name, e.Level));
+    }
+
+    [Fact]
     public void SchemaTwo_UnknownClassWithAbility_BecomesFullCaster()
     {
         const string v2 = """{"identity":{"className":"Witch","level":3},"spellcasting":{"ability":"Intelligence"}}""";

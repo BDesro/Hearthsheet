@@ -146,6 +146,9 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
     /// <summary>True when two or more class entries cast, so spells carry a class and their own DC.</summary>
     public int TotalLevel => CharacterRules.TotalLevel(Character);
+    public bool IsOverLevelCap => TotalLevel > 20;
+    /// <summary>Spell Class column choices: the entries that cast.</summary>
+    public IReadOnlyList<string> CasterNames => [.. Character.Identity.Classes.Where(e => e.SpellcastingAbility is not null).Select(e => e.Name)];
     private bool CanLevelUp() => TotalLevel < 20;
     public bool IsMultiCaster => Character.Identity.Classes.Count(e => e.SpellcastingAbility is not null) >= 2;
     public bool HasSpellcasting => Character.Identity.Classes.Any(e => e.SpellcastingAbility is not null) || Character.Spellcasting.Spells.Count > 0;

@@ -245,9 +245,9 @@ A 1st-level character's first entry is still created by `NewCharacterDialog`/`Ch
 
 ### 7.2 Apply class defaults (multi-entry)
 
-This recomputes all automated values from the entries, with the confirmation it asks for today. It uses each
-entry's **stored** hit die, caster type and ability. The catalog fills these only when a built-in entry's value is
-blank, so an Eldritch Knight's Third or a homebrew hit die is never undone **(builder's call)**. Custom classes are no
+This recomputes all automated values from the entries, with the confirmation it asks for today. For an entry whose name
+is a built-in class it overwrites hit die, caster type and ability from the catalog, then keeps Eldritch Knight and
+Arcane Trickster as Third with Intelligence (changed after final review: user anti-goal). Custom classes are no
 longer refused; their stored values are used as they are.
 
 - saves from the first entry only;

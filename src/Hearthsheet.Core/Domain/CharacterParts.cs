@@ -22,8 +22,19 @@ public sealed class Identity : Observable
 /// One class the character has levels in. Property order matters for deserialization: Caster is declared after Subclass
 /// so a stored caster type is applied last.
 /// </summary>
-public sealed class ClassLevel : Observable
+public sealed class ClassLevel : Observable, System.Text.Json.Serialization.IJsonOnDeserializing, System.Text.Json.Serialization.IJsonOnDeserialized
 {
+    // While loading, stored values are authoritative: the subclass rule below must not depend on property order.
+    private bool _loading;
+    void System.Text.Json.Serialization.IJsonOnDeserializing.OnDeserializing() => _loading = true;
+    void System.Text.Json.Serialization.IJsonOnDeserialized.OnDeserialized() => _loading = false;
+
+    /// <summary>The two SRD third-caster subclasses.</summary>
+    internal static bool IsThirdCasterSubclass(string subclass) =>
+        subclass.Trim() is var s && (s.Equals("Eldritch Knight", StringComparison.OrdinalIgnoreCase)
+                                     || s.Equals("Arcane Trickster", StringComparison.OrdinalIgnoreCase));
+
+
     public string Name { get; set => Set(ref field, value ?? ""); } = "";
     public string Subclass
     {
@@ -31,10 +42,8 @@ public sealed class ClassLevel : Observable
         set
         {
             if (!Set(ref field, value ?? "")) return;
-            // The two SRD third-caster subclasses; the user can change the caster type back.
-            if (Caster == CasterType.None && field.Trim() is var s
-                && (s.Equals("Eldritch Knight", StringComparison.OrdinalIgnoreCase)
-                    || s.Equals("Arcane Trickster", StringComparison.OrdinalIgnoreCase)))
+            // The user can change the caster type back.
+            if (!_loading && Caster == CasterType.None && IsThirdCasterSubclass(field))
             {
                 Caster = CasterType.Third;
                 SpellcastingAbility ??= Ability.Intelligence;

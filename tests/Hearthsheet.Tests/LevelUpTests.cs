@@ -47,7 +47,7 @@ public class LevelUpTests
         Assert.Equal(108, c.Combat.MaxHp);
         Assert.Equal(108, c.Combat.CurrentHp);
         Assert.Single(report.Warnings);
-        Assert.Contains("Intelligence 13", report.Warnings[0]);
+        Assert.Equal("Blood Hunter multiclassing needs (Intelligence 13 and Strength 13) or (Intelligence 13 and Dexterity 13).", report.Warnings[0]);
         foreach (var (cat, name) in SrdCatalog.FindClass("Blood Hunter")!.MulticlassProficiencies)
             Assert.True(CharacterRules.HasProficiency(c, cat, name), name);
         Assert.Equal(6, c.Proficiencies.Count);
@@ -188,6 +188,52 @@ public class LevelUpTests
         Assert.Equal(CasterType.Third, c.Identity.Classes[0].Caster);
         Assert.Equal([4, 3], c.Spellcasting.Slots.Select(s => s.Maximum).Take(2));
         Assert.Equal(0, c.Spellcasting.SlotLevel(3).Maximum);
+    }
+
+    [Fact]
+    public void ApplyClassDefaults_BuiltInClassOverwritesStoredValues()
+    {
+        var c = new Character();
+        var e = c.Identity.Classes[0];
+        (e.Name, e.Level, e.HitDie, e.Caster, e.SpellcastingAbility) = ("Fighter", 5, 6, CasterType.Full, Ability.Intelligence);
+        CharacterFactory.ApplyClassDefaults(c);
+        Assert.Equal((10, CasterType.None, null), (e.HitDie, e.Caster, e.SpellcastingAbility));
+        Assert.All(c.Spellcasting.Slots, s => Assert.Equal(0, s.Maximum) );
+    }
+
+    [Fact]
+    public void ApplyClassDefaults_EldritchKnightStaysThird()
+    {
+        var c = Fighter11();
+        c.Identity.Classes[0].Level = 7;
+        c.Identity.Classes[0].Subclass = "Eldritch Knight";
+        c.Identity.Classes[0].Caster = CasterType.None;
+        c.Identity.Classes[0].SpellcastingAbility = null;
+        CharacterFactory.ApplyClassDefaults(c);
+        Assert.Equal((CasterType.Third, Ability.Intelligence), (c.Identity.Classes[0].Caster, c.Identity.Classes[0].SpellcastingAbility!.Value));
+        Assert.Equal([4, 2], c.Spellcasting.Slots.Select(s => s.Maximum).Take(2));
+    }
+
+    [Fact]
+    public void ApplyClassDefaults_CustomEntryKeepsStoredValues()
+    {
+        var c = new Character();
+        var e = c.Identity.Classes[0];
+        (e.Name, e.Level, e.HitDie, e.Caster, e.SpellcastingAbility) = ("Witch", 3, 6, CasterType.Full, Ability.Charisma);
+        CharacterFactory.ApplyClassDefaults(c);
+        Assert.Equal((6, CasterType.Full, Ability.Charisma), (e.HitDie, e.Caster, e.SpellcastingAbility!.Value));
+    }
+
+    [Fact]
+    public void LevelUp_HpUsesRawConstitution()
+    {
+        var c = Fighter11(); // CON +2
+        var belt = new Effect { Name = "Belt" };
+        belt.Modifiers.Add(new Modifier { Target = StatTargets.AbilityScore(Ability.Constitution), Kind = ModifierKind.Set, Value = 19 });
+        c.Effects.Add(belt);
+        var hp = c.Combat.MaxHp;
+        CharacterFactory.LevelUp(c, "Fighter", new());
+        Assert.Equal(hp + 6 + 2, c.Combat.MaxHp);
     }
 
     [Fact]

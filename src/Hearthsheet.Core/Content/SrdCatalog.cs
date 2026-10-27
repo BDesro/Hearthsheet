@@ -157,9 +157,9 @@ public static class CharacterFactory
     }
 
     /// <summary>
-    /// Recomputes every automated value from the class entries (spec 7.2): fills blank hit die, caster type and
-    /// spellcasting ability from the catalog for built-in classes, takes saves from the first entry, sets average
-    /// maximum HP, refills hit dice and recomputes slots. Stored values are never overwritten, and proficiencies are not touched.
+    /// Recomputes every automated value from the class entries (spec 7.2): overwrites hit die, caster type and
+    /// spellcasting ability from the catalog for built-in classes (an Eldritch Knight or Arcane Trickster stays Third), takes saves from the first entry, sets average
+    /// maximum HP, refills hit dice and recomputes slots. Custom classes keep their stored values, and proficiencies are not touched.
     /// </summary>
     public static void ApplyClassDefaults(Character c)
     {
@@ -167,15 +167,15 @@ public static class CharacterFactory
         foreach (var e in classes)
         {
             if (SrdCatalog.FindClass(e.Name) is not { } def) continue;
-            if (e.HitDie == 8 && def.HitDie != 8) e.HitDie = def.HitDie;
-            if (e.Caster == CasterType.None && def.Caster != CasterType.None) e.Caster = def.Caster;
-            e.SpellcastingAbility ??= def.SpellcastingAbility;
+            (e.HitDie, e.Caster, e.SpellcastingAbility) = (def.HitDie, def.Caster, def.SpellcastingAbility);
+            if (e.Caster == CasterType.None && ClassLevel.IsThirdCasterSubclass(e.Subclass))
+                (e.Caster, e.SpellcastingAbility) = (CasterType.Third, Ability.Intelligence);
         }
 
         if (SrdCatalog.FindClass(classes[0].Name) is { } first)
             foreach (var save in c.SavingThrows) save.Proficient = first.SavingThrows.Contains(save.Ability);
 
-        var con = CharacterRules.AbilityModifier(c, Ability.Constitution);
+        var con = CharacterRules.AbilityModifier(c.Abilities.Constitution);
         c.Combat.MaxHp = Math.Max(1, classes[0].HitDie + con
             + classes.Sum(e => (e.Level - (e == classes[0] ? 1 : 0)) * Math.Max(1, e.HitDie / 2 + 1 + con)));
         foreach (var e in classes) e.HitDiceRemaining = e.Level;
@@ -221,7 +221,9 @@ public static class CharacterFactory
             .Where(d => d.MulticlassPrerequisites.Length > 0
                 && !d.MulticlassPrerequisites.Any(alt => alt.All(r => CharacterRules.AbilityScore(c, r.Ability) >= r.Minimum)))
             .Select(d => $"{d.Name} multiclassing needs " + string.Join(" or ",
-                d.MulticlassPrerequisites.Select(alt => string.Join(" and ", alt.Select(r => $"{r.Ability} {r.Minimum}")))) + ".")];
+                d.MulticlassPrerequisites.Select(alt => alt.Length > 1
+                    ? "(" + string.Join(" and ", alt.Select(r => $"{r.Ability} {r.Minimum}")) + ")"
+                    : $"{alt[0].Ability} {alt[0].Minimum}")) + ".")];
     }
 
     /// <summary>Adds a level in an existing or new class (spec 7.1). Saving throws are not changed.</summary>
@@ -275,7 +277,7 @@ public static class CharacterFactory
             }
         }
 
-        var con = CharacterRules.AbilityModifier(c, Ability.Constitution);
+        var con = CharacterRules.AbilityModifier(c.Abilities.Constitution);
         var gain = Math.Max(1, (options.Roll ?? die / 2 + 1) + con);
         c.Combat.MaxHp += gain;
         c.Combat.CurrentHp += gain;

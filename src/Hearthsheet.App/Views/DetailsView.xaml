@@ -44,9 +44,6 @@
         <Style x:Key="ClassDiceBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
             <Setter Property="AutomationProperties.Name" Value="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} hit dice left}" />
         </Style>
-        <Style x:Key="SpellClassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
-            <Setter Property="AutomationProperties.Name" Value="Spell class" />
-        </Style>
         <DataTemplate x:Key="RemoveClassCell">
             <Button Content="✕" ToolTip="Remove class"
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -159,8 +156,13 @@
                             <Button Content="Level up…" Command="{Binding LevelUp}" />
                             <Button Content="Apply class defaults…" Command="{Binding ApplyClassDefaults}" />
                         </StackPanel>
-                        <TextBlock Text="Classes" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center">
+                            <Run Text="Classes · Total level" /> <Run Text="{Binding TotalLevel, Mode=OneWay}" /> <Run Text="/ 20" />
+                        </TextBlock>
                     </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource Danger}" FontWeight="SemiBold"
+                               Text="Over 20: the last class will be lowered when the character is next loaded."
+                               Visibility="{Binding IsOverLevelCap, Converter={StaticResource VisibleWhen}}" />
                     <TextBlock Style="{StaticResource Hint}" Text="The first row is the starting class (it sets saving throw proficiencies and first-level hit points). Hit dice and caster types are per class." />
                     <DataGrid ItemsSource="{Binding Character.Identity.Classes}" AlternationCount="100">
                         <DataGrid.Columns>
@@ -632,8 +634,15 @@
                             <DataGridCheckBoxColumn Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridComboBoxColumn Header="Lvl" Width="Auto" MinWidth="55" ItemsSource="{x:Static mvvm:Lookups.SpellLevels}" SelectedItemBinding="{Binding Level}" />
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
-                            <DataGridTextColumn Header="Class" Width="Auto" MinWidth="90" Binding="{Binding Class}" EditingElementStyle="{StaticResource SpellClassBox}"
-                                                Visibility="{Binding Data.IsMultiCaster, Source={StaticResource Proxy}, Converter={StaticResource VisibleWhen}}" />
+                            <DataGridTemplateColumn Header="Class" Width="Auto" MinWidth="90" IsReadOnly="True"
+                                                    Visibility="{Binding Data.IsMultiCaster, Source={StaticResource Proxy}, Converter={StaticResource VisibleWhen}}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox IsEditable="True" BorderThickness="0" ItemsSource="{Binding Data.CasterNames, Source={StaticResource Proxy}}"
+                                                  Text="{Binding Class, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Spell class" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTemplateColumn Header="School" Width="Auto" MinWidth="120" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

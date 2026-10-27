@@ -88,10 +88,15 @@ public static partial class CharacterJson
         var subclass = Take(identity, "subclass", "");
         var level = Take(identity, "level", 1);
         var hitDie = Take(combat, "hitDieSize", 8);
-        var remaining = Take(combat, "hitDiceRemaining", 1);
+        var remaining = Take(combat, "hitDiceRemaining", level);
         var ability = Take<string?>(spellcasting, "ability", null);
 
         var caster = SrdCatalog.FindClass(name)?.Caster.ToString() ?? (ability is null ? "None" : "Full");
+        if (caster == "None" && ClassLevel.IsThirdCasterSubclass(subclass))
+        {
+            caster = "Third";
+            ability ??= "Intelligence";
+        }
         identity["classes"] = new JsonArray(new JsonObject
         {
             ["name"] = name,
