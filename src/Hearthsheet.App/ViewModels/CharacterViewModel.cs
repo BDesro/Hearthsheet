@@ -111,6 +111,17 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public int PassivePerception => CharacterRules.PassivePerception(Character);
     public int HitDiceTotal => CharacterRules.HitDiceTotal(Character);
     public string HitDiceText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining} / {p.Total} d{p.Size}"));
+    public bool IsMulticlass => Character.Identity.Classes.Count > 1;
+    public string HitDiceTotalText => "Total " + string.Join(" + ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Total}d{p.Size}"));
+    public string HitDiceRemainingText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining}d{p.Size}"));
+    /// <summary>One "Wizard · INT · DC 15 · +7" line per casting entry.</summary>
+    public IReadOnlyList<string> CasterLines =>
+        [.. Character.Identity.Classes.Where(e => e.SpellcastingAbility is not null).Select(e =>
+            $"{e.Name} · {e.SpellcastingAbility!.Value.Abbreviation()} · DC {CharacterRules.SpellSaveDc(Character, e)} · {CharacterRules.FormatModifier(CharacterRules.SpellAttackBonus(Character, e) ?? 0)}")];
+    /// <summary>The entry the sheet's ability picker edits: the primary caster, or the first class until one casts.</summary>
+    public ClassLevel SpellcastingEntry => CharacterRules.PrimaryCaster(Character) ?? FirstClass;
+    public string ClassSummary => CharacterRules.ClassSummary(Character);
+    public string PrimaryCasterName => CharacterRules.PrimaryCaster(Character)?.Name ?? "";
     /// <summary>One pip per pact slot, filled while available.</summary>
     public IReadOnlyList<SlotPip> PactPips
     {

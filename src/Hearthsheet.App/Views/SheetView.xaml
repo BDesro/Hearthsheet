@@ -160,7 +160,7 @@
                                     <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Character Name" />
                                 </StackPanel>
                             </Border>
-                            <Border Grid.Column="1" Style="{StaticResource SheetBox}">
+                            <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                                 <UniformGrid Columns="4" Rows="2">
                                     <HeaderedContentControl Header="Class" Style="{StaticResource SheetField}">
                                         <TextBox Style="{StaticResource SheetInput}" Text="{Binding FirstClass.Name}" AutomationProperties.Name="Class" />
@@ -187,6 +187,37 @@
                                         <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.PlayerName}" AutomationProperties.Name="Player name" />
                                     </HeaderedContentControl>
                                 </UniformGrid>
+                            </Border>
+                            <!-- Two or more classes: one calculated box replaces Class / Level / Subclass (edited in Details). -->
+                            <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" /><RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.ColumnSpan="2" Style="{StaticResource SheetShadedBox}" Padding="3,2" Margin="3,2">
+                                        <HeaderedContentControl Header="{Binding TotalLevel, StringFormat='Class &amp; Level · total {0}'}" Style="{StaticResource SheetField}" Margin="2,0">
+                                            <TextBlock Text="{Binding ClassSummary, Mode=OneWay}" TextWrapping="Wrap" FontSize="11" />
+                                        </HeaderedContentControl>
+                                    </Border>
+                                    <HeaderedContentControl Grid.Column="2" Header="Background" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Background}" AutomationProperties.Name="Background" />
+                                    </HeaderedContentControl>
+                                    <HeaderedContentControl Grid.Column="3" Header="Species" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Species}" AutomationProperties.Name="Species" />
+                                    </HeaderedContentControl>
+                                    <HeaderedContentControl Grid.Row="1" Header="Alignment" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Alignment}" AutomationProperties.Name="Alignment" />
+                                    </HeaderedContentControl>
+                                    <HeaderedContentControl Grid.Row="1" Grid.Column="1" Header="Experience Points" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Experience}" AutomationProperties.Name="Experience points" />
+                                    </HeaderedContentControl>
+                                    <HeaderedContentControl Grid.Row="1" Grid.Column="2" Header="Player Name" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.PlayerName}" AutomationProperties.Name="Player name" />
+                                    </HeaderedContentControl>
+                                </Grid>
                             </Border>
                         </Grid>
 
@@ -389,13 +420,28 @@
                                             </StackPanel>
                                         </Border>
                                         <UniformGrid Columns="2">
-                                            <Border Style="{StaticResource SheetBox}">
+                                            <Border>
+                                                <Border.Style>
+                                                    <Style TargetType="Border" BasedOn="{StaticResource SheetBox}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMulticlass}" Value="True">
+                                                                <Setter Property="Background" Value="{StaticResource SheetShade}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
                                                 <StackPanel>
-                                                    <TextBlock FontSize="9" Foreground="{StaticResource SheetFaint}">
+                                                    <TextBlock FontSize="9" Foreground="{StaticResource SheetFaint}" Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                                                         <Run Text="Total" /> <Run Text="{Binding HitDiceTotal, Mode=OneWay}" /><Run Text="{Binding FirstClass.HitDie, Mode=OneWay, StringFormat=d{0}}" />
                                                     </TextBlock>
                                                     <TextBox Style="{StaticResource SheetNumber}" FontSize="16" Text="{Binding FirstClass.HitDiceRemaining}"
+                                                             Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}"
                                                              AutomationProperties.Name="Hit dice remaining" />
+                                                    <!-- Several classes: read-only pools, spent and recovered in Play. -->
+                                                    <TextBlock FontSize="9" Foreground="{StaticResource SheetFaint}" Text="{Binding HitDiceTotalText, Mode=OneWay}"
+                                                               Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}}" />
+                                                    <TextBlock FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Text="{Binding HitDiceRemainingText, Mode=OneWay}"
+                                                               Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}}" AutomationProperties.Name="Hit dice remaining" />
                                                     <TextBlock Style="{StaticResource SheetLabel}" Text="Hit Dice" />
                                                 </StackPanel>
                                             </Border>
@@ -673,17 +719,39 @@
                             </Grid.ColumnDefinitions>
                             <Border Style="{StaticResource SheetShadedBox}" VerticalAlignment="Center" Padding="10,8">
                                 <StackPanel>
-                                    <TextBox Style="{StaticResource SheetInput}" FontSize="18" FontWeight="SemiBold"
-                                             Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class" />
+                                    <Grid>
+                                        <TextBox Style="{StaticResource SheetInput}" FontSize="18" FontWeight="SemiBold"
+                                                 Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class" />
+                                        <!-- The primary caster's name stands in while the label is blank. -->
+                                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource SheetFaint}" IsHitTestVisible="False" Margin="2,0"
+                                                   Text="{Binding PrimaryCasterName, Mode=OneWay}"
+                                                   Visibility="{Binding Character.Spellcasting.SpellcastingClass, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                                    </Grid>
                                     <Border Height="1" Background="{StaticResource SheetLine}" />
                                     <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Spellcasting Class" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
+                                        <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Pact Magic" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <ItemsControl ItemsSource="{Binding PactPips}" IsTabStop="False" Focusable="False" AutomationProperties.Name="Pact slots">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type vm:SlotPip}">
+                                                    <Grid Width="12" Height="12" Margin="0,0,3,0">
+                                                        <Ellipse Stroke="{StaticResource SheetLine}" StrokeThickness="1.2" />
+                                                        <Ellipse Margin="2.5" Fill="{StaticResource SheetInk}" Visibility="{Binding IsExpended, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-                            <Border Grid.Column="1" Style="{StaticResource SheetBox}">
+                            <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMultiCaster, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                                 <UniformGrid Columns="4">
                                     <HeaderedContentControl Header="Spellcasting Ability" Style="{StaticResource SheetField}">
                                         <ComboBox ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                                  SelectedValue="{Binding FirstClass.SpellcastingAbility}" BorderThickness="0" Background="Transparent"
+                                                  SelectedValue="{Binding SpellcastingEntry.SpellcastingAbility}" BorderThickness="0" Background="Transparent"
                                                   AutomationProperties.Name="Spellcasting ability" />
                                     </HeaderedContentControl>
                                     <HeaderedContentControl Header="Spell Save DC" Style="{StaticResource SheetField}">
@@ -696,6 +764,22 @@
                                         <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Spellcasting.Concentration}" AutomationProperties.Name="Concentrating on" />
                                     </HeaderedContentControl>
                                 </UniformGrid>
+                            </Border>
+                            <!-- Several casters: one read-only line each replaces the ability, DC and attack cells. -->
+                            <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMultiCaster, Converter={StaticResource VisibleWhen}}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3*" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource SheetShadedBox}" Padding="6,3" Margin="3,2">
+                                        <HeaderedContentControl Header="Ability · Save DC · Attack Bonus" Style="{StaticResource SheetField}" Margin="0">
+                                            <ItemsControl ItemsSource="{Binding CasterLines}" IsTabStop="False" Focusable="False" FontSize="11" />
+                                        </HeaderedContentControl>
+                                    </Border>
+                                    <HeaderedContentControl Grid.Column="1" Header="Concentrating On" Style="{StaticResource SheetField}">
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Spellcasting.Concentration}" AutomationProperties.Name="Concentrating on" />
+                                    </HeaderedContentControl>
+                                </Grid>
                             </Border>
                         </Grid>
                         <Grid Grid.Row="1">

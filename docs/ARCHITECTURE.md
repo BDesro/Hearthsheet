@@ -199,7 +199,7 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 
 ## 13. Testing
 
-`dotnet test` runs 187 tests:
+`dotnet test` runs 244 tests:
 
 - **Domain rules:** modifiers, proficiency, skills including half proficiency and expertise, saves, modifier stacking and Set, item attunement, clamping.
 - **Gameplay:** damage, temporary HP, massive damage, death saves in every combination, healing from 0, hit dice, resources, spell casting and upcasting, concentration.
@@ -218,6 +218,7 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 - Conditions and exhaustion are tracked but apply no automatic mechanics (advantage and disadvantage are not modelled), because the rules differ between 2014 and 2024 editions.
 - Damage is text: weapon attacks assemble a roll string by damage type, but there is no dice roller or resistance mechanics.
 - Half-caster slot progression follows SRD 5.1 (no slots at level 1). "Apply class defaults" can be ignored for 2024-style rules.
+- Multiclass characters list one entry per class. Subclass features and extra pact slots (for example Profane Soul) are entered by hand; nothing grants them automatically. The sheet shows a read-only class summary, hit dice and per-caster DC lines once there are two or more classes; edit them in Details.
 - No bundled spell, feature or item content (see NOTICE.md).
 - A very long spell or feature list grows its sheet page beyond one printed page and is clipped when printing.
 - The update checksum isn't a signature (see §9). Update checks are off until `Updates:Owner/Repository` are configured.
