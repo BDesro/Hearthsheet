@@ -196,6 +196,11 @@ public static class CharacterRules
         return [.. standard.Take(4), .. custom, .. standard.Skip(4)];
     }
 
+    /// <summary>True when the category already lists <paramref name="name"/> (entries may be comma lists; case, plural and "weapons" are ignored).</summary>
+    public static bool HasProficiency(Character c, ProficiencyCategory category, string name) =>
+        c.Proficiencies.Where(p => p.Category == category).SelectMany(p => SplitList(p.Name))
+            .Any(n => ProficiencyKey(n) == ProficiencyKey(name));
+
     private static string ProficiencyKey(string name)
     {
         var key = name.Trim().ToLowerInvariant();

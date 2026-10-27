@@ -150,35 +150,152 @@ public static class CharacterFactory
         c.Identity.Species = options.Species.Trim();
         c.Identity.Background = options.Background.Trim();
         c.Identity.PlayerName = options.PlayerName.Trim();
-        if (SrdCatalog.FindClass(options.ClassName) is { } def) ApplyClassDefaults(c, def);
+        if (SrdCatalog.FindClass(options.ClassName) is not null) ApplyClassDefaults(c);
         c.Identity.Classes[0].HitDiceRemaining = c.Identity.Classes[0].Level;
         c.Combat.CurrentHp = CharacterRules.MaxHitPoints(c);
         return c;
     }
 
-    /// <summary>Hit die, save proficiencies, average HP, spellcasting ability and slots for the class.</summary>
-    public static void ApplyClassDefaults(Character c, ClassDefinition def)
+    /// <summary>
+    /// Recomputes every automated value from the class entries (spec 7.2): fills blank hit die, caster type and
+    /// spellcasting ability from the catalog for built-in classes, takes saves from the first entry, sets average
+    /// maximum HP, refills hit dice and recomputes slots. Stored values are never overwritten, and proficiencies are not touched.
+    /// </summary>
+    public static void ApplyClassDefaults(Character c)
     {
-        var entry = c.Identity.Classes[0];
-        var level = entry.Level;
-        entry.HitDie = def.HitDie;
-        entry.Caster = def.Caster;
-        foreach (var save in c.SavingThrows) save.Proficient = def.SavingThrows.Contains(save.Ability);
-
-        var con = CharacterRules.AbilityModifier(c.Abilities.Constitution);
-        c.Combat.MaxHp = Math.Max(1, def.HitDie + con + (level - 1) * Math.Max(1, def.HitDie / 2 + 1 + con));
-
-        entry.SpellcastingAbility = def.SpellcastingAbility;
-        if (def.SpellcastingAbility is not null) c.Spellcasting.SpellcastingClass = def.Name;
-        var slots = SrdCatalog.SpellSlots([entry]);
-        foreach (var slot in c.Spellcasting.Slots) slot.Maximum = slots[slot.Level - 1];
-
-        if (def.Caster == CasterType.Pact)
+        var classes = c.Identity.Classes;
+        foreach (var e in classes)
         {
-            var (count, slotLevel) = SrdCatalog.PactSlots(level);
-            c.Spellcasting.PactSlots.Level = slotLevel;
-            c.Spellcasting.PactSlots.Maximum = count;
-            c.Spellcasting.PactSlots.Expended = 0;
+            if (SrdCatalog.FindClass(e.Name) is not { } def) continue;
+            if (e.HitDie == 8 && def.HitDie != 8) e.HitDie = def.HitDie;
+            if (e.Caster == CasterType.None && def.Caster != CasterType.None) e.Caster = def.Caster;
+            e.SpellcastingAbility ??= def.SpellcastingAbility;
+        }
+
+        if (SrdCatalog.FindClass(classes[0].Name) is { } first)
+            foreach (var save in c.SavingThrows) save.Proficient = first.SavingThrows.Contains(save.Ability);
+
+        var con = CharacterRules.AbilityModifier(c, Ability.Constitution);
+        c.Combat.MaxHp = Math.Max(1, classes[0].HitDie + con
+            + classes.Sum(e => (e.Level - (e == classes[0] ? 1 : 0)) * Math.Max(1, e.HitDie / 2 + 1 + con)));
+        foreach (var e in classes) e.HitDiceRemaining = e.Level;
+
+        if (CharacterRules.PrimaryCaster(c) is { } caster) c.Spellcasting.SpellcastingClass = caster.Name;
+        RecomputeSlots(c);
+    }
+
+    /// <summary>Recomputes only what has a source (spec 6): regular slots if a Full/Half/Third entry exists, pact slots if a Pact entry does.</summary>
+    private static void RecomputeSlots(Character c)
+    {
+        var classes = c.Identity.Classes;
+        if (classes.Any(e => e.Caster is CasterType.Full or CasterType.Half or CasterType.Third))
+        {
+            var slots = SrdCatalog.SpellSlots(classes);
+            foreach (var slot in c.Spellcasting.Slots)
+            {
+                slot.Maximum = slots[slot.Level - 1];
+                slot.Expended = Math.Min(slot.Expended, slot.Maximum);
+            }
+        }
+        if (classes.Where(e => e.Caster == CasterType.Pact).Sum(e => e.Level) is > 0 and var pact)
+        {
+            var (count, slotLevel) = SrdCatalog.PactSlots(pact);
+            var p = c.Spellcasting.PactSlots;
+            p.Level = slotLevel;
+            p.Maximum = count;
+            p.Expended = Math.Min(p.Expended, count);
         }
     }
+
+    /// <summary>
+    /// Prerequisite warnings for adding <paramref name="className"/> as a new, non-first class: unmet ones for it and for every
+    /// existing class. Empty when it is already an entry or the character has no named class yet.
+    /// </summary>
+    public static IReadOnlyList<string> MulticlassWarnings(Character c, string className)
+    {
+        className = className.Trim();
+        var existing = c.Identity.Classes.Where(e => e.Name.Trim().Length > 0).ToList();
+        if (existing.Count == 0 || existing.Any(e => string.Equals(e.Name.Trim(), className, StringComparison.OrdinalIgnoreCase))) return [];
+        return [.. existing.Select(e => e.Name).Append(className)
+            .Select(SrdCatalog.FindClass).OfType<ClassDefinition>()
+            .Where(d => d.MulticlassPrerequisites.Length > 0
+                && !d.MulticlassPrerequisites.Any(alt => alt.All(r => CharacterRules.AbilityScore(c, r.Ability) >= r.Minimum)))
+            .Select(d => $"{d.Name} multiclassing needs " + string.Join(" or ",
+                d.MulticlassPrerequisites.Select(alt => string.Join(" and ", alt.Select(r => $"{r.Ability} {r.Minimum}")))) + ".")];
+    }
+
+    /// <summary>Adds a level in an existing or new class (spec 7.1). Saving throws are not changed.</summary>
+    public static LevelUpReport LevelUp(Character c, string className, LevelUpOptions options)
+    {
+        var report = new LevelUpReport();
+        className = className.Trim();
+        if (CharacterRules.TotalLevel(c) >= 20)
+        {
+            report.Completed = false;
+            report.NeedsAttention.Add("Already at level 20; nothing to level up.");
+            return report;
+        }
+
+        var classes = c.Identity.Classes;
+        var entry = classes.FirstOrDefault(e => string.Equals(e.Name.Trim(), className, StringComparison.OrdinalIgnoreCase));
+        var def = SrdCatalog.FindClass(className);
+        var die = entry?.HitDie ?? def?.HitDie ?? options.HitDie ?? 8;
+        if (options.Roll is { } r && (r < 1 || r > die))
+            throw new ArgumentOutOfRangeException(nameof(options), $"Roll must be between 1 and {die}.");
+
+        if (entry is not null)
+        {
+            entry.Level++;
+            entry.HitDiceRemaining++;
+        }
+        else
+        {
+            report.Warnings.AddRange(MulticlassWarnings(c, className));
+            // A blank first entry is filled in rather than appended to.
+            var isFirst = classes.All(e => e.Name.Trim().Length == 0);
+            entry = isFirst ? classes[0] : new ClassLevel();
+            entry.Name = def?.Name ?? className;
+            entry.Level = 1;
+            entry.HitDie = die;
+            entry.Caster = def?.Caster ?? options.Caster ?? CasterType.None;
+            entry.SpellcastingAbility = def?.SpellcastingAbility ?? options.Ability;
+            entry.HitDiceRemaining = 1;
+            if (!isFirst)
+            {
+                classes.Add(entry);
+                if (def is null) report.NeedsAttention.Add($"Add {entry.Name} proficiencies by hand.");
+                else
+                {
+                    foreach (var (category, name) in def.MulticlassProficiencies)
+                    {
+                        if (CharacterRules.HasProficiency(c, category, name)) continue;
+                        c.Proficiencies.Add(new Proficiency { Category = category, Name = name });
+                        report.Changes.Add($"Gained {name} proficiency.");
+                    }
+                    foreach (var choice in def.MulticlassChoices)
+                        report.NeedsAttention.Add($"Choose {choice} ({def.Name} multiclass).");
+                }
+            }
+        }
+
+        var con = CharacterRules.AbilityModifier(c, Ability.Constitution);
+        var gain = Math.Max(1, (options.Roll ?? die / 2 + 1) + con);
+        c.Combat.MaxHp += gain;
+        c.Combat.CurrentHp += gain;
+        report.Changes.Add($"{entry.Name} is now level {entry.Level} (total {CharacterRules.TotalLevel(c)}); +{gain} maximum HP.");
+
+        RecomputeSlots(c);
+        report.NeedsAttention.Add($"Add {entry.Name} {entry.Level} features by hand.");
+        return report;
+    }
+}
+
+public sealed record LevelUpOptions(int? Roll = null, int? HitDie = null, CasterType? Caster = null, Ability? Ability = null);
+
+public sealed class LevelUpReport
+{
+    public bool Completed { get; set; } = true;
+    public List<string> Changes { get; } = [];
+    public List<string> Warnings { get; } = [];
+    public List<string> NeedsAttention { get; } = [];
 }

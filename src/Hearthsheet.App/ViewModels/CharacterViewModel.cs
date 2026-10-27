@@ -72,16 +72,11 @@ public sealed class CharacterViewModel : Observable, IDisposable
         RemoveEntry = new RelayCommand(RemoveEntryWithConfirmation, p => p is not null);
         ApplyClassDefaults = new RelayCommand(() =>
         {
-            if (SrdCatalog.FindClass(FirstClass.Name) is not { } def)
-            {
-                _dialogs.Info($"“{FirstClass.Name}” is not one of the built-in classes, so there are no defaults to apply.");
+            if (!_dialogs.Confirm("Apply class defaults to every class entry? This fills blank hit dice, caster types and spellcasting abilities from the " +
+                                  "built-in classes, takes saving throws from the first class, sets average maximum HP, refills hit dice and recomputes spell slots.", "Apply class defaults"))
                 return;
-            }
-            if (!_dialogs.Confirm($"Apply {def.Name} defaults for level {FirstClass.Level}? This sets hit die, saving throw proficiencies, " +
-                                  "average maximum HP, spellcasting ability and spell slots.", "Apply class defaults"))
-                return;
-            CharacterFactory.ApplyClassDefaults(c, def);
-            _log.LogInformation("Class defaults applied: {Class} {Level}", def.Name, FirstClass.Level);
+            CharacterFactory.ApplyClassDefaults(c);
+            _log.LogInformation("Class defaults applied: {Class}", CharacterRules.ClassAndLevelText(c));
         });
 
         Play = new PlayViewModel(this, rest, dialogs, log);
