@@ -199,10 +199,11 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 
 ## 13. Testing
 
-`dotnet test` runs 244 tests:
+`dotnet test` runs 259 tests:
 
 - **Domain rules:** modifiers, proficiency, skills including half proficiency and expertise, saves, modifier stacking and Set, item attunement, clamping.
 - **Gameplay:** damage, temporary HP, massive damage, death saves in every combination, healing from 0, hit dice, resources, spell casting and upcasting, concentration.
+- **Multiclassing:** schema 2 → 3 migration, multiclass and pact slot tables, per-class spell DC, hit-dice pools, level up and prerequisites, class defaults, slot recompute on a caster change, spell retagging on a class rename.
 - **Rests:** short vs long, partial and manual recovery, 0-HP rule, effect expiry, replaceable steps, class defaults.
 - **Persistence:** CRUD, reopen, ordering, refusal of rows from a newer schema, a corrupt row isolated, backup restore, duplicate, library import and export.
 - **Import/export:** round-trip, nine kinds of invalid or corrupt file, newer schema, deep nesting, clamping and repair.
