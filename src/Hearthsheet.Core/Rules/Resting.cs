@@ -85,10 +85,23 @@ public sealed class LongRestHitDice : IRestStep
     {
         if (kind != RestKind.Long) return;
         var total = CharacterRules.HitDiceTotal(c);
-        var before = c.Combat.HitDiceRemaining;
-        c.Combat.HitDiceRemaining = Math.Min(total, before + Math.Max(1, total / 2));
-        if (c.Combat.HitDiceRemaining > before)
-            report.Changes.Add($"Regained {c.Combat.HitDiceRemaining - before} hit dice ({c.Combat.HitDiceRemaining}/{total}).");
+        var left = Math.Max(1, total / 2);
+        var regained = new List<string>();
+        foreach (var group in c.Identity.Classes.GroupBy(e => e.HitDie).OrderByDescending(g => g.Key))
+        {
+            var gained = 0;
+            foreach (var entry in group)
+            {
+                var add = Math.Min(left, entry.Level - entry.HitDiceRemaining);
+                if (add <= 0) continue;
+                entry.HitDiceRemaining += add;
+                left -= add;
+                gained += add;
+            }
+            if (gained > 0) regained.Add($"{gained}d{group.Key}");
+        }
+        if (regained.Count > 0)
+            report.Changes.Add($"Regained {string.Join(", ", regained)} ({c.Identity.Classes.Sum(e => e.HitDiceRemaining)}/{total}).");
     }
 }
 
@@ -96,13 +109,14 @@ public sealed class SpellSlotRecovery : IRestStep
 {
     public void Apply(Character c, RestKind kind, RestReport report)
     {
-        if (kind != RestKind.Long) return;
-        var restored = 0;
-        foreach (var slot in c.Spellcasting.Slots)
-        {
-            restored += slot.Expended;
-            slot.Expended = 0;
-        }
+        var restored = c.Spellcasting.PactSlots.Expended;
+        c.Spellcasting.PactSlots.Expended = 0;
+        if (kind == RestKind.Long)
+            foreach (var slot in c.Spellcasting.Slots)
+            {
+                restored += slot.Expended;
+                slot.Expended = 0;
+            }
         if (restored > 0) report.Changes.Add($"Restored {restored} spell slot(s).");
     }
 }

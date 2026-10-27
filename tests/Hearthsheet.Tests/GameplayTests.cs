@@ -8,11 +8,11 @@ public class GameplayTests
     private static Character Fighter(int maxHp = 20)
     {
         var c = new Character();
-        c.Identity.Level = 4;
+        c.Identity.Classes[0].HitDie = 10;
+        c.Identity.Classes[0].Level = 4;
+        c.Identity.Classes[0].HitDiceRemaining = 4;
         c.Combat.MaxHp = maxHp;
         c.Combat.CurrentHp = maxHp;
-        c.Combat.HitDieSize = 10;
-        c.Combat.HitDiceRemaining = 4;
         return c;
     }
 
@@ -126,11 +126,11 @@ public class GameplayTests
         var c = Fighter();
         c.Abilities.Constitution = 14; // +2
         c.TakeDamage(15);
-        var healed = c.SpendHitDie(6);
+        var healed = c.SpendHitDie(10, 6);
         Assert.Equal(8, healed);
         Assert.Equal(13, c.Combat.CurrentHp);
-        Assert.Equal(3, c.Combat.HitDiceRemaining);
-        Assert.Throws<ArgumentOutOfRangeException>(() => c.SpendHitDie(11));
+        Assert.Equal(3, c.Identity.Classes[0].HitDiceRemaining);
+        Assert.Throws<ArgumentOutOfRangeException>(() => c.SpendHitDie(10, 11));
     }
 
     [Fact]
@@ -139,15 +139,32 @@ public class GameplayTests
         var c = Fighter();
         c.Abilities.Constitution = 3; // -4
         c.TakeDamage(10);
-        Assert.Equal(0, c.SpendHitDie(1));
+        Assert.Equal(0, c.SpendHitDie(10, 1));
     }
 
     [Fact]
     public void SpendHitDie_FailsWithNoneRemaining()
     {
         var c = Fighter();
-        c.Combat.HitDiceRemaining = 0;
-        Assert.Throws<InvalidOperationException>(() => c.SpendHitDie(5));
+        c.Identity.Classes[0].HitDiceRemaining = 0;
+        Assert.Throws<InvalidOperationException>(() => c.SpendHitDie(10, 5));
+    }
+
+    [Fact]
+    public void SpendHitDie_EmptyPoolThrows_OtherPoolUntouched()
+    {
+        var c = Fighter();
+        c.Identity.Classes[0].HitDiceRemaining = 0;
+        c.Identity.Classes.Add(new ClassLevel { Name = "Rogue", HitDie = 8, Level = 1, HitDiceRemaining = 1 });
+        Assert.Throws<InvalidOperationException>(() => c.SpendHitDie(10, 5));
+        Assert.Equal(1, c.Identity.Classes[1].HitDiceRemaining);
+    }
+
+    [Fact]
+    public void SpendHitDie_UnknownSizeThrows()
+    {
+        var c = Fighter();
+        Assert.Throws<InvalidOperationException>(() => c.SpendHitDie(12, 5));
     }
 
     [Fact]
@@ -202,5 +219,48 @@ public class GameplayTests
         Assert.Single(c.Conditions);
         c.RemoveCondition(Condition.Prone);
         Assert.Empty(c.Conditions);
+    }
+
+    [Fact]
+    public void CastSpell_UsesPactSlotOnTie()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Level = 2;
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.SlotLevel(2).Maximum = 1;
+        c.Spellcasting.SlotLevel(1).Maximum = 1;
+        var spell = new Spell { Name = "Shield", Level = 1 };
+
+        c.CastSpell(spell); // regular L1 is lower than the pact slot
+        Assert.Equal(1, c.Spellcasting.SlotLevel(1).Expended);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+
+        var text = c.CastSpell(spell); // tie at L2: pact wins
+        Assert.Contains("pact slot", text);
+        Assert.Equal(1, c.Spellcasting.PactSlots.Expended);
+        Assert.Equal(0, c.Spellcasting.SlotLevel(2).Expended);
+    }
+
+    [Fact]
+    public void CastSpell_PactSlotTooLowIsSkipped()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Level = 1;
+        c.Spellcasting.PactSlots.Maximum = 2;
+        Assert.StartsWith("No spell slot", c.CastSpell(new Spell { Name = "Hold Person", Level = 2 }));
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+    }
+
+    [Fact]
+    public void ExpendRestorePactSlot()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Maximum = 1;
+        Assert.True(c.ExpendPactSlot());
+        Assert.False(c.ExpendPactSlot());
+        Assert.Equal(0, c.Spellcasting.PactSlots.Available);
+        c.RestorePactSlot();
+        c.RestorePactSlot();
+        Assert.Equal(1, c.Spellcasting.PactSlots.Available);
     }
 }

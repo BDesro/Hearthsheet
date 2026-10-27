@@ -291,6 +291,24 @@ public class CloudSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task Pull_SchemaTwoRow_MigratesToClasses()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","subclass":"Echo Knight","level":11},"combat":{"hitDieSize":10,"hitDiceRemaining":7},"spellcasting":{"ability":null}}""";
+        var id = Guid.NewGuid();
+        _cloud.Rows[id] = new CloudRow(id, "Old Save", 1, 2, v2, null, _time.Now);
+
+        await _b.SyncAsync();
+
+        var c = _b.Repo.Load(id)!;
+        var e = Assert.Single(c.Identity.Classes);
+        Assert.Equal(("Fighter", 11), (e.Name, e.Level));
+
+        _b.Repo.Save(c);
+        Assert.Equal(CharacterJson.CurrentSchemaVersion, Assert.Single(_b.Repo.GetDirty()).SchemaVersion);
+        Assert.Equal(3, CharacterJson.CurrentSchemaVersion);
+    }
+
+    [Fact]
     public async Task OversizedCharacter_IsSkipped_AndOthersSync()
     {
         var big = Samples.Rich();

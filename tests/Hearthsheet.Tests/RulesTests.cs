@@ -1,3 +1,4 @@
+using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 
@@ -31,10 +32,42 @@ public class RulesTests
         Assert.Equal(expected, CharacterRules.ProficiencyBonus(level));
 
     [Fact]
+    public void ProficiencyBonus_UsesTotalLevel()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Level = 11 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Blood Hunter", Level = 1 });
+        Assert.Equal(12, CharacterRules.TotalLevel(c));
+        Assert.Equal(4, CharacterRules.ProficiencyBonus(c));
+    }
+
+    [Fact]
+    public void HitDicePools_GroupByDieSize()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", HitDie = 10, Level = 11, HitDiceRemaining = 9 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Rogue", HitDie = 8, Level = 1, HitDiceRemaining = 1 });
+        c.Identity.Classes.Add(new ClassLevel { Name = "Paladin", HitDie = 10, Level = 2, HitDiceRemaining = 2 });
+        Assert.Equal([new HitDicePool(10, 11, 13), new HitDicePool(8, 1, 1)], CharacterRules.HitDicePools(c));
+    }
+
+    [Fact]
+    public void ClassSummary_SingleAndMulti()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Level = 11, Subclass = "Echo Knight" };
+        Assert.Equal("Fighter", CharacterRules.ClassSummary(c));
+        Assert.Equal("Fighter 11", CharacterRules.ClassAndLevelText(c));
+        c.Identity.Classes.Add(new ClassLevel { Name = "Blood Hunter", Level = 1 });
+        Assert.Equal("Fighter 11 (Echo Knight) / Blood Hunter 1", CharacterRules.ClassSummary(c));
+        Assert.Equal("Fighter 11 (Echo Knight) / Blood Hunter 1", CharacterRules.ClassAndLevelText(c));
+    }
+
+    [Fact]
     public void Skill_CombinesAbilityProficiencyExpertiseAndBonus()
     {
         var c = new Character();
-        c.Identity.Level = 5; // PB +3
+        c.Identity.Classes[0].Level = 5; // PB +3
         c.Abilities.Dexterity = 16; // +3
 
         Assert.Equal(3, CharacterRules.SkillModifier(c, Skill.Stealth));
@@ -53,7 +86,7 @@ public class RulesTests
     public void Skill_HalfProficiencyRoundsDown()
     {
         var c = new Character();
-        c.Identity.Level = 5; // PB 3 → half = 1
+        c.Identity.Classes[0].Level = 5; // PB 3 → half = 1
         c.SkillEntry(Skill.History).Proficiency = ProficiencyLevel.Half;
         Assert.Equal(1, CharacterRules.SkillModifier(c, Skill.History));
     }
@@ -112,20 +145,20 @@ public class RulesTests
     public void Derived_CombatAndSpellValues()
     {
         var c = new Character();
-        c.Identity.Level = 9; // PB 4
+        c.Identity.Classes[0].Level = 9; // PB 4
         c.Abilities.Dexterity = 14;
         c.Abilities.Wisdom = 12;
         c.Abilities.Intelligence = 18;
         c.Combat.InitiativeBonus = 1;
         c.SkillEntry(Skill.Perception).Proficiency = ProficiencyLevel.Proficient;
-        c.Spellcasting.Ability = Ability.Intelligence;
+        c.Identity.Classes[0].SpellcastingAbility = Ability.Intelligence;
 
         Assert.Equal(3, CharacterRules.Initiative(c));
         Assert.Equal(15, CharacterRules.PassivePerception(c));
         Assert.Equal(16, CharacterRules.SpellSaveDc(c));
         Assert.Equal(8, CharacterRules.SpellAttackBonus(c));
 
-        c.Spellcasting.Ability = null;
+        c.Identity.Classes[0].SpellcastingAbility = null;
         Assert.Null(CharacterRules.SpellSaveDc(c));
     }
 
@@ -145,10 +178,10 @@ public class RulesTests
     {
         var c = new Character();
         c.Abilities.Strength = 99;
-        c.Identity.Level = 0;
+        c.Identity.Classes[0].Level = 0;
         c.Combat.CurrentHp = -5;
         Assert.Equal(30, c.Abilities.Strength);
-        Assert.Equal(1, c.Identity.Level);
+        Assert.Equal(1, c.Identity.Classes[0].Level);
         Assert.Equal(0, c.Combat.CurrentHp);
     }
 
@@ -243,5 +276,84 @@ public class RulesTests
         Assert.Equal(["Simple", "Martial", "Melee", "Ranged", "Firearms", "Katana"], options.Take(6));
         Assert.Single(options, o => o.Equals("Longsword", StringComparison.OrdinalIgnoreCase)); // plural matched the standard one
         Assert.DoesNotContain("Thieves' tools", options);
+    }
+
+    private static ClassLevel[] Entries(string spec) => [.. spec.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(p =>
+    {
+        var parts = p.Split(':');
+        return new ClassLevel { Name = parts[0], Caster = Enum.Parse<CasterType>(parts[1]), Level = int.Parse(parts[2]) };
+    })];
+
+    [Theory]
+    [InlineData("Paladin:Half:5", "4,2")]
+    [InlineData("Fighter:Third:7", "4,2")]
+    [InlineData("Fighter:Third:2", "")]
+    [InlineData("Wizard:Full:5", "4,3,2")]
+    [InlineData("Paladin:Half:2,Sorcerer:Full:3", "4,3")]
+    [InlineData("Warlock:Pact:3,Sorcerer:Full:2", "3")]
+    [InlineData("Fighter:None:11,BloodHunter:None:1", "")]
+    public void SpellSlots_SingleAndMulticlass(string classes, string expected)
+    {
+        var want = new int[9];
+        foreach (var (n, i) in expected.Split(',', StringSplitOptions.RemoveEmptyEntries).Select((s, i) => (int.Parse(s), i))) want[i] = n;
+        Assert.Equal(want, SrdCatalog.SpellSlots(Entries(classes)));
+    }
+
+    [Fact]
+    public void SpellDc_PerClass()
+    {
+        var c = new Character();
+        c.Abilities.Intelligence = 18;
+        c.Abilities.Wisdom = 14;
+        c.Identity.Classes[0] = new ClassLevel { Name = "Wizard", Level = 5, SpellcastingAbility = Ability.Intelligence };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Cleric", Level = 3, SpellcastingAbility = Ability.Wisdom });
+        var cleric = new Spell { Class = "cleric" };
+        var plain = new Spell();
+        Assert.Equal(13, CharacterRules.SpellSaveDc(c, cleric));
+        Assert.Equal(15, CharacterRules.SpellSaveDc(c, plain));
+        Assert.Equal(15, CharacterRules.SpellSaveDc(c));
+        Assert.Equal(5, CharacterRules.SpellAttackBonus(c, cleric));
+
+        c.Items.Add(new Item { Name = "Focus", Equipped = true, Modifiers = { new Modifier { Target = StatTargets.SpellDc, Value = 1 } } });
+        Assert.Equal(14, CharacterRules.SpellSaveDc(c, cleric));
+        Assert.Equal(16, CharacterRules.SpellSaveDc(c, plain));
+    }
+
+    [Fact]
+    public void Catalog_BloodHunterFacts()
+    {
+        var bh = SrdCatalog.FindClass("blood hunter")!;
+        Assert.Equal(10, bh.HitDie);
+        Assert.Equal([Ability.Dexterity, Ability.Intelligence], bh.SavingThrows);
+        Assert.Equal(CasterType.None, bh.Caster);
+        Assert.Equal(6, bh.MulticlassProficiencies.Length);
+        Assert.Contains((ProficiencyCategory.Tool, "Alchemist's supplies"), bh.MulticlassProficiencies);
+    }
+
+    [Fact]
+    public void Catalog_EveryClassHasPrerequisites()
+    {
+        Assert.Equal(13, SrdCatalog.Classes.Count);
+        Assert.All(SrdCatalog.Classes, c => Assert.NotEmpty(c.MulticlassPrerequisites));
+    }
+
+    [Fact]
+    public void Catalog_MonkNeedsDexAndWis()
+    {
+        var alt = Assert.Single(SrdCatalog.FindClass("Monk")!.MulticlassPrerequisites);
+        Assert.Equal([(Ability.Dexterity, 13), (Ability.Wisdom, 13)], alt);
+    }
+
+    [Theory]
+    [InlineData("Eldritch Knight", CasterType.None, CasterType.Third)]
+    [InlineData("  arcane trickster ", CasterType.None, CasterType.Third)]
+    [InlineData("Eldritch Knight", CasterType.Half, CasterType.Half)]
+    [InlineData("Champion", CasterType.None, CasterType.None)]
+    public void Subclass_EldritchKnight_MakesThirdCaster(string subclass, CasterType start, CasterType want)
+    {
+        var e = new ClassLevel { Name = "Fighter", Caster = start };
+        e.Subclass = subclass;
+        Assert.Equal(want, e.Caster);
+        Assert.Equal(want == CasterType.Third ? Ability.Intelligence : null, e.SpellcastingAbility);
     }
 }

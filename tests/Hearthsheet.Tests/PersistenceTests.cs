@@ -96,8 +96,95 @@ public class SerializationTests
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":0,\"character\":{}}")]
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":1,\"character\":{\"abilities\":{\"strength\":\"lots\"}}}")]
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":1,\"character\":{\"conditions\":[\"OnFire\"]}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"identity\":{\"level\":\"lots\"}}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"identity\":[]}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"spellcasting\":{\"ability\":5}}}")]
     public void Import_RejectsInvalidFiles(string text) =>
         Assert.Throws<CharacterFormatException>(() => _portable.Import(text));
+
+    [Fact]
+    public void SchemaTwo_MigratesSingleClassToOneEntry()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","subclass":"Echo Knight","level":11},"combat":{"hitDieSize":10,"hitDiceRemaining":7},"spellcasting":{"ability":null}}""";
+        var c = CharacterJson.Deserialize(v2, 2);
+        var e = Assert.Single(c.Identity.Classes);
+        Assert.Equal(("Fighter", "Echo Knight", 11, 10, 7, CasterType.None), (e.Name, e.Subclass, e.Level, e.HitDie, e.HitDiceRemaining, e.Caster));
+    }
+
+    [Fact]
+    public void SchemaThree_KeyOrderDoesNotTriggerSubclassRule()
+    {
+        const string v3 = """{"identity":{"classes":[{"caster":"None","subclass":"Eldritch Knight","name":"Fighter","level":7}]}}""";
+        Assert.Equal(CasterType.None, Assert.Single(CharacterJson.Deserialize(v3, 3).Identity.Classes).Caster);
+    }
+
+    [Fact]
+    public void SchemaTwo_EldritchKnight_MigratesToThirdCaster()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","subclass":"Eldritch Knight","level":7}}""";
+        var e = Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes);
+        Assert.Equal((CasterType.Third, Ability.Intelligence), (e.Caster, e.SpellcastingAbility!.Value));
+    }
+
+    [Fact]
+    public void SchemaTwo_MissingHitDiceRemaining_FallsBackToLevel()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","level":5}}""";
+        Assert.Equal(5, Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes).HitDiceRemaining);
+    }
+
+    [Fact]
+    public void Import_SchemaTwoEnvelope_MigratesToOneEntry()
+    {
+        const string text = """{"format":"dndsheet.character","schemaVersion":2,"character":{"identity":{"className":"Fighter","level":11}}}""";
+        var e = Assert.Single(_portable.Import(text).Identity.Classes);
+        Assert.Equal(("Fighter", 11), (e.Name, e.Level));
+    }
+
+    [Fact]
+    public void SchemaTwo_UnknownClassWithAbility_BecomesFullCaster()
+    {
+        const string v2 = """{"identity":{"className":"Witch","level":3},"spellcasting":{"ability":"Intelligence"}}""";
+        var e = Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes);
+        Assert.Equal(CasterType.Full, e.Caster);
+        Assert.Equal(Ability.Intelligence, e.SpellcastingAbility);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SchemaOneOrTwo_EmptyDocument_LoadsOneBlankLevelOneEntry(int version)
+    {
+        var e = Assert.Single(CharacterJson.Deserialize("{}", version).Identity.Classes);
+        Assert.Equal(("", 1, 1), (e.Name, e.Level, e.HitDiceRemaining));
+    }
+
+    [Fact]
+    public void SchemaThree_RoundTripsClasses()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Subclass = "Champion", Level = 5, HitDie = 10, HitDiceRemaining = 3, Caster = CasterType.None };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Wizard", Level = 2, HitDie = 6, HitDiceRemaining = 2, Caster = CasterType.Full, SpellcastingAbility = Ability.Intelligence });
+        var back = CharacterJson.Deserialize(CharacterJson.Serialize(c), 3).Identity.Classes;
+        Assert.Equal(2, back.Count);
+        Assert.Equal(("Fighter", "Champion", 5, 10, 3), (back[0].Name, back[0].Subclass, back[0].Level, back[0].HitDie, back[0].HitDiceRemaining));
+        Assert.Equal(("Wizard", CasterType.Full, Ability.Intelligence), (back[1].Name, back[1].Caster, back[1].SpellcastingAbility));
+    }
+
+    [Fact]
+    public void Normalize_RepairsClasses()
+    {
+        var empty = CharacterJson.Deserialize("""{"identity":{"classes":[]}}""", 3);
+        Assert.Single(empty.Identity.Classes);
+
+        var over = CharacterJson.Deserialize(
+            """{"identity":{"classes":[{"name":"Fighter","level":15},{"name":"Wizard","level":10,"hitDiceRemaining":10}]}}""", 3);
+        Assert.Equal([15, 5], over.Identity.Classes.Select(x => x.Level));
+        Assert.Equal(5, over.Identity.Classes[1].HitDiceRemaining);
+
+        var dice = CharacterJson.Deserialize("""{"identity":{"classes":[{"level":3,"hitDiceRemaining":9}]}}""", 3);
+        Assert.Equal(3, dice.Identity.Classes[0].HitDiceRemaining);
+    }
 
     [Fact]
     public void Import_RejectsNewerSchema()
@@ -297,5 +384,21 @@ public class ChangeTrackerTests
         c.Items.Remove(item);
         item.Name = "gone";
         Assert.Equal(1, changes);
+    }
+
+    [Fact]
+    public void SchemaTwo_PactResourceBecomesPactSlots()
+    {
+        const string v2 = """{"identity":{"className":"Warlock","level":5},"resources":[{"name":"Rage","maximum":3,"current":3},{"name":"Pact Magic slots (level 3)","maximum":2,"current":1,"recovery":"ShortRest"}]}""";
+        var c = CharacterJson.Deserialize(v2, 2);
+        Assert.Equal((3, 2, 1), (c.Spellcasting.PactSlots.Level, c.Spellcasting.PactSlots.Maximum, c.Spellcasting.PactSlots.Expended));
+        Assert.Equal("Rage", Assert.Single(c.Resources).Name);
+    }
+
+    [Fact]
+    public void SchemaTwo_SpellcastingClassLabelKept()
+    {
+        const string v2 = """{"identity":{"className":"Wizard","level":3},"spellcasting":{"ability":"Intelligence","spellcastingClass":"Wizard"}}""";
+        Assert.Equal("Wizard", CharacterJson.Deserialize(v2, 2).Spellcasting.SpellcastingClass);
     }
 }

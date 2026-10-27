@@ -46,13 +46,17 @@ public static class StatTargets
 /// Derived values. Pure functions over stored state so nothing derived is ever persisted or
 /// allowed to drift out of sync between views.
 /// </summary>
+public sealed record HitDicePool(int Size, int Remaining, int Total);
+
 public static class CharacterRules
 {
     public static int AbilityModifier(int score) => (int)Math.Floor((score - 10) / 2.0);
 
     public static int ProficiencyBonus(int level) => 2 + (Math.Clamp(level, 1, 20) - 1) / 4;
 
-    public static int ProficiencyBonus(Character c) => ProficiencyBonus(c.Identity.Level);
+    public static int TotalLevel(Character c) => c.Identity.Classes.Sum(e => e.Level);
+
+    public static int ProficiencyBonus(Character c) => ProficiencyBonus(TotalLevel(c));
 
     /// <summary>Modifiers from features, active effects, and equipped (and, where required, attuned) items.</summary>
     public static IEnumerable<Modifier> ActiveModifiers(Character c) =>
@@ -112,13 +116,44 @@ public static class CharacterRules
 
     public static int MaxHitPoints(Character c) => Math.Max(1, Resolve(c, c.Combat.MaxHp, StatTargets.MaxHp));
 
-    public static int HitDiceTotal(Character c) => c.Identity.Level;
+    public static int HitDiceTotal(Character c) => TotalLevel(c);
 
-    public static int? SpellSaveDc(Character c) => c.Spellcasting.Ability is { } a
+    /// <summary>Hit dice grouped by die size, largest first.</summary>
+    public static IReadOnlyList<HitDicePool> HitDicePools(Character c) =>
+        [.. c.Identity.Classes.GroupBy(e => e.HitDie)
+            .Select(g => new HitDicePool(g.Key, g.Sum(e => e.HitDiceRemaining), g.Sum(e => e.Level)))
+            .OrderByDescending(p => p.Size)];
+
+    /// <summary>"Fighter" for one class; "Fighter 11 (Echo Knight) / Blood Hunter 1" for several.</summary>
+    public static string ClassSummary(Character c)
+    {
+        var classes = c.Identity.Classes;
+        if (classes.Count == 1) return classes[0].Name;
+        return string.Join(" / ", classes.Select(e =>
+            $"{e.Name} {e.Level}{(string.IsNullOrWhiteSpace(e.Subclass) ? "" : $" ({e.Subclass})")}".Trim()));
+    }
+
+    /// <summary>"Fighter 11" for one class (total level appended); the multiclass summary already carries each level.</summary>
+    public static string ClassAndLevelText(Character c) =>
+        c.Identity.Classes.Count == 1 ? $"{ClassSummary(c)} {TotalLevel(c)}".Trim() : ClassSummary(c);
+
+    /// <summary>The first class entry with a spellcasting ability; it speaks for spells with no class.</summary>
+    public static ClassLevel? PrimaryCaster(Character c) => c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null);
+
+    /// <summary>The class the spell is cast as: the entry named by <c>spell.Class</c>, else the primary caster.</summary>
+    public static ClassLevel? CasterFor(Character c, Spell spell) =>
+        c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null && string.Equals(e.Name, spell.Class.Trim(), StringComparison.OrdinalIgnoreCase))
+        ?? PrimaryCaster(c);
+
+    public static int? SpellSaveDc(Character c) => PrimaryCaster(c) is { } e ? SpellSaveDc(c, e) : null;
+    public static int? SpellSaveDc(Character c, Spell spell) => CasterFor(c, spell) is { } e ? SpellSaveDc(c, e) : null;
+    public static int? SpellSaveDc(Character c, ClassLevel e) => e.SpellcastingAbility is { } a
         ? Resolve(c, 8 + ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellDc)
         : null;
 
-    public static int? SpellAttackBonus(Character c) => c.Spellcasting.Ability is { } a
+    public static int? SpellAttackBonus(Character c) => PrimaryCaster(c) is { } e ? SpellAttackBonus(c, e) : null;
+    public static int? SpellAttackBonus(Character c, Spell spell) => CasterFor(c, spell) is { } e ? SpellAttackBonus(c, e) : null;
+    public static int? SpellAttackBonus(Character c, ClassLevel e) => e.SpellcastingAbility is { } a
         ? Resolve(c, ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellAttack)
         : null;
 
@@ -160,6 +195,11 @@ public static class CharacterRules
             .Order(StringComparer.OrdinalIgnoreCase);
         return [.. standard.Take(4), .. custom, .. standard.Skip(4)];
     }
+
+    /// <summary>True when the category already lists <paramref name="name"/> (entries may be comma lists; case, plural and "weapons" are ignored).</summary>
+    public static bool HasProficiency(Character c, ProficiencyCategory category, string name) =>
+        c.Proficiencies.Where(p => p.Category == category).SelectMany(p => SplitList(p.Name))
+            .Any(n => ProficiencyKey(n) == ProficiencyKey(name));
 
     private static string ProficiencyKey(string name)
     {

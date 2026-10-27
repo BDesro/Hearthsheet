@@ -42,7 +42,7 @@ public class RestTests
         var c = Wizard();
         c.TakeDamage(10);
         c.GrantTemporaryHitPoints(4);
-        c.Combat.HitDiceRemaining = 0;
+        c.Identity.Classes[0].HitDiceRemaining = 0;
         c.Spellcasting.SlotLevel(1).Expended = 4;
         c.Spellcasting.SlotLevel(3).Expended = 1;
         c.ExhaustionLevel = 2;
@@ -52,7 +52,7 @@ public class RestTests
         Assert.True(report.Completed);
         Assert.Equal(CharacterRules.MaxHitPoints(c), c.Combat.CurrentHp);
         Assert.Equal(0, c.Combat.TemporaryHp);
-        Assert.Equal(2, c.Combat.HitDiceRemaining); // level 5 → regain 2
+        Assert.Equal(2, c.Identity.Classes[0].HitDiceRemaining); // level 5 → regain 2
         Assert.All(c.Spellcasting.Slots, s => Assert.Equal(0, s.Expended));
         Assert.Equal(1, c.Resources.Single(r => r.Name == "Arcane Recovery").Current);
         Assert.Equal(2, c.Resources.Single(r => r.Name == "Partial").Current);
@@ -63,9 +63,33 @@ public class RestTests
     public void LongRest_RegainsAtLeastOneHitDie()
     {
         var c = new Character();
-        c.Combat.HitDiceRemaining = 0;
+        c.Identity.Classes[0].HitDiceRemaining = 0;
         _rest.Rest(c, RestKind.Long);
-        Assert.Equal(1, c.Combat.HitDiceRemaining);
+        Assert.Equal(1, c.Identity.Classes[0].HitDiceRemaining);
+    }
+
+    [Fact]
+    public void LongRest_RegainsHalfTotal_LargestDiceFirst()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", HitDie = 10, Level = 11, HitDiceRemaining = 0 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Rogue", HitDie = 8, Level = 1, HitDiceRemaining = 0 });
+        var report = _rest.Rest(c, RestKind.Long);
+        Assert.Equal(6, c.Identity.Classes[0].HitDiceRemaining);
+        Assert.Equal(0, c.Identity.Classes[1].HitDiceRemaining);
+        Assert.Contains(report.Changes, x => x.Contains("Regained 6d10"));
+    }
+
+    [Fact]
+    public void LongRest_FillsNextPoolWhenLargestFull()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", HitDie = 10, Level = 2, HitDiceRemaining = 1 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Rogue", HitDie = 8, Level = 4, HitDiceRemaining = 0 });
+        var report = _rest.Rest(c, RestKind.Long);
+        Assert.Equal(2, c.Identity.Classes[0].HitDiceRemaining);
+        Assert.Equal(2, c.Identity.Classes[1].HitDiceRemaining);
+        Assert.Contains(report.Changes, x => x.Contains("Regained 1d10, 2d8"));
     }
 
     [Fact]
@@ -113,18 +137,39 @@ public class RestTests
     public void Factory_AppliesClassDefaults()
     {
         var c = CharacterFactory.Create(new NewCharacterOptions("P", "Paladin", 5, "Human", "Acolyte"));
-        Assert.Equal(10, c.Combat.HitDieSize);
+        Assert.Equal(10, c.Identity.Classes[0].HitDie);
         Assert.True(c.Save(Ability.Wisdom).Proficient);
         Assert.True(c.Save(Ability.Charisma).Proficient);
-        Assert.Equal(Ability.Charisma, c.Spellcasting.Ability);
+        Assert.Equal(Ability.Charisma, c.Identity.Classes[0].SpellcastingAbility);
         Assert.Equal(4, c.Spellcasting.SlotLevel(1).Maximum);
         Assert.Equal(2, c.Spellcasting.SlotLevel(2).Maximum);
-        Assert.Equal(5, c.Combat.HitDiceRemaining);
+        Assert.Equal(5, c.Identity.Classes[0].HitDiceRemaining);
         Assert.Equal(c.Combat.MaxHp, c.Combat.CurrentHp);
 
         var warlock = CharacterFactory.Create(new NewCharacterOptions("W", "warlock", 5, "", ""));
-        var pact = Assert.Single(warlock.Resources);
-        Assert.Equal(RecoveryTiming.ShortRest, pact.Recovery);
-        Assert.Equal(2, pact.Maximum);
+        Assert.Equal((3, 2), (warlock.Spellcasting.PactSlots.Level, warlock.Spellcasting.PactSlots.Maximum));
+        Assert.Empty(warlock.Resources);
+    }
+
+    [Fact]
+    public void ShortRest_RestoresPactSlots_NotRegularSlots()
+    {
+        var c = Wizard();
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.PactSlots.Expended = 2;
+        c.Spellcasting.SlotLevel(1).Expended = 2;
+        _rest.Rest(c, RestKind.Short);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+        Assert.Equal(2, c.Spellcasting.SlotLevel(1).Expended);
+    }
+
+    [Fact]
+    public void LongRest_RestoresPactSlots()
+    {
+        var c = Wizard();
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.PactSlots.Expended = 1;
+        _rest.Rest(c, RestKind.Long);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
     }
 }

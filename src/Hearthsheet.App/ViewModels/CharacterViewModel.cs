@@ -72,17 +72,17 @@ public sealed class CharacterViewModel : Observable, IDisposable
         RemoveEntry = new RelayCommand(RemoveEntryWithConfirmation, p => p is not null);
         ApplyClassDefaults = new RelayCommand(() =>
         {
-            if (SrdCatalog.FindClass(c.Identity.ClassName) is not { } def)
-            {
-                _dialogs.Info($"“{c.Identity.ClassName}” is not one of the built-in classes, so there are no defaults to apply.");
+            if (!_dialogs.Confirm("Apply class defaults to every class entry? This fills blank hit dice, caster types and spellcasting abilities from the " +
+                                  "built-in classes, takes saving throws from the first class, sets average maximum HP, refills hit dice and recomputes spell slots.", "Apply class defaults"))
                 return;
-            }
-            if (!_dialogs.Confirm($"Apply {def.Name} defaults for level {c.Identity.Level}? This sets hit die, saving throw proficiencies, " +
-                                  "average maximum HP, spellcasting ability and spell slots.", "Apply class defaults"))
-                return;
-            CharacterFactory.ApplyClassDefaults(c, def);
-            _log.LogInformation("Class defaults applied: {Class} {Level}", def.Name, c.Identity.Level);
+            CharacterFactory.ApplyClassDefaults(c);
+            _log.LogInformation("Class defaults applied: {Class}", CharacterRules.ClassAndLevelText(c));
         });
+
+        AddClass = new RelayCommand(() => DoLevelUp(null), CanLevelUp);
+        LevelUp = new RelayCommand(() => DoLevelUp(c.Identity.Classes[0].Name), CanLevelUp);
+        MoveClassUp = new RelayCommand<ClassLevel>(e => MoveClass(e, -1));
+        MoveClassDown = new RelayCommand<ClassLevel>(e => MoveClass(e, 1));
 
         Play = new PlayViewModel(this, rest, dialogs, log);
         _session.Changed += OnSessionChanged;
@@ -110,7 +110,28 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public bool MaxHpModified => MaxHitPoints != Character.Combat.MaxHp;
     public int PassivePerception => CharacterRules.PassivePerception(Character);
     public int HitDiceTotal => CharacterRules.HitDiceTotal(Character);
-    public string HitDiceText => $"{Character.Combat.HitDiceRemaining} / {HitDiceTotal} d{Character.Combat.HitDieSize}";
+    public string HitDiceText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining} / {p.Total} d{p.Size}"));
+    public bool IsMulticlass => Character.Identity.Classes.Count > 1;
+    public string HitDiceTotalText => "Total " + string.Join(" + ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Total}d{p.Size}"));
+    public string HitDiceRemainingText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining}d{p.Size}"));
+    /// <summary>One "Wizard · INT · DC 15 · +7" line per casting entry.</summary>
+    public IReadOnlyList<string> CasterLines =>
+        [.. Character.Identity.Classes.Where(e => e.SpellcastingAbility is not null).Select(e =>
+            $"{e.Name} · {e.SpellcastingAbility!.Value.Abbreviation()} · DC {CharacterRules.SpellSaveDc(Character, e)} · {CharacterRules.FormatModifier(CharacterRules.SpellAttackBonus(Character, e)!.Value)}")];
+    /// <summary>The entry the sheet's ability picker edits: the primary caster, or the first class until one casts.</summary>
+    public ClassLevel SpellcastingEntry => CharacterRules.PrimaryCaster(Character) ?? FirstClass;
+    public string ClassSummary => CharacterRules.ClassSummary(Character);
+    public string ClassLevelHeader => $"Class & Level · total {TotalLevel}";
+    /// <summary>One pip per pact slot, filled while available.</summary>
+    public IReadOnlyList<SlotPip> PactPips
+    {
+        get
+        {
+            var pact = Character.Spellcasting.PactSlots;
+            return [.. Enumerable.Range(0, pact.Maximum).Select(i => new SlotPip(pact.Level, i, i >= pact.Maximum - pact.Expended))];
+        }
+    }
+
     public string SpellSaveDc => CharacterRules.SpellSaveDc(Character)?.ToString() ?? "—";
     public string SpellAttackBonus => CharacterRules.SpellAttackBonus(Character) is { } b ? CharacterRules.FormatModifier(b) : "—";
     public string CarriedWeightText => $"{CharacterRules.CarriedWeight(Character):0.#} / {CharacterRules.CarryingCapacity(Character)} lb";
@@ -119,9 +140,18 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public bool IsStable => Character.Combat.IsStable && Character.Combat.CurrentHp == 0 && !IsDead;
     public string VitalStatus => IsDead ? "Dead" : IsStable ? "Stable" : IsDying ? "Dying" : "";
     public string Title => string.IsNullOrWhiteSpace(Character.Identity.Name) ? "Unnamed character" : Character.Identity.Name;
-    public string Summary => $"{Character.Identity.Species} {Character.Identity.ClassName} {Character.Identity.Level}".Trim();
+    public string Summary => $"{Character.Identity.Species} {CharacterRules.ClassAndLevelText(Character)}".Trim();
+    /// <summary>The class entry the single-class editors bind to.</summary>
+    public ClassLevel FirstClass => Character.Identity.Classes[0];
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
-    public bool HasSpellcasting => Character.Spellcasting.Ability is not null || Character.Spellcasting.Spells.Count > 0;
+    /// <summary>True when two or more class entries cast, so spells carry a class and their own DC.</summary>
+    public int TotalLevel => CharacterRules.TotalLevel(Character);
+    public bool IsOverLevelCap => TotalLevel > 20;
+    /// <summary>Spell Class column choices: the entries that cast.</summary>
+    public IReadOnlyList<string> CasterNames => [.. Character.Identity.Classes.Where(e => e.SpellcastingAbility is not null).Select(e => e.Name)];
+    private bool CanLevelUp() => TotalLevel < 20;
+    public bool IsMultiCaster => Character.Identity.Classes.Count(e => e.SpellcastingAbility is not null) >= 2;
+    public bool HasSpellcasting => Character.Identity.Classes.Any(e => e.SpellcastingAbility is not null) || Character.Spellcasting.Spells.Count > 0;
 
     public ICommand CycleSkillProficiency { get; }
     public ICommand AddAttack { get; }
@@ -137,6 +167,37 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public ICommand AddModifier { get; }
     public ICommand RemoveEntry { get; }
     public ICommand ApplyClassDefaults { get; }
+    public ICommand AddClass { get; }
+    public ICommand LevelUp { get; }
+    public ICommand MoveClassUp { get; }
+    public ICommand MoveClassDown { get; }
+
+    /// <param name="className">The class the dialog starts on; null starts blank, for adding a new class.</param>
+    private void DoLevelUp(string? className)
+    {
+        if (_dialogs.LevelUp(Character, className) is not { } choice) return;
+        var (name, options) = choice;
+        var report = CharacterFactory.LevelUp(Character, name, options);
+        if (!report.Completed)
+        {
+            _dialogs.Info(string.Join(Environment.NewLine, report.NeedsAttention));
+            return;
+        }
+        var lines = report.Changes.ToList();
+        var check = report.Warnings.Concat(report.NeedsAttention).ToList();
+        if (check.Count > 0) lines.Add("Check: " + string.Join(" ", check));
+        var text = string.Join(Environment.NewLine, lines);
+        _dialogs.Info(text);
+        _log.LogInformation("Level up {Class}: {Report}", name, text);
+        Play.Record(text);
+    }
+
+    private void MoveClass(ClassLevel entry, int by)
+    {
+        var classes = Character.Identity.Classes;
+        var to = classes.IndexOf(entry) + by;
+        if (to >= 0 && to < classes.Count) classes.Move(classes.IndexOf(entry), to);
+    }
 
     /// <summary>Coalesces bursts of model changes (e.g. a long rest touches dozens of values) into one refresh.</summary>
     private void OnSessionChanged(object? sender, EventArgs e)
@@ -197,6 +258,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
             Item i => (c.Items.Contains(i) ? c.Items : c.WondrousItems, i.Name),
             Feature f => (c.Features, f.Name),
             Proficiency p => (c.Proficiencies, p.Name),
+            ClassLevel e => (c.Identity.Classes.Count > 1 ? c.Identity.Classes : null, e.Name),
             Spell s => (c.Spellcasting.Spells, s.Name),
             Resource r => (c.Resources, r.Name),
             Effect e => (c.Effects, e.Name),

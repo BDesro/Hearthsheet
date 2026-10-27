@@ -25,6 +25,22 @@
             <Setter Property="Margin" Value="0,0,6,6" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
+        <!-- A spell-slot pip: filled while available, hollow once expended. -->
+        <ControlTemplate x:Key="PipTemplate" TargetType="Button">
+            <Ellipse x:Name="Pip" Fill="{StaticResource Accent}" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+            <ControlTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsExpended}" Value="True">
+                    <Setter TargetName="Pip" Property="Fill" Value="Transparent" />
+                    <Setter TargetName="Pip" Property="Stroke" Value="{StaticResource LineStrong}" />
+                </DataTrigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
+                </Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True">
+                    <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,16,6,16" Focusable="False">
@@ -114,6 +130,8 @@
                             <Button Content="Short Rest…" Margin="0,0,6,0" Command="{Binding Play.ShortRest}" ToolTip="Spend hit dice, then recover short-rest resources" />
                             <Button Content="Long Rest" Style="{StaticResource AccentButton}" Command="{Binding Play.LongRest}" />
                         </UniformGrid>
+                        <Button Content="Level up…" Margin="0,6,0,0" Command="{Binding LevelUp}"
+                                ToolTip="Add a level in a class you have or a new one (multiclass)" />
                     </StackPanel>
                 </Border>
 
@@ -192,25 +210,8 @@
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate DataType="{x:Type vm:SlotPip}">
                                                     <Button Command="{Binding DataContext.Play.ToggleSlot, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                                                            Width="22" Height="22" Margin="0,0,4,0" Padding="0" MinHeight="0" ToolTip="Click to expend or restore a slot"
+                                                            Width="22" Height="22" Margin="0,0,4,0" Padding="0" MinHeight="0" Template="{StaticResource PipTemplate}" ToolTip="Click to expend or restore a slot"
                                                             AutomationProperties.Name="{Binding Level, StringFormat=Level {0} spell slot}">
-                                                        <Button.Template>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Ellipse x:Name="Pip" Fill="{StaticResource Accent}" Stroke="{StaticResource Accent}" StrokeThickness="2" />
-                                                                <ControlTemplate.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsExpended}" Value="True">
-                                                                        <Setter TargetName="Pip" Property="Fill" Value="Transparent" />
-                                                                        <Setter TargetName="Pip" Property="Stroke" Value="{StaticResource LineStrong}" />
-                                                                    </DataTrigger>
-                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
-                                                                    </Trigger>
-                                                                    <Trigger Property="IsKeyboardFocused" Value="True">
-                                                                        <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
-                                                                    </Trigger>
-                                                                </ControlTemplate.Triggers>
-                                                            </ControlTemplate>
-                                                        </Button.Template>
                                                     </Button>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -219,6 +220,26 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat=Pact {0}}" Width="56" AutomationProperties.Name="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" VerticalAlignment="Center">
+                                <TextBlock.ToolTip>
+                                    <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" />
+                                </TextBlock.ToolTip>
+                            </TextBlock>
+                            <ItemsControl ItemsSource="{Binding PactPips}" IsTabStop="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:SlotPip}">
+                                        <Button Command="{Binding DataContext.Play.TogglePactSlot, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                Width="22" Height="22" Margin="0,0,4,0" Padding="0" MinHeight="0" Template="{StaticResource PipTemplate}" ToolTip="Click to expend or restore a pact slot"
+                                                AutomationProperties.Name="{Binding Level, StringFormat=Level {0} pact slot}">
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                         <DockPanel Margin="0,8,0,0" Visibility="{Binding Character.Spellcasting.Concentration, Converter={StaticResource VisibleWhen}}">
                             <Button DockPanel.Dock="Right" Content="Drop" Command="{Binding Play.DropConcentration}" />
                             <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
@@ -243,11 +264,18 @@
                                         <Button DockPanel.Dock="Right" Content="Ritual" Padding="8,2" Margin="0,0,4,0"
                                                 Visibility="{Binding Ritual, Converter={StaticResource VisibleWhen}}"
                                                 Command="{Binding DataContext.Play.CastRitual, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkMuted}"
+                                                   Visibility="{Binding DataContext.IsMultiCaster, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource VisibleWhen}}">
+                                            <TextBlock.Text>
+                                                <MultiBinding Converter="{StaticResource SpellDc}">
+                                                    <Binding />
+                                                    <Binding Path="DataContext.Character" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
                                         <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
                                             <Run Text="{Binding Level, Mode=OneWay, StringFormat=[{0}]}" Foreground="{StaticResource InkMuted}" />
                                             <Run Text="{Binding Name, Mode=OneWay}" />
-
-
                                         </TextBlock>
                                     </DockPanel>
                                 </DataTemplate>
