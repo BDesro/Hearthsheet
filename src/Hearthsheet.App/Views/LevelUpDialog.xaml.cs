@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
-using Hearthsheet.Core.Rules;
 
 namespace Hearthsheet.App.Views;
 
@@ -42,8 +41,7 @@ public partial class LevelUpDialog
     private void UpdateState()
     {
         CustomPanel.Visibility = IsCustom ? Visibility.Visible : Visibility.Collapsed;
-        var con = CharacterRules.AbilityModifier(_character, Ability.Constitution);
-        AverageRadio.Content = $"Take average ({Math.Max(1, Die / 2 + 1 + con)})";
+        AverageRadio.Content = $"Take average ({CharacterFactory.AverageHitPointGain(_character, Die)})";
         var warnings = CharacterFactory.MulticlassWarnings(_character, TypedName);
         WarningText.Text = "Check: " + string.Join(" ", warnings);
         WarningText.Visibility = warnings.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
