@@ -62,17 +62,29 @@ public static class SrdCatalog
     public static ClassDefinition? FindClass(string name) =>
         Classes.FirstOrDefault(c => string.Equals(c.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Spell slots (levels 1..9) for a single-class caster. Half casters follow SRD 5.1 (none at level 1).</summary>
-    public static int[] SpellSlots(CasterType caster, int level)
+    /// <summary>
+    /// Spell slots (levels 1..9) from the SRD multiclass rules. A lone caster uses its own table (half and third
+    /// casters round up, with nothing before level 2 or 3); several casters sum the rounded-down levels. Pact
+    /// Magic is separate (<see cref="PactSlots"/>).
+    /// </summary>
+    public static int[] SpellSlots(IEnumerable<ClassLevel> classes)
     {
-        var effective = caster switch
-        {
-            CasterType.Full => level,
-            CasterType.Half => level < 2 ? 0 : (level + 1) / 2,
-            _ => 0,
-        };
+        var casters = classes.Where(e => e.Caster is CasterType.Full or CasterType.Half or CasterType.Third).ToList();
+        var effective = casters.Count == 1
+            ? casters[0].Caster switch
+            {
+                CasterType.Full => casters[0].Level,
+                CasterType.Half => casters[0].Level < 2 ? 0 : (casters[0].Level + 1) / 2,
+                _ => casters[0].Level < 3 ? 0 : (casters[0].Level + 2) / 3,
+            }
+            : casters.Sum(e => e.Caster switch
+            {
+                CasterType.Full => e.Level,
+                CasterType.Half => e.Level / 2,
+                _ => e.Level / 3,
+            });
         var slots = new int[9];
-        if (effective > 0) FullCasterSlots[effective - 1].CopyTo(slots, 0);
+        if (effective > 0) FullCasterSlots[Math.Min(effective, 20) - 1].CopyTo(slots, 0);
         return slots;
     }
 
@@ -123,21 +135,15 @@ public static class CharacterFactory
 
         entry.SpellcastingAbility = def.SpellcastingAbility;
         if (def.SpellcastingAbility is not null) c.Spellcasting.SpellcastingClass = def.Name;
-        var slots = SrdCatalog.SpellSlots(def.Caster, level);
+        var slots = SrdCatalog.SpellSlots([entry]);
         foreach (var slot in c.Spellcasting.Slots) slot.Maximum = slots[slot.Level - 1];
 
         if (def.Caster == CasterType.Pact)
         {
             var (count, slotLevel) = SrdCatalog.PactSlots(level);
-            var existing = c.Resources.FirstOrDefault(r => r.Name.StartsWith("Pact Magic slots", StringComparison.Ordinal));
-            if (existing is not null) c.Resources.Remove(existing);
-            c.Resources.Add(new Resource
-            {
-                Name = $"Pact Magic slots (level {slotLevel})",
-                Maximum = count,
-                Current = count,
-                Recovery = RecoveryTiming.ShortRest,
-            });
+            c.Spellcasting.PactSlots.Level = slotLevel;
+            c.Spellcasting.PactSlots.Maximum = count;
+            c.Spellcasting.PactSlots.Expended = 0;
         }
     }
 }

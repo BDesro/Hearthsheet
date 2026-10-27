@@ -235,6 +235,8 @@ public sealed class Spell : Observable
     public bool Prepared { get; set => Set(ref field, value); }
     public string Description { get; set => Set(ref field, value ?? ""); } = "";
     public string HigherLevels { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>The class this spell is cast as; blank means the primary caster.</summary>
+    public string Class { get; set => Set(ref field, value ?? ""); } = "";
 }
 
 public sealed class SpellSlotLevel : Observable
@@ -245,8 +247,18 @@ public sealed class SpellSlotLevel : Observable
     public int Available => Math.Max(0, Maximum - Expended);
 }
 
+/// <summary>Warlock Pact Magic: all slots share one level and come back on any rest.</summary>
+public sealed class PactSlots : Observable
+{
+    public int Level { get; set => SetClamped(ref field, value, 1, 5); } = 1;
+    public int Maximum { get; set { if (value != field) { SetClamped(ref field, value, 0, 20); Raise(nameof(Available)); } } }
+    public int Expended { get; set { if (value != field) { SetClamped(ref field, value, 0, 20); Raise(nameof(Available)); } } }
+    public int Available => Math.Max(0, Maximum - Expended);
+}
+
 public sealed class Spellcasting : Observable
 {
+    public PactSlots PactSlots { get; init; } = new();
     public string SpellcastingClass { get; set => Set(ref field, value ?? ""); } = "";
     /// <summary>Name of the spell currently being concentrated on; empty when none.</summary>
     public string Concentration { get; set => Set(ref field, value ?? ""); } = "";

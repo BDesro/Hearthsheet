@@ -109,13 +109,14 @@ public sealed class SpellSlotRecovery : IRestStep
 {
     public void Apply(Character c, RestKind kind, RestReport report)
     {
-        if (kind != RestKind.Long) return;
-        var restored = 0;
-        foreach (var slot in c.Spellcasting.Slots)
-        {
-            restored += slot.Expended;
-            slot.Expended = 0;
-        }
+        var restored = c.Spellcasting.PactSlots.Expended;
+        c.Spellcasting.PactSlots.Expended = 0;
+        if (kind == RestKind.Long)
+            foreach (var slot in c.Spellcasting.Slots)
+            {
+                restored += slot.Expended;
+                slot.Expended = 0;
+            }
         if (restored > 0) report.Changes.Add($"Restored {restored} spell slot(s).");
     }
 }

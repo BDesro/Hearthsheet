@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Hearthsheet.Core.Content;
@@ -11,7 +12,7 @@ namespace Hearthsheet.Core.Serialization;
 /// schema change needs exactly one migration path. Only concrete, known types are ever deserialized
 /// (no type-name handling), which keeps untrusted input from choosing what gets instantiated.
 /// </summary>
-public static class CharacterJson
+public static partial class CharacterJson
 {
     /// <summary>
     /// Bump when the stored shape changes, and migrate the raw <see cref="JsonObject"/> from the old version in
@@ -52,6 +53,9 @@ public static class CharacterJson
         character.Normalize();
         return character;
     }
+
+    [GeneratedRegex(@"^Pact Magic slots \(level (\d)\)")]
+    private static partial Regex PactResource();
 
     private static JsonObject Section(JsonObject parent, string key) =>
         parent[key] switch
@@ -98,6 +102,27 @@ public static class CharacterJson
             ["caster"] = caster,
             ["spellcastingAbility"] = ability,
         });
+
+        // Pact Magic used to be a resource; it is now spellcasting.pactSlots.
+        if (node["resources"] is JsonArray resources)
+        {
+            foreach (var r in resources.OfType<JsonObject>())
+            {
+                if (r["name"] is not JsonValue nv || !nv.TryGetValue<string>(out var rname)) continue;
+                var m = PactResource().Match(rname);
+                if (!m.Success) continue;
+                var max = Take(r, "maximum", 1);
+                var cur = Take(r, "current", max);
+                spellcasting["pactSlots"] = new JsonObject
+                {
+                    ["level"] = int.Parse(m.Groups[1].Value),
+                    ["maximum"] = max,
+                    ["expended"] = max - cur,
+                };
+                resources.Remove(r);
+                break;
+            }
+        }
     }
 
     public static Character Deserialize(string json, int schemaVersion)

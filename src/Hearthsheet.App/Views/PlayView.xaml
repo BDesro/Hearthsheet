@@ -219,6 +219,39 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
+                            <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat=Pact (level {0})}" Width="88" VerticalAlignment="Center" />
+                                <ItemsControl ItemsSource="{Binding PactPips}" IsTabStop="False">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:SlotPip}">
+                                            <Button Command="{Binding DataContext.Play.TogglePactSlot, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    Width="22" Height="22" Margin="0,0,4,0" Padding="0" MinHeight="0" ToolTip="Click to expend or restore a pact slot"
+                                                    AutomationProperties.Name="{Binding Level, StringFormat=Level {0} pact slot}">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Ellipse x:Name="Pip" Fill="{StaticResource Accent}" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+                                                        <ControlTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsExpended}" Value="True">
+                                                                <Setter TargetName="Pip" Property="Fill" Value="Transparent" />
+                                                                <Setter TargetName="Pip" Property="Stroke" Value="{StaticResource LineStrong}" />
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                        </StackPanel>
                         <DockPanel Margin="0,8,0,0" Visibility="{Binding Character.Spellcasting.Concentration, Converter={StaticResource VisibleWhen}}">
                             <Button DockPanel.Dock="Right" Content="Drop" Command="{Binding Play.DropConcentration}" />
                             <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">

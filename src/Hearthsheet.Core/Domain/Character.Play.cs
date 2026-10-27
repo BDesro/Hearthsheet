@@ -147,6 +147,18 @@ public sealed partial class Character
         if (slot.Expended > 0) slot.Expended--;
     }
 
+    public bool ExpendPactSlot()
+    {
+        if (Spellcasting.PactSlots.Available <= 0) return false;
+        Spellcasting.PactSlots.Expended++;
+        return true;
+    }
+
+    public void RestorePactSlot()
+    {
+        if (Spellcasting.PactSlots.Expended > 0) Spellcasting.PactSlots.Expended--;
+    }
+
     /// <summary>
     /// Casts a spell: cantrips and rituals-as-rituals are free; otherwise uses the lowest available slot at or
     /// above the requested level. Concentration spells replace any current concentration.
@@ -162,9 +174,20 @@ public sealed partial class Character
         {
             var minimum = Math.Max(spell.Level, slotLevel ?? spell.Level);
             var slot = Spellcasting.Slots.Where(s => s.Level >= minimum && s.Available > 0).MinBy(s => s.Level);
-            if (slot is null) return $"No spell slot of level {minimum} or higher available for {spell.Name}.";
-            slot.Expended++;
-            result = $"Cast {spell.Name} using a level {slot.Level} slot.";
+            var pact = Spellcasting.PactSlots;
+            // The pact slot wins a tie: it comes back on a short rest.
+            var usePact = pact.Level >= minimum && pact.Available > 0 && (slot is null || pact.Level <= slot.Level);
+            if (usePact)
+            {
+                pact.Expended++;
+                result = $"Cast {spell.Name} using a level {pact.Level} pact slot.";
+            }
+            else if (slot is null) return $"No spell slot of level {minimum} or higher available for {spell.Name}.";
+            else
+            {
+                slot.Expended++;
+                result = $"Cast {spell.Name} using a level {slot.Level} slot.";
+            }
         }
         if (spell.Concentration)
         {

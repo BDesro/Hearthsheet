@@ -109,8 +109,8 @@ Modifiers are active on features, on effects, and on items and wondrous items th
 | Step | Short rest | Long rest |
 |---|---|---|
 | `LongRestHitPoints` | — | HP to max, temp HP cleared, death saves reset |
-| `LongRestHitDice` | — | regain half total (min 1) |
-| `SpellSlotRecovery` | — | all slots |
+| `LongRestHitDice` | — | regain half total (min 1), largest die first |
+| `SpellSlotRecovery` | Pact Magic slots | all slots, including Pact Magic slots |
 | `ResourceRecovery` | short-rest resources | short- and long-rest resources; partial `RecoveryAmount` honoured; manual resources reported under *Needs attention* |
 | `ExhaustionRecovery` | — | −1 level |
 | `EffectExpiration` | effects that end on any rest | + long-rest effects and concentration |

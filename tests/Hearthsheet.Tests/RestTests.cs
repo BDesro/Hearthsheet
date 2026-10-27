@@ -147,8 +147,29 @@ public class RestTests
         Assert.Equal(c.Combat.MaxHp, c.Combat.CurrentHp);
 
         var warlock = CharacterFactory.Create(new NewCharacterOptions("W", "warlock", 5, "", ""));
-        var pact = Assert.Single(warlock.Resources);
-        Assert.Equal(RecoveryTiming.ShortRest, pact.Recovery);
-        Assert.Equal(2, pact.Maximum);
+        Assert.Equal((3, 2), (warlock.Spellcasting.PactSlots.Level, warlock.Spellcasting.PactSlots.Maximum));
+        Assert.Empty(warlock.Resources);
+    }
+
+    [Fact]
+    public void ShortRest_RestoresPactSlots_NotRegularSlots()
+    {
+        var c = Wizard();
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.PactSlots.Expended = 2;
+        c.Spellcasting.SlotLevel(1).Expended = 2;
+        _rest.Rest(c, RestKind.Short);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+        Assert.Equal(2, c.Spellcasting.SlotLevel(1).Expended);
+    }
+
+    [Fact]
+    public void LongRest_RestoresPactSlots()
+    {
+        var c = Wizard();
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.PactSlots.Expended = 1;
+        _rest.Rest(c, RestKind.Long);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
     }
 }

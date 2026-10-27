@@ -355,4 +355,20 @@ public class ChangeTrackerTests
         item.Name = "gone";
         Assert.Equal(1, changes);
     }
+
+    [Fact]
+    public void SchemaTwo_PactResourceBecomesPactSlots()
+    {
+        const string v2 = """{"identity":{"className":"Warlock","level":5},"resources":[{"name":"Rage","maximum":3,"current":3},{"name":"Pact Magic slots (level 3)","maximum":2,"current":1,"recovery":"ShortRest"}]}""";
+        var c = CharacterJson.Deserialize(v2, 2);
+        Assert.Equal((3, 2, 1), (c.Spellcasting.PactSlots.Level, c.Spellcasting.PactSlots.Maximum, c.Spellcasting.PactSlots.Expended));
+        Assert.Equal("Rage", Assert.Single(c.Resources).Name);
+    }
+
+    [Fact]
+    public void SchemaTwo_SpellcastingClassLabelKept()
+    {
+        const string v2 = """{"identity":{"className":"Wizard","level":3},"spellcasting":{"ability":"Intelligence","spellcastingClass":"Wizard"}}""";
+        Assert.Equal("Wizard", CharacterJson.Deserialize(v2, 2).Spellcasting.SpellcastingClass);
+    }
 }

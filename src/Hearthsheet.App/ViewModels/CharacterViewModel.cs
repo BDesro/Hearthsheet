@@ -111,6 +111,16 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public int PassivePerception => CharacterRules.PassivePerception(Character);
     public int HitDiceTotal => CharacterRules.HitDiceTotal(Character);
     public string HitDiceText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining} / {p.Total} d{p.Size}"));
+    /// <summary>One pip per pact slot, filled while available.</summary>
+    public IReadOnlyList<SlotPip> PactPips
+    {
+        get
+        {
+            var pact = Character.Spellcasting.PactSlots;
+            return [.. Enumerable.Range(0, pact.Maximum).Select(i => new SlotPip(pact.Level, i, i >= pact.Maximum - pact.Expended))];
+        }
+    }
+
     public string SpellSaveDc => CharacterRules.SpellSaveDc(Character)?.ToString() ?? "—";
     public string SpellAttackBonus => CharacterRules.SpellAttackBonus(Character) is { } b ? CharacterRules.FormatModifier(b) : "—";
     public string CarriedWeightText => $"{CharacterRules.CarriedWeight(Character):0.#} / {CharacterRules.CarryingCapacity(Character)} lb";

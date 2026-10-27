@@ -220,4 +220,47 @@ public class GameplayTests
         c.RemoveCondition(Condition.Prone);
         Assert.Empty(c.Conditions);
     }
+
+    [Fact]
+    public void CastSpell_UsesPactSlotOnTie()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Level = 2;
+        c.Spellcasting.PactSlots.Maximum = 2;
+        c.Spellcasting.SlotLevel(2).Maximum = 1;
+        c.Spellcasting.SlotLevel(1).Maximum = 1;
+        var spell = new Spell { Name = "Shield", Level = 1 };
+
+        c.CastSpell(spell); // regular L1 is lower than the pact slot
+        Assert.Equal(1, c.Spellcasting.SlotLevel(1).Expended);
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+
+        var text = c.CastSpell(spell); // tie at L2: pact wins
+        Assert.Contains("pact slot", text);
+        Assert.Equal(1, c.Spellcasting.PactSlots.Expended);
+        Assert.Equal(0, c.Spellcasting.SlotLevel(2).Expended);
+    }
+
+    [Fact]
+    public void CastSpell_PactSlotTooLowIsSkipped()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Level = 1;
+        c.Spellcasting.PactSlots.Maximum = 2;
+        Assert.StartsWith("No spell slot", c.CastSpell(new Spell { Name = "Hold Person", Level = 2 }));
+        Assert.Equal(0, c.Spellcasting.PactSlots.Expended);
+    }
+
+    [Fact]
+    public void ExpendRestorePactSlot()
+    {
+        var c = Fighter();
+        c.Spellcasting.PactSlots.Maximum = 1;
+        Assert.True(c.ExpendPactSlot());
+        Assert.False(c.ExpendPactSlot());
+        Assert.Equal(0, c.Spellcasting.PactSlots.Available);
+        c.RestorePactSlot();
+        c.RestorePactSlot();
+        Assert.Equal(1, c.Spellcasting.PactSlots.Available);
+    }
 }

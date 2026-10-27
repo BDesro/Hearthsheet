@@ -54,6 +54,12 @@ public sealed class PlayViewModel : Observable
             else c.ExpendSpellSlot(p.Level);
             return $"Level {p.Level} slots: {c.Spellcasting.SlotLevel(p.Level).Available}/{c.Spellcasting.SlotLevel(p.Level).Maximum} available.";
         }));
+        TogglePactSlot = new RelayCommand<SlotPip>(p => Act("Pact slot", c =>
+        {
+            if (p.IsExpended) c.RestorePactSlot();
+            else c.ExpendPactSlot();
+            return $"Pact slots: {c.Spellcasting.PactSlots.Available}/{c.Spellcasting.PactSlots.Maximum} available.";
+        }));
         CastSpell = new RelayCommand<Spell>(s => Act($"Cast {s.Name}", c => c.CastSpell(s)));
         CastRitual = new RelayCommand<Spell>(s => Act($"Ritual {s.Name}", c => c.CastSpell(s, asRitual: true)), s => s.Ritual);
         DropConcentration = new RelayCommand(() => Act("Drop concentration", c =>
@@ -131,6 +137,7 @@ public sealed class PlayViewModel : Observable
     public ICommand UseResource { get; }
     public ICommand RestoreResource { get; }
     public ICommand ToggleSlot { get; }
+    public ICommand TogglePactSlot { get; }
     public ICommand CastSpell { get; }
     public ICommand CastRitual { get; }
     public ICommand DropConcentration { get; }

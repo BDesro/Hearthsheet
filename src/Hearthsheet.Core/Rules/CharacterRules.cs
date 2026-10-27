@@ -137,14 +137,23 @@ public static class CharacterRules
     public static string ClassAndLevelText(Character c) =>
         c.Identity.Classes.Count == 1 ? $"{ClassSummary(c)} {TotalLevel(c)}".Trim() : ClassSummary(c);
 
-    // First entry with an ability; Task 2 replaces this with a per-class lookup.
-    private static Ability? SpellAbility(Character c) => c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null)?.SpellcastingAbility;
+    /// <summary>The first class entry with a spellcasting ability; it speaks for spells with no class.</summary>
+    public static ClassLevel? PrimaryCaster(Character c) => c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null);
 
-    public static int? SpellSaveDc(Character c) => SpellAbility(c) is { } a
+    /// <summary>The class the spell is cast as: the entry named by <c>spell.Class</c>, else the primary caster.</summary>
+    public static ClassLevel? CasterFor(Character c, Spell spell) =>
+        c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null && string.Equals(e.Name, spell.Class.Trim(), StringComparison.OrdinalIgnoreCase))
+        ?? PrimaryCaster(c);
+
+    public static int? SpellSaveDc(Character c) => PrimaryCaster(c) is { } e ? SpellSaveDc(c, e) : null;
+    public static int? SpellSaveDc(Character c, Spell spell) => CasterFor(c, spell) is { } e ? SpellSaveDc(c, e) : null;
+    public static int? SpellSaveDc(Character c, ClassLevel e) => e.SpellcastingAbility is { } a
         ? Resolve(c, 8 + ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellDc)
         : null;
 
-    public static int? SpellAttackBonus(Character c) => SpellAbility(c) is { } a
+    public static int? SpellAttackBonus(Character c) => PrimaryCaster(c) is { } e ? SpellAttackBonus(c, e) : null;
+    public static int? SpellAttackBonus(Character c, Spell spell) => CasterFor(c, spell) is { } e ? SpellAttackBonus(c, e) : null;
+    public static int? SpellAttackBonus(Character c, ClassLevel e) => e.SpellcastingAbility is { } a
         ? Resolve(c, ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellAttack)
         : null;
 

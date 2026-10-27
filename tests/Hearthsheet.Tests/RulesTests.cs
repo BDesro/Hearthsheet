@@ -1,3 +1,4 @@
+using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 
@@ -275,5 +276,46 @@ public class RulesTests
         Assert.Equal(["Simple", "Martial", "Melee", "Ranged", "Firearms", "Katana"], options.Take(6));
         Assert.Single(options, o => o.Equals("Longsword", StringComparison.OrdinalIgnoreCase)); // plural matched the standard one
         Assert.DoesNotContain("Thieves' tools", options);
+    }
+
+    private static ClassLevel[] Entries(string spec) => [.. spec.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(p =>
+    {
+        var parts = p.Split(':');
+        return new ClassLevel { Name = parts[0], Caster = Enum.Parse<CasterType>(parts[1]), Level = int.Parse(parts[2]) };
+    })];
+
+    [Theory]
+    [InlineData("Paladin:Half:5", "4,2")]
+    [InlineData("Fighter:Third:7", "4,2")]
+    [InlineData("Fighter:Third:2", "")]
+    [InlineData("Wizard:Full:5", "4,3,2")]
+    [InlineData("Paladin:Half:2,Sorcerer:Full:3", "4,3")]
+    [InlineData("Warlock:Pact:3,Sorcerer:Full:2", "3")]
+    [InlineData("Fighter:None:11,BloodHunter:None:1", "")]
+    public void SpellSlots_SingleAndMulticlass(string classes, string expected)
+    {
+        var want = new int[9];
+        foreach (var (n, i) in expected.Split(',', StringSplitOptions.RemoveEmptyEntries).Select((s, i) => (int.Parse(s), i))) want[i] = n;
+        Assert.Equal(want, SrdCatalog.SpellSlots(Entries(classes)));
+    }
+
+    [Fact]
+    public void SpellDc_PerClass()
+    {
+        var c = new Character();
+        c.Abilities.Intelligence = 18;
+        c.Abilities.Wisdom = 14;
+        c.Identity.Classes[0] = new ClassLevel { Name = "Wizard", Level = 5, SpellcastingAbility = Ability.Intelligence };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Cleric", Level = 3, SpellcastingAbility = Ability.Wisdom });
+        var cleric = new Spell { Class = "cleric" };
+        var plain = new Spell();
+        Assert.Equal(13, CharacterRules.SpellSaveDc(c, cleric));
+        Assert.Equal(15, CharacterRules.SpellSaveDc(c, plain));
+        Assert.Equal(15, CharacterRules.SpellSaveDc(c));
+        Assert.Equal(5, CharacterRules.SpellAttackBonus(c, cleric));
+
+        c.Items.Add(new Item { Name = "Focus", Equipped = true, Modifiers = { new Modifier { Target = StatTargets.SpellDc, Value = 1 } } });
+        Assert.Equal(14, CharacterRules.SpellSaveDc(c, cleric));
+        Assert.Equal(16, CharacterRules.SpellSaveDc(c, plain));
     }
 }
