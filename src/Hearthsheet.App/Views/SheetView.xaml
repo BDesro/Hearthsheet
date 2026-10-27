@@ -163,13 +163,13 @@
                             <Border Grid.Column="1" Style="{StaticResource SheetBox}">
                                 <UniformGrid Columns="4" Rows="2">
                                     <HeaderedContentControl Header="Class" Style="{StaticResource SheetField}">
-                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.ClassName}" AutomationProperties.Name="Class" />
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding FirstClass.Name}" AutomationProperties.Name="Class" />
                                     </HeaderedContentControl>
                                     <HeaderedContentControl Header="Level" Style="{StaticResource SheetField}">
-                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Level}" AutomationProperties.Name="Level" />
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding FirstClass.Level}" AutomationProperties.Name="Level" />
                                     </HeaderedContentControl>
                                     <HeaderedContentControl Header="Subclass" Style="{StaticResource SheetField}">
-                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Subclass}" AutomationProperties.Name="Subclass" />
+                                        <TextBox Style="{StaticResource SheetInput}" Text="{Binding FirstClass.Subclass}" AutomationProperties.Name="Subclass" />
                                     </HeaderedContentControl>
                                     <HeaderedContentControl Header="Background" Style="{StaticResource SheetField}">
                                         <TextBox Style="{StaticResource SheetInput}" Text="{Binding Character.Identity.Background}" AutomationProperties.Name="Background" />
@@ -392,9 +392,9 @@
                                             <Border Style="{StaticResource SheetBox}">
                                                 <StackPanel>
                                                     <TextBlock FontSize="9" Foreground="{StaticResource SheetFaint}">
-                                                        <Run Text="Total" /> <Run Text="{Binding HitDiceTotal, Mode=OneWay}" /><Run Text="{Binding Character.Combat.HitDieSize, Mode=OneWay, StringFormat=d{0}}" />
+                                                        <Run Text="Total" /> <Run Text="{Binding HitDiceTotal, Mode=OneWay}" /><Run Text="{Binding FirstClass.HitDie, Mode=OneWay, StringFormat=d{0}}" />
                                                     </TextBlock>
-                                                    <TextBox Style="{StaticResource SheetNumber}" FontSize="16" Text="{Binding Character.Combat.HitDiceRemaining}"
+                                                    <TextBox Style="{StaticResource SheetNumber}" FontSize="16" Text="{Binding FirstClass.HitDiceRemaining}"
                                                              AutomationProperties.Name="Hit dice remaining" />
                                                     <TextBlock Style="{StaticResource SheetLabel}" Text="Hit Dice" />
                                                 </StackPanel>
@@ -683,7 +683,7 @@
                                 <UniformGrid Columns="4">
                                     <HeaderedContentControl Header="Spellcasting Ability" Style="{StaticResource SheetField}">
                                         <ComboBox ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                                  SelectedValue="{Binding Character.Spellcasting.Ability}" BorderThickness="0" Background="Transparent"
+                                                  SelectedValue="{Binding FirstClass.SpellcastingAbility}" BorderThickness="0" Background="Transparent"
                                                   AutomationProperties.Name="Spellcasting ability" />
                                     </HeaderedContentControl>
                                     <HeaderedContentControl Header="Spell Save DC" Style="{StaticResource SheetField}">

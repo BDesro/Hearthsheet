@@ -127,13 +127,13 @@
                     <WrapPanel>
                         <HeaderedContentControl Header="Class" Style="{StaticResource Field}">
                             <ComboBox Width="180" IsEditable="True" ItemsSource="{x:Static mvvm:Lookups.ClassNames}"
-                                      Text="{Binding Character.Identity.ClassName, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Class" />
+                                      Text="{Binding FirstClass.Name, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Class" />
                         </HeaderedContentControl>
                         <HeaderedContentControl Header="Subclass" Style="{StaticResource Field}">
-                            <TextBox Width="180" Text="{Binding Character.Identity.Subclass}" AutomationProperties.Name="Subclass" />
+                            <TextBox Width="180" Text="{Binding FirstClass.Subclass}" AutomationProperties.Name="Subclass" />
                         </HeaderedContentControl>
                         <HeaderedContentControl Header="Level (1–20)" Style="{StaticResource Field}">
-                            <TextBox Style="{StaticResource Num}" Text="{Binding Character.Identity.Level}" AutomationProperties.Name="Level" />
+                            <TextBox Style="{StaticResource Num}" Text="{Binding FirstClass.Level}" AutomationProperties.Name="Level" />
                         </HeaderedContentControl>
                         <HeaderedContentControl Header=" " Style="{StaticResource Field}">
                             <Button Content="Apply class defaults…" Command="{Binding ApplyClassDefaults}" />
@@ -263,10 +263,10 @@
                     </WrapPanel>
                     <WrapPanel>
                         <HeaderedContentControl Header="Hit die" Style="{StaticResource Field}">
-                            <ComboBox Width="80" ItemsSource="{x:Static mvvm:Lookups.HitDieSizes}" SelectedItem="{Binding Character.Combat.HitDieSize}"
+                            <ComboBox Width="80" ItemsSource="{x:Static mvvm:Lookups.HitDieSizes}" SelectedItem="{Binding FirstClass.HitDie}"
                                       ItemStringFormat="d{0}" AutomationProperties.Name="Hit die size" />
                         </HeaderedContentControl>
-                        <HeaderedContentControl Header="Hit dice remaining" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.HitDiceRemaining}" AutomationProperties.Name="Hit dice remaining" /></HeaderedContentControl>
+                        <HeaderedContentControl Header="Hit dice remaining" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding FirstClass.HitDiceRemaining}" AutomationProperties.Name="Hit dice remaining" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Death save successes" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.DeathSaveSuccesses}" AutomationProperties.Name="Death save successes" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Death save failures" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.DeathSaveFailures}" AutomationProperties.Name="Death save failures" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Stable" Style="{StaticResource Field}"><CheckBox Content="Stable at 0 HP" IsChecked="{Binding Character.Combat.IsStable}" Margin="0,5,0,0" /></HeaderedContentControl>
@@ -500,7 +500,7 @@
                     <WrapPanel>
                         <HeaderedContentControl Header="Spellcasting ability" Style="{StaticResource Field}">
                             <ComboBox Width="160" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                      SelectedValue="{Binding Character.Spellcasting.Ability}" AutomationProperties.Name="Spellcasting ability" />
+                                      SelectedValue="{Binding FirstClass.SpellcastingAbility}" AutomationProperties.Name="Spellcasting ability" />
                         </HeaderedContentControl>
                         <HeaderedContentControl Header="Spellcasting class" Style="{StaticResource Field}">
                             <TextBox Width="180" Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class" />

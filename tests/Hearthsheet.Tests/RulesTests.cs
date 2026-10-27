@@ -31,10 +31,40 @@ public class RulesTests
         Assert.Equal(expected, CharacterRules.ProficiencyBonus(level));
 
     [Fact]
+    public void ProficiencyBonus_UsesTotalLevel()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Level = 11 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Blood Hunter", Level = 1 });
+        Assert.Equal(12, CharacterRules.TotalLevel(c));
+        Assert.Equal(4, CharacterRules.ProficiencyBonus(c));
+    }
+
+    [Fact]
+    public void HitDicePools_GroupByDieSize()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", HitDie = 10, Level = 11, HitDiceRemaining = 9 };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Rogue", HitDie = 8, Level = 1, HitDiceRemaining = 1 });
+        c.Identity.Classes.Add(new ClassLevel { Name = "Paladin", HitDie = 10, Level = 2, HitDiceRemaining = 2 });
+        Assert.Equal([new HitDicePool(10, 11, 13), new HitDicePool(8, 1, 1)], CharacterRules.HitDicePools(c));
+    }
+
+    [Fact]
+    public void ClassSummary_SingleAndMulti()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Level = 11, Subclass = "Echo Knight" };
+        Assert.Equal("Fighter", CharacterRules.ClassSummary(c));
+        c.Identity.Classes.Add(new ClassLevel { Name = "Blood Hunter", Level = 1 });
+        Assert.Equal("Fighter 11 (Echo Knight) / Blood Hunter 1", CharacterRules.ClassSummary(c));
+    }
+
+    [Fact]
     public void Skill_CombinesAbilityProficiencyExpertiseAndBonus()
     {
         var c = new Character();
-        c.Identity.Level = 5; // PB +3
+        c.Identity.Classes[0].Level = 5; // PB +3
         c.Abilities.Dexterity = 16; // +3
 
         Assert.Equal(3, CharacterRules.SkillModifier(c, Skill.Stealth));
@@ -53,7 +83,7 @@ public class RulesTests
     public void Skill_HalfProficiencyRoundsDown()
     {
         var c = new Character();
-        c.Identity.Level = 5; // PB 3 → half = 1
+        c.Identity.Classes[0].Level = 5; // PB 3 → half = 1
         c.SkillEntry(Skill.History).Proficiency = ProficiencyLevel.Half;
         Assert.Equal(1, CharacterRules.SkillModifier(c, Skill.History));
     }
@@ -112,20 +142,20 @@ public class RulesTests
     public void Derived_CombatAndSpellValues()
     {
         var c = new Character();
-        c.Identity.Level = 9; // PB 4
+        c.Identity.Classes[0].Level = 9; // PB 4
         c.Abilities.Dexterity = 14;
         c.Abilities.Wisdom = 12;
         c.Abilities.Intelligence = 18;
         c.Combat.InitiativeBonus = 1;
         c.SkillEntry(Skill.Perception).Proficiency = ProficiencyLevel.Proficient;
-        c.Spellcasting.Ability = Ability.Intelligence;
+        c.Identity.Classes[0].SpellcastingAbility = Ability.Intelligence;
 
         Assert.Equal(3, CharacterRules.Initiative(c));
         Assert.Equal(15, CharacterRules.PassivePerception(c));
         Assert.Equal(16, CharacterRules.SpellSaveDc(c));
         Assert.Equal(8, CharacterRules.SpellAttackBonus(c));
 
-        c.Spellcasting.Ability = null;
+        c.Identity.Classes[0].SpellcastingAbility = null;
         Assert.Null(CharacterRules.SpellSaveDc(c));
     }
 
@@ -145,10 +175,10 @@ public class RulesTests
     {
         var c = new Character();
         c.Abilities.Strength = 99;
-        c.Identity.Level = 0;
+        c.Identity.Classes[0].Level = 0;
         c.Combat.CurrentHp = -5;
         Assert.Equal(30, c.Abilities.Strength);
-        Assert.Equal(1, c.Identity.Level);
+        Assert.Equal(1, c.Identity.Classes[0].Level);
         Assert.Equal(0, c.Combat.CurrentHp);
     }
 

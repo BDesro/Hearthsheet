@@ -20,7 +20,7 @@ public partial class ShortRestDialog
 
     private void OnSpend(object sender, RoutedEventArgs e)
     {
-        var size = _character.Combat.HitDieSize;
+        var size = Size;
         if (!int.TryParse(RollBox.Text, out var roll) || roll < 1 || roll > size)
         {
             Feedback.Text = $"Enter a roll from 1 to {size}.";
@@ -31,13 +31,24 @@ public partial class ShortRestDialog
     }
 
     private void OnRoll(object sender, RoutedEventArgs e) =>
-        Spend(Random.Shared.Next(1, _character.Combat.HitDieSize + 1));
+        Spend(Random.Shared.Next(1, Size + 1));
+
+    // Task 5 adds a picker; until then the largest die with any left (or the largest) is spent.
+    private int Size
+    {
+        get
+        {
+            var pools = CharacterRules.HitDicePools(_character);
+            return (pools.FirstOrDefault(p => p.Remaining > 0) ?? pools[0]).Size;
+        }
+    }
 
     private void Spend(int roll)
     {
         var before = _character.Combat.CurrentHp;
-        _play.SpendHitDie(roll);
-        Feedback.Text = $"Rolled {roll} on d{_character.Combat.HitDieSize}: healed {_character.Combat.CurrentHp - before}.";
+        var size = Size;
+        _play.SpendHitDie(size, roll);
+        Feedback.Text = $"Rolled {roll} on d{size}: healed {_character.Combat.CurrentHp - before}.";
         RollBox.Clear();
         UpdateState();
     }
@@ -45,8 +56,9 @@ public partial class ShortRestDialog
     private void UpdateState()
     {
         HpText.Text = $"HP {_character.Combat.CurrentHp} / {CharacterRules.MaxHitPoints(_character)}";
-        DiceText.Text = $"Hit dice remaining: {_character.Combat.HitDiceRemaining} of {CharacterRules.HitDiceTotal(_character)} (d{_character.Combat.HitDieSize})";
-        var canSpend = _character.Combat.HitDiceRemaining > 0 && !CharacterRules.IsDead(_character);
+        var pools = CharacterRules.HitDicePools(_character);
+        DiceText.Text = "Hit dice remaining: " + string.Join(", ", pools.Select(p => $"{p.Remaining} of {p.Total} d{p.Size}"));
+        var canSpend = pools.Any(p => p.Remaining > 0) && !CharacterRules.IsDead(_character);
         SpendButton.IsEnabled = RollButton.IsEnabled = RollBox.IsEnabled = canSpend;
     }
 

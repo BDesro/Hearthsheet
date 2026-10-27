@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 
 namespace Hearthsheet.Core.Serialization;
@@ -15,9 +16,11 @@ public static class CharacterJson
     /// <summary>
     /// Bump when the stored shape changes, and migrate the raw <see cref="JsonObject"/> from the old version in
     /// <see cref="Deserialize(JsonObject, int)"/> before it is materialized. Version 2 only added fields (weapons, wondrous
-    /// items, feature modifiers), so version 1 reads as is; the bump stops older apps from loading and dropping them.
+    /// items, feature modifiers), so version 1 reads as is. Version 3 moved class, subclass, level, hit die, hit dice left
+    /// and spellcasting ability into <c>identity.classes[]</c> (multiclassing); older documents are migrated into one entry.
+    /// The bump stops older apps from loading and dropping them.
     /// </summary>
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     public static readonly JsonSerializerOptions Options = new()
     {
@@ -43,10 +46,49 @@ public static class CharacterJson
         if (schemaVersion > CurrentSchemaVersion)
             throw new CharacterFormatException(
                 $"This character was saved by a newer version of the application (schema {schemaVersion}; this version supports up to {CurrentSchemaVersion}). Update the application to open it.");
+        if (schemaVersion < 3) MigrateToClasses(node);
         var character = node.Deserialize<Character>(Options)
                         ?? throw new CharacterFormatException("Character data is empty.");
         character.Normalize();
         return character;
+    }
+
+    private static JsonObject Section(JsonObject parent, string key) =>
+        parent[key] as JsonObject ?? (JsonObject)(parent[key] = new JsonObject());
+
+    /// <summary>Schema 2 to 3: folds the single-class fields into <c>identity.classes[0]</c>.</summary>
+    private static void MigrateToClasses(JsonObject node)
+    {
+        var identity = Section(node, "identity");
+        var combat = Section(node, "combat");
+        var spellcasting = Section(node, "spellcasting");
+
+        T Take<T>(JsonObject o, string key, T fallback)
+        {
+            var value = o[key];
+            o.Remove(key);
+            try { return value is null ? fallback : value.GetValue<T>(); }
+            catch (Exception ex) when (ex is FormatException or InvalidOperationException) { return fallback; }
+        }
+
+        var name = Take(identity, "className", "");
+        var subclass = Take(identity, "subclass", "");
+        var level = Take(identity, "level", 1);
+        var hitDie = Take(combat, "hitDieSize", 8);
+        var remaining = Take(combat, "hitDiceRemaining", 1);
+        var ability = Take<string?>(spellcasting, "ability", null);
+
+        var caster = SrdCatalog.FindClass(name)?.Caster.ToString() ?? (ability is null ? "None" : "Full");
+        identity["classes"] = new JsonArray(new JsonObject
+        {
+            ["name"] = name,
+            ["subclass"] = subclass,
+            ["level"] = level,
+            ["hitDie"] = hitDie,
+            ["hitDiceRemaining"] = remaining,
+            ["caster"] = caster,
+            ["spellcastingAbility"] = ability,
+        });
     }
 
     public static Character Deserialize(string json, int schemaVersion)

@@ -100,6 +100,59 @@ public class SerializationTests
         Assert.Throws<CharacterFormatException>(() => _portable.Import(text));
 
     [Fact]
+    public void SchemaTwo_MigratesSingleClassToOneEntry()
+    {
+        const string v2 = """{"identity":{"className":"Fighter","subclass":"Echo Knight","level":11},"combat":{"hitDieSize":10,"hitDiceRemaining":7},"spellcasting":{"ability":null}}""";
+        var c = CharacterJson.Deserialize(v2, 2);
+        var e = Assert.Single(c.Identity.Classes);
+        Assert.Equal(("Fighter", "Echo Knight", 11, 10, 7, CasterType.None), (e.Name, e.Subclass, e.Level, e.HitDie, e.HitDiceRemaining, e.Caster));
+    }
+
+    [Fact]
+    public void SchemaTwo_UnknownClassWithAbility_BecomesFullCaster()
+    {
+        const string v2 = """{"identity":{"className":"Witch","level":3},"spellcasting":{"ability":"Intelligence"}}""";
+        var e = Assert.Single(CharacterJson.Deserialize(v2, 2).Identity.Classes);
+        Assert.Equal(CasterType.Full, e.Caster);
+        Assert.Equal(Ability.Intelligence, e.SpellcastingAbility);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SchemaOneOrTwo_EmptyDocument_LoadsOneBlankLevelOneEntry(int version)
+    {
+        var e = Assert.Single(CharacterJson.Deserialize("{}", version).Identity.Classes);
+        Assert.Equal(("", 1, 1), (e.Name, e.Level, e.HitDiceRemaining));
+    }
+
+    [Fact]
+    public void SchemaThree_RoundTripsClasses()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Subclass = "Champion", Level = 5, HitDie = 10, HitDiceRemaining = 3, Caster = CasterType.None };
+        c.Identity.Classes.Add(new ClassLevel { Name = "Wizard", Level = 2, HitDie = 6, HitDiceRemaining = 2, Caster = CasterType.Full, SpellcastingAbility = Ability.Intelligence });
+        var back = CharacterJson.Deserialize(CharacterJson.Serialize(c), 3).Identity.Classes;
+        Assert.Equal(2, back.Count);
+        Assert.Equal(("Fighter", "Champion", 5, 10, 3), (back[0].Name, back[0].Subclass, back[0].Level, back[0].HitDie, back[0].HitDiceRemaining));
+        Assert.Equal(("Wizard", CasterType.Full, Ability.Intelligence), (back[1].Name, back[1].Caster, back[1].SpellcastingAbility));
+    }
+
+    [Fact]
+    public void Normalize_RepairsClasses()
+    {
+        var empty = CharacterJson.Deserialize("""{"identity":{"classes":[]}}""", 3);
+        Assert.Single(empty.Identity.Classes);
+
+        var over = CharacterJson.Deserialize(
+            """{"identity":{"classes":[{"name":"Fighter","level":15},{"name":"Wizard","level":10}]}}""", 3);
+        Assert.Equal([15, 5], over.Identity.Classes.Select(x => x.Level));
+
+        var dice = CharacterJson.Deserialize("""{"identity":{"classes":[{"level":3,"hitDiceRemaining":9}]}}""", 3);
+        Assert.Equal(3, dice.Identity.Classes[0].HitDiceRemaining);
+    }
+
+    [Fact]
     public void Import_RejectsNewerSchema()
     {
         var text = _portable.Export(new Character(), "9.0.0").Replace($"\"schemaVersion\": {CharacterJson.CurrentSchemaVersion}", "\"schemaVersion\": 99");

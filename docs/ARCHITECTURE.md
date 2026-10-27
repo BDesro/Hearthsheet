@@ -53,12 +53,12 @@ Dependencies point inward: App → Infrastructure → Core. Core has no referenc
 
 ```text
 Character (aggregate root, Guid Id)
-├── Identity         name, player, class, subclass, level, background, species, alignment, XP, inspiration
+├── Identity         name, player, Classes[] (name, subclass, level, hit die, hit dice left, caster type, spellcasting ability), background, species, alignment, XP, inspiration
 ├── Biography        age … hair, personality/ideals/bonds/flaws, appearance, backstory, allies, treasure, notes
 ├── AbilityScores    six base scores
 ├── SavingThrows[6]  proficient + extra bonus
 ├── Skills[18]       None / Half / Proficient / Expertise + extra bonus
-├── Combat           base AC, initiative bonus, base speed, base max HP, current/temp HP, hit die, hit dice left, death saves, stable
+├── Combat           base AC, initiative bonus, base speed, base max HP, current/temp HP, death saves, stable
 ├── Attacks[]        name, ability (or none), proficient, bonus, damage text; or a WeaponId (+ dice override) that derives them
 ├── Proficiencies[]  category (armor/weapon/tool/language/other) + name; weapon entries decide weapon proficiency by name or type
 ├── Features[]       name, source (class/subclass/species/background/feat/trait/custom), description, Modifiers[] (always on)
@@ -131,9 +131,10 @@ To change rest rules (another edition, a variant or a homebrew rule), replace or
 ## 7. Versioning and schema changes
 
 - App version: `<Version>` in `Directory.Build.props`, shown in the status bar and used by the updater.
-- Character schema version: `CharacterJson.CurrentSchemaVersion` (currently **2**; 2 only added fields, so 1 reads unchanged).
+- Character schema version: `CharacterJson.CurrentSchemaVersion` (currently **3**; 2 only added fields, so 1 reads unchanged).
+- Schema 3 (multiclassing) moved class, subclass, level, hit die, hit dice left and the spellcasting ability into `identity.classes[]`. `CharacterJson.Deserialize` migrates older documents into one entry (caster type from the SRD class, else Full when an ability was set, else None). `Normalize` keeps at least one entry, clamps hit dice left to the entry's level and trims total level to 20.
 
-There are no migrations yet. To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
+The only migration so far is 2 → 3 (above). To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
 
 ## 8. Import / export
 
@@ -214,7 +215,6 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 
 ## 14. Known limitations
 
-- Single class per character: level, hit die and hit dice are single values. Multiclassing needs per-class entries and hit-dice pools, which would be a schema-2 migration.
 - Conditions and exhaustion are tracked but apply no automatic mechanics (advantage and disadvantage are not modelled), because the rules differ between 2014 and 2024 editions.
 - Damage is text: weapon attacks assemble a roll string by damage type, but there is no dice roller or resistance mechanics.
 - Half-caster slot progression follows SRD 5.1 (no slots at level 1). "Apply class defaults" can be ignored for 2024-style rules.

@@ -1,3 +1,4 @@
+using Hearthsheet.Core.Rules;
 using System.Collections.ObjectModel;
 
 namespace Hearthsheet.Core.Domain;
@@ -72,7 +73,16 @@ public sealed partial class Character : Observable
             Conditions.Clear();
             foreach (var c in distinctConditions) Conditions.Add(c);
         }
-        if (Combat.HitDiceRemaining > Identity.Level) Combat.HitDiceRemaining = Identity.Level;
+
+        if (Identity.Classes.Count == 0) Identity.Classes.Add(new ClassLevel());
+        foreach (var entry in Identity.Classes)
+            if (entry.HitDiceRemaining > entry.Level) entry.HitDiceRemaining = entry.Level;
+        while (CharacterRules.TotalLevel(this) > 20)
+        {
+            var last = Identity.Classes[^1];
+            if (last.Level > 1) last.Level--;
+            else Identity.Classes.RemoveAt(Identity.Classes.Count - 1);
+        }
     }
 
     private static void SortInPlace<T>(ObservableCollection<T> items, Func<T, int> key)

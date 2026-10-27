@@ -184,9 +184,9 @@ public sealed class PlayViewModel : Observable
     }
 
     /// <summary>Spends one hit die during a short rest. Used by the short rest dialog.</summary>
-    public void SpendHitDie(int roll) => Act($"Spend hit die ({roll})", c =>
+    public void SpendHitDie(int size, int roll) => Act($"Spend hit die ({roll})", c =>
     {
-        var healed = c.SpendHitDie(roll);
+        var healed = c.SpendHitDie(size, roll);
         return $"Spent a hit die (rolled {roll}): healed {healed}.";
     });
 

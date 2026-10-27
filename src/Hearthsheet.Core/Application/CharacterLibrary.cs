@@ -1,5 +1,6 @@
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
+using Hearthsheet.Core.Rules;
 using Hearthsheet.Core.Serialization;
 using Microsoft.Extensions.Logging;
 
@@ -25,7 +26,7 @@ public sealed class CharacterLibrary(
     {
         var c = CharacterFactory.Create(options);
         repository.Save(c);
-        logger.LogInformation("Character created: {Name} ({Class} {Level})", c.Identity.Name, c.Identity.ClassName, c.Identity.Level);
+        logger.LogInformation("Character created: {Name} ({Class} {Level})", c.Identity.Name, CharacterRules.ClassSummary(c), CharacterRules.TotalLevel(c));
         return c;
     }
 

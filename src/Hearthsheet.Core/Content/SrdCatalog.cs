@@ -3,8 +3,6 @@ using Hearthsheet.Core.Rules;
 
 namespace Hearthsheet.Core.Content;
 
-public enum CasterType { None, Full, Half, Pact }
-
 public sealed record ClassDefinition(
     string Name, int HitDie, Ability[] SavingThrows, Ability? SpellcastingAbility, CasterType Caster);
 
@@ -100,13 +98,13 @@ public static class CharacterFactory
     {
         var c = new Character();
         c.Identity.Name = string.IsNullOrWhiteSpace(options.Name) ? "New Character" : options.Name.Trim();
-        c.Identity.ClassName = options.ClassName.Trim();
-        c.Identity.Level = options.Level;
+        c.Identity.Classes[0].Name = options.ClassName.Trim();
+        c.Identity.Classes[0].Level = options.Level;
         c.Identity.Species = options.Species.Trim();
         c.Identity.Background = options.Background.Trim();
         c.Identity.PlayerName = options.PlayerName.Trim();
         if (SrdCatalog.FindClass(options.ClassName) is { } def) ApplyClassDefaults(c, def);
-        c.Combat.HitDiceRemaining = c.Identity.Level;
+        c.Identity.Classes[0].HitDiceRemaining = c.Identity.Classes[0].Level;
         c.Combat.CurrentHp = CharacterRules.MaxHitPoints(c);
         return c;
     }
@@ -114,14 +112,16 @@ public static class CharacterFactory
     /// <summary>Hit die, save proficiencies, average HP, spellcasting ability and slots for the class.</summary>
     public static void ApplyClassDefaults(Character c, ClassDefinition def)
     {
-        var level = c.Identity.Level;
-        c.Combat.HitDieSize = def.HitDie;
+        var entry = c.Identity.Classes[0];
+        var level = entry.Level;
+        entry.HitDie = def.HitDie;
+        entry.Caster = def.Caster;
         foreach (var save in c.SavingThrows) save.Proficient = def.SavingThrows.Contains(save.Ability);
 
         var con = CharacterRules.AbilityModifier(c.Abilities.Constitution);
         c.Combat.MaxHp = Math.Max(1, def.HitDie + con + (level - 1) * Math.Max(1, def.HitDie / 2 + 1 + con));
 
-        c.Spellcasting.Ability = def.SpellcastingAbility;
+        entry.SpellcastingAbility = def.SpellcastingAbility;
         if (def.SpellcastingAbility is not null) c.Spellcasting.SpellcastingClass = def.Name;
         var slots = SrdCatalog.SpellSlots(def.Caster, level);
         foreach (var slot in c.Spellcasting.Slots) slot.Maximum = slots[slot.Level - 1];

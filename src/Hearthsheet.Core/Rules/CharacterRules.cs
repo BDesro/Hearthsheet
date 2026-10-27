@@ -46,13 +46,17 @@ public static class StatTargets
 /// Derived values. Pure functions over stored state so nothing derived is ever persisted or
 /// allowed to drift out of sync between views.
 /// </summary>
+public sealed record HitDicePool(int Size, int Remaining, int Total);
+
 public static class CharacterRules
 {
     public static int AbilityModifier(int score) => (int)Math.Floor((score - 10) / 2.0);
 
     public static int ProficiencyBonus(int level) => 2 + (Math.Clamp(level, 1, 20) - 1) / 4;
 
-    public static int ProficiencyBonus(Character c) => ProficiencyBonus(c.Identity.Level);
+    public static int TotalLevel(Character c) => c.Identity.Classes.Sum(e => e.Level);
+
+    public static int ProficiencyBonus(Character c) => ProficiencyBonus(TotalLevel(c));
 
     /// <summary>Modifiers from features, active effects, and equipped (and, where required, attuned) items.</summary>
     public static IEnumerable<Modifier> ActiveModifiers(Character c) =>
@@ -112,13 +116,31 @@ public static class CharacterRules
 
     public static int MaxHitPoints(Character c) => Math.Max(1, Resolve(c, c.Combat.MaxHp, StatTargets.MaxHp));
 
-    public static int HitDiceTotal(Character c) => c.Identity.Level;
+    public static int HitDiceTotal(Character c) => TotalLevel(c);
 
-    public static int? SpellSaveDc(Character c) => c.Spellcasting.Ability is { } a
+    /// <summary>Hit dice grouped by die size, largest first.</summary>
+    public static IReadOnlyList<HitDicePool> HitDicePools(Character c) =>
+        [.. c.Identity.Classes.GroupBy(e => e.HitDie)
+            .Select(g => new HitDicePool(g.Key, g.Sum(e => e.HitDiceRemaining), g.Sum(e => e.Level)))
+            .OrderByDescending(p => p.Size)];
+
+    /// <summary>"Fighter" for one class; "Fighter 11 (Echo Knight) / Blood Hunter 1" for several.</summary>
+    public static string ClassSummary(Character c)
+    {
+        var classes = c.Identity.Classes;
+        if (classes.Count == 1) return classes[0].Name;
+        return string.Join(" / ", classes.Select(e =>
+            $"{e.Name} {e.Level}{(string.IsNullOrWhiteSpace(e.Subclass) ? "" : $" ({e.Subclass})")}".Trim()));
+    }
+
+    // First entry with an ability; Task 2 replaces this with a per-class lookup.
+    private static Ability? SpellAbility(Character c) => c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null)?.SpellcastingAbility;
+
+    public static int? SpellSaveDc(Character c) => SpellAbility(c) is { } a
         ? Resolve(c, 8 + ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellDc)
         : null;
 
-    public static int? SpellAttackBonus(Character c) => c.Spellcasting.Ability is { } a
+    public static int? SpellAttackBonus(Character c) => SpellAbility(c) is { } a
         ? Resolve(c, ProficiencyBonus(c) + AbilityModifier(c, a), StatTargets.SpellAttack)
         : null;
 

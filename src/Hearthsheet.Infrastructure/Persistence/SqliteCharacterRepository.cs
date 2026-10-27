@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Domain;
+using Hearthsheet.Core.Rules;
 using Hearthsheet.Core.Serialization;
 using Hearthsheet.Core.Sync;
 using Microsoft.Data.Sqlite;
@@ -328,7 +329,7 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
 
     private static string Describe(Character c)
     {
-        var parts = new[] { c.Identity.Species, $"{c.Identity.ClassName} {c.Identity.Level}".Trim() }
+        var parts = new[] { c.Identity.Species, $"{CharacterRules.ClassSummary(c)} {CharacterRules.TotalLevel(c)}".Trim() }
             .Where(p => !string.IsNullOrWhiteSpace(p));
         return string.Join(" · ", parts);
     }

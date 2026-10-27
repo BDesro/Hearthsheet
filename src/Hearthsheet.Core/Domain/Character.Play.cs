@@ -106,15 +106,16 @@ public sealed partial class Character
         Combat.IsStable = false;
     }
 
-    /// <summary>Spends one hit die with the given roll (1..die size); heals roll + CON modifier (min 0).</summary>
-    public int SpendHitDie(int roll)
+    /// <summary>Spends one die of the given size (from the first class entry with one left) with the given roll (1..size); heals roll + CON modifier (min 0).</summary>
+    public int SpendHitDie(int size, int roll)
     {
-        if (Combat.HitDiceRemaining <= 0) throw new InvalidOperationException("No hit dice remaining.");
-        if (roll < 1 || roll > Combat.HitDieSize)
-            throw new ArgumentOutOfRangeException(nameof(roll), $"Roll must be between 1 and {Combat.HitDieSize}.");
+        if (roll < 1 || roll > size)
+            throw new ArgumentOutOfRangeException(nameof(roll), $"Roll must be between 1 and {size}.");
+        var entry = Identity.Classes.FirstOrDefault(e => e.HitDie == size && e.HitDiceRemaining > 0)
+                    ?? throw new InvalidOperationException($"No d{size} hit dice remaining.");
         if (CharacterRules.IsDead(this)) throw new InvalidOperationException("A dead character cannot spend hit dice.");
 
-        Combat.HitDiceRemaining--;
+        entry.HitDiceRemaining--;
         var healing = Math.Max(0, roll + CharacterRules.AbilityModifier(this, Ability.Constitution));
         var before = Combat.CurrentHp;
         SetHitPoints(before + healing);

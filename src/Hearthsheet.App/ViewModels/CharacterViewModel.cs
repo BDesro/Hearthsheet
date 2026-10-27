@@ -72,16 +72,16 @@ public sealed class CharacterViewModel : Observable, IDisposable
         RemoveEntry = new RelayCommand(RemoveEntryWithConfirmation, p => p is not null);
         ApplyClassDefaults = new RelayCommand(() =>
         {
-            if (SrdCatalog.FindClass(c.Identity.ClassName) is not { } def)
+            if (SrdCatalog.FindClass(FirstClass.Name) is not { } def)
             {
-                _dialogs.Info($"“{c.Identity.ClassName}” is not one of the built-in classes, so there are no defaults to apply.");
+                _dialogs.Info($"“{FirstClass.Name}” is not one of the built-in classes, so there are no defaults to apply.");
                 return;
             }
-            if (!_dialogs.Confirm($"Apply {def.Name} defaults for level {c.Identity.Level}? This sets hit die, saving throw proficiencies, " +
+            if (!_dialogs.Confirm($"Apply {def.Name} defaults for level {FirstClass.Level}? This sets hit die, saving throw proficiencies, " +
                                   "average maximum HP, spellcasting ability and spell slots.", "Apply class defaults"))
                 return;
             CharacterFactory.ApplyClassDefaults(c, def);
-            _log.LogInformation("Class defaults applied: {Class} {Level}", def.Name, c.Identity.Level);
+            _log.LogInformation("Class defaults applied: {Class} {Level}", def.Name, FirstClass.Level);
         });
 
         Play = new PlayViewModel(this, rest, dialogs, log);
@@ -110,7 +110,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public bool MaxHpModified => MaxHitPoints != Character.Combat.MaxHp;
     public int PassivePerception => CharacterRules.PassivePerception(Character);
     public int HitDiceTotal => CharacterRules.HitDiceTotal(Character);
-    public string HitDiceText => $"{Character.Combat.HitDiceRemaining} / {HitDiceTotal} d{Character.Combat.HitDieSize}";
+    public string HitDiceText => string.Join(" · ", CharacterRules.HitDicePools(Character).Select(p => $"{p.Remaining} / {p.Total} d{p.Size}"));
     public string SpellSaveDc => CharacterRules.SpellSaveDc(Character)?.ToString() ?? "—";
     public string SpellAttackBonus => CharacterRules.SpellAttackBonus(Character) is { } b ? CharacterRules.FormatModifier(b) : "—";
     public string CarriedWeightText => $"{CharacterRules.CarriedWeight(Character):0.#} / {CharacterRules.CarryingCapacity(Character)} lb";
@@ -119,9 +119,13 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public bool IsStable => Character.Combat.IsStable && Character.Combat.CurrentHp == 0 && !IsDead;
     public string VitalStatus => IsDead ? "Dead" : IsStable ? "Stable" : IsDying ? "Dying" : "";
     public string Title => string.IsNullOrWhiteSpace(Character.Identity.Name) ? "Unnamed character" : Character.Identity.Name;
-    public string Summary => $"{Character.Identity.Species} {Character.Identity.ClassName} {Character.Identity.Level}".Trim();
+    public string Summary => (Character.Identity.Classes.Count == 1
+        ? $"{Character.Identity.Species} {CharacterRules.ClassSummary(Character)} {CharacterRules.TotalLevel(Character)}"
+        : $"{Character.Identity.Species} {CharacterRules.ClassSummary(Character)}").Trim();
+    /// <summary>The class entry the single-class editors bind to.</summary>
+    public ClassLevel FirstClass => Character.Identity.Classes[0];
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
-    public bool HasSpellcasting => Character.Spellcasting.Ability is not null || Character.Spellcasting.Spells.Count > 0;
+    public bool HasSpellcasting => Character.Identity.Classes.Any(e => e.SpellcastingAbility is not null) || Character.Spellcasting.Spells.Count > 0;
 
     public ICommand CycleSkillProficiency { get; }
     public ICommand AddAttack { get; }
