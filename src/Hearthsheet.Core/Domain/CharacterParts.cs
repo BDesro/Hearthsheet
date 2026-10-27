@@ -9,14 +9,61 @@ public sealed class Identity : Observable
 {
     public string Name { get; set => Set(ref field, value ?? ""); } = "";
     public string PlayerName { get; set => Set(ref field, value ?? ""); } = "";
-    public string ClassName { get; set => Set(ref field, value ?? ""); } = "";
-    public string Subclass { get; set => Set(ref field, value ?? ""); } = "";
-    public int Level { get; set => SetClamped(ref field, value, 1, 20); } = 1;
+    /// <summary>One entry per class; total character level is their sum (see CharacterRules.TotalLevel). Never empty after Normalize.</summary>
+    public ObservableCollection<ClassLevel> Classes { get; init; } = [new ClassLevel()];
     public string Background { get; set => Set(ref field, value ?? ""); } = "";
     public string Species { get; set => Set(ref field, value ?? ""); } = "";
     public string Alignment { get; set => Set(ref field, value ?? ""); } = "";
     public int Experience { get; set => SetClamped(ref field, value, 0, 10_000_000); }
     public bool Inspiration { get; set => Set(ref field, value); }
+}
+
+/// <summary>
+/// One class the character has levels in. Property order matters for deserialization: Caster is declared after Subclass
+/// so a stored caster type is applied last.
+/// </summary>
+public sealed class ClassLevel : Observable, System.Text.Json.Serialization.IJsonOnDeserializing, System.Text.Json.Serialization.IJsonOnDeserialized
+{
+    // While loading, stored values are authoritative: the subclass rule below must not depend on property order.
+    private bool _loading;
+    void System.Text.Json.Serialization.IJsonOnDeserializing.OnDeserializing() => _loading = true;
+    void System.Text.Json.Serialization.IJsonOnDeserialized.OnDeserialized() => _loading = false;
+
+    /// <summary>The two SRD third-caster subclasses.</summary>
+    internal static bool IsThirdCasterSubclass(string subclass) =>
+        subclass.Trim() is var s && (s.Equals("Eldritch Knight", StringComparison.OrdinalIgnoreCase)
+                                     || s.Equals("Arcane Trickster", StringComparison.OrdinalIgnoreCase));
+
+
+    public string Name { get; set => Set(ref field, value ?? ""); } = "";
+    public string Subclass
+    {
+        get;
+        set
+        {
+            if (!Set(ref field, value ?? "")) return;
+            // The user can change the caster type back.
+            if (!_loading && Caster == CasterType.None && IsThirdCasterSubclass(field))
+            {
+                Caster = CasterType.Third;
+                SpellcastingAbility ??= Ability.Intelligence;
+            }
+        }
+    } = "";
+    public int Level
+    {
+        get;
+        set
+        {
+            SetClamped(ref field, value, 1, 20);
+            if (!_loading && HitDiceRemaining > field) HitDiceRemaining = field;
+        }
+    } = 1;
+    /// <summary>At most <see cref="Level"/>; while loading only 0..20, since Normalize caps it once every property is read.</summary>
+    public int HitDie { get; set => SetClamped(ref field, value, 4, 20); } = 8;
+    public int HitDiceRemaining { get; set => SetClamped(ref field, value, 0, _loading ? 20 : Level); } = 1;
+    public CasterType Caster { get; set => Set(ref field, value); }
+    public Ability? SpellcastingAbility { get; set => Set(ref field, value); }
 }
 
 public sealed class Biography : Observable
@@ -94,8 +141,6 @@ public sealed class Combat : Observable
     public int MaxHp { get; set => SetClamped(ref field, value, 1, 9999); } = 10;
     public int CurrentHp { get; set => SetClamped(ref field, value, 0, 9999); } = 10;
     public int TemporaryHp { get; set => SetClamped(ref field, value, 0, 9999); }
-    public int HitDieSize { get; set => SetClamped(ref field, value, 4, 20); } = 8;
-    public int HitDiceRemaining { get; set => SetClamped(ref field, value, 0, 20); } = 1;
     public int DeathSaveSuccesses { get; set => SetClamped(ref field, value, 0, 3); }
     public int DeathSaveFailures { get; set => SetClamped(ref field, value, 0, 3); }
     public bool IsStable { get; set => Set(ref field, value); }
@@ -223,6 +268,8 @@ public sealed class Spell : Observable
     public bool Prepared { get; set => Set(ref field, value); }
     public string Description { get; set => Set(ref field, value ?? ""); } = "";
     public string HigherLevels { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>The class this spell is cast as; blank means the primary caster.</summary>
+    public string Class { get; set => Set(ref field, value ?? ""); } = "";
 }
 
 public sealed class SpellSlotLevel : Observable
@@ -233,9 +280,18 @@ public sealed class SpellSlotLevel : Observable
     public int Available => Math.Max(0, Maximum - Expended);
 }
 
+/// <summary>Warlock Pact Magic: all slots share one level and come back on any rest.</summary>
+public sealed class PactSlots : Observable
+{
+    public int Level { get; set => SetClamped(ref field, value, 1, 5); } = 1;
+    public int Maximum { get; set { if (value != field) { SetClamped(ref field, value, 0, 20); Raise(nameof(Available)); } } }
+    public int Expended { get; set { if (value != field) { SetClamped(ref field, value, 0, 20); Raise(nameof(Available)); } } }
+    public int Available => Math.Max(0, Maximum - Expended);
+}
+
 public sealed class Spellcasting : Observable
 {
-    public Ability? Ability { get; set => Set(ref field, value); }
+    public PactSlots PactSlots { get; init; } = new();
     public string SpellcastingClass { get; set => Set(ref field, value ?? ""); } = "";
     /// <summary>Name of the spell currently being concentrated on; empty when none.</summary>
     public string Concentration { get; set => Set(ref field, value ?? ""); } = "";

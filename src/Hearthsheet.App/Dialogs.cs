@@ -40,6 +40,13 @@ public sealed class Dialogs
         return dialog.ShowDialog() == true ? dialog.Result : null;
     }
 
+    /// <param name="className">The class the dialog starts on; null starts blank.</param>
+    public (string ClassName, LevelUpOptions Options)? LevelUp(Character c, string? className = null)
+    {
+        var dialog = new LevelUpDialog(c, className) { Owner = Owner };
+        return dialog.ShowDialog() == true ? (dialog.ClassName, dialog.Options) : null;
+    }
+
     /// <returns>True when the user chose to finish the short rest.</returns>
     public bool ShortRest(PlayViewModel play, Character character) =>
         new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true;

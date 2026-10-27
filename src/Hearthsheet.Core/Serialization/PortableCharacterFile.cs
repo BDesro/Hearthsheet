@@ -93,7 +93,7 @@ public sealed class PortableCharacterFile
             c.Items.Sum(i => i.Modifiers.Count), c.Effects.Sum(e => e.Modifiers.Count), c.WondrousItems.Sum(i => i.Modifiers.Count),
             c.Features.Sum(f => f.Modifiers.Count), c.Weapons.Sum(w => w.Effects.Count),
         ];
-        if (counts.Any(n => n > MaxListEntries))
+        if (counts.Any(n => n > MaxListEntries) || c.Identity.Classes.Count > 20)
             throw new CharacterFormatException("The character file contains an unreasonable number of entries.");
     }
 }

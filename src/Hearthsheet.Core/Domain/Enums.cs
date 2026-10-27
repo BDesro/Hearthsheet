@@ -2,6 +2,8 @@ namespace Hearthsheet.Core.Domain;
 
 public enum Ability { Strength, Dexterity, Constitution, Intelligence, Wisdom, Charisma }
 
+public enum CasterType { None, Full, Half, Third, Pact }
+
 public enum Skill
 {
     Acrobatics, AnimalHandling, Arcana, Athletics, Deception, History, Insight, Intimidation,

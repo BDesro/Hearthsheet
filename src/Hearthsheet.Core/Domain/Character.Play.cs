@@ -106,15 +106,16 @@ public sealed partial class Character
         Combat.IsStable = false;
     }
 
-    /// <summary>Spends one hit die with the given roll (1..die size); heals roll + CON modifier (min 0).</summary>
-    public int SpendHitDie(int roll)
+    /// <summary>Spends one die of the given size (from the first class entry with one left) with the given roll (1..size); heals roll + CON modifier (min 0).</summary>
+    public int SpendHitDie(int size, int roll)
     {
-        if (Combat.HitDiceRemaining <= 0) throw new InvalidOperationException("No hit dice remaining.");
-        if (roll < 1 || roll > Combat.HitDieSize)
-            throw new ArgumentOutOfRangeException(nameof(roll), $"Roll must be between 1 and {Combat.HitDieSize}.");
+        if (roll < 1 || roll > size)
+            throw new ArgumentOutOfRangeException(nameof(roll), $"Roll must be between 1 and {size}.");
+        var entry = Identity.Classes.FirstOrDefault(e => e.HitDie == size && e.HitDiceRemaining > 0)
+                    ?? throw new InvalidOperationException($"No d{size} hit dice remaining.");
         if (CharacterRules.IsDead(this)) throw new InvalidOperationException("A dead character cannot spend hit dice.");
 
-        Combat.HitDiceRemaining--;
+        entry.HitDiceRemaining--;
         var healing = Math.Max(0, roll + CharacterRules.AbilityModifier(this, Ability.Constitution));
         var before = Combat.CurrentHp;
         SetHitPoints(before + healing);
@@ -146,6 +147,18 @@ public sealed partial class Character
         if (slot.Expended > 0) slot.Expended--;
     }
 
+    public bool ExpendPactSlot()
+    {
+        if (Spellcasting.PactSlots.Available <= 0) return false;
+        Spellcasting.PactSlots.Expended++;
+        return true;
+    }
+
+    public void RestorePactSlot()
+    {
+        if (Spellcasting.PactSlots.Expended > 0) Spellcasting.PactSlots.Expended--;
+    }
+
     /// <summary>
     /// Casts a spell: cantrips and rituals-as-rituals are free; otherwise uses the lowest available slot at or
     /// above the requested level. Concentration spells replace any current concentration.
@@ -161,9 +174,20 @@ public sealed partial class Character
         {
             var minimum = Math.Max(spell.Level, slotLevel ?? spell.Level);
             var slot = Spellcasting.Slots.Where(s => s.Level >= minimum && s.Available > 0).MinBy(s => s.Level);
-            if (slot is null) return $"No spell slot of level {minimum} or higher available for {spell.Name}.";
-            slot.Expended++;
-            result = $"Cast {spell.Name} using a level {slot.Level} slot.";
+            var pact = Spellcasting.PactSlots;
+            // The pact slot wins a tie: it comes back on a short rest.
+            var usePact = pact.Level >= minimum && pact.Available > 0 && (slot is null || pact.Level <= slot.Level);
+            if (usePact)
+            {
+                pact.Expended++;
+                result = $"Cast {spell.Name} using a level {pact.Level} pact slot.";
+            }
+            else if (slot is null) return $"No spell slot of level {minimum} or higher available for {spell.Name}.";
+            else
+            {
+                slot.Expended++;
+                result = $"Cast {spell.Name} using a level {slot.Level} slot.";
+            }
         }
         if (spell.Concentration)
         {
