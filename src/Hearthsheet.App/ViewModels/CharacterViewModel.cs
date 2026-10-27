@@ -79,6 +79,11 @@ public sealed class CharacterViewModel : Observable, IDisposable
             _log.LogInformation("Class defaults applied: {Class}", CharacterRules.ClassAndLevelText(c));
         });
 
+        AddClass = new RelayCommand(() => DoLevelUp(null));
+        LevelUp = new RelayCommand(() => DoLevelUp(c.Identity.Classes[0].Name));
+        MoveClassUp = new RelayCommand<ClassLevel>(e => MoveClass(e, -1));
+        MoveClassDown = new RelayCommand<ClassLevel>(e => MoveClass(e, 1));
+
         Play = new PlayViewModel(this, rest, dialogs, log);
         _session.Changed += OnSessionChanged;
         SyncCollections();
@@ -128,6 +133,8 @@ public sealed class CharacterViewModel : Observable, IDisposable
     /// <summary>The class entry the single-class editors bind to.</summary>
     public ClassLevel FirstClass => Character.Identity.Classes[0];
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);
+    /// <summary>True when two or more class entries cast, so spells carry a class and their own DC.</summary>
+    public bool IsMultiCaster => Character.Identity.Classes.Count(e => e.SpellcastingAbility is not null) >= 2;
     public bool HasSpellcasting => Character.Identity.Classes.Any(e => e.SpellcastingAbility is not null) || Character.Spellcasting.Spells.Count > 0;
 
     public ICommand CycleSkillProficiency { get; }
@@ -144,6 +151,32 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public ICommand AddModifier { get; }
     public ICommand RemoveEntry { get; }
     public ICommand ApplyClassDefaults { get; }
+    public ICommand AddClass { get; }
+    public ICommand LevelUp { get; }
+    public ICommand MoveClassUp { get; }
+    public ICommand MoveClassDown { get; }
+
+    /// <param name="className">The class the dialog starts on; null starts blank, for adding a new class.</param>
+    private void DoLevelUp(string? className)
+    {
+        if (_dialogs.LevelUp(Character, className) is not { } choice) return;
+        var (name, options) = choice;
+        var report = CharacterFactory.LevelUp(Character, name, options);
+        var lines = report.Changes.ToList();
+        var check = report.Warnings.Concat(report.NeedsAttention).ToList();
+        if (check.Count > 0) lines.Add("Check: " + string.Join(" ", check));
+        var text = string.Join(Environment.NewLine, lines);
+        _dialogs.Info(text);
+        _log.LogInformation("Level up {Class}: {Report}", name, text);
+        Play.Record(text);
+    }
+
+    private void MoveClass(ClassLevel entry, int by)
+    {
+        var classes = Character.Identity.Classes;
+        var to = classes.IndexOf(entry) + by;
+        if (to >= 0 && to < classes.Count) classes.Move(classes.IndexOf(entry), to);
+    }
 
     /// <summary>Coalesces bursts of model changes (e.g. a long rest touches dozens of values) into one refresh.</summary>
     private void OnSessionChanged(object? sender, EventArgs e)
@@ -204,6 +237,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
             Item i => (c.Items.Contains(i) ? c.Items : c.WondrousItems, i.Name),
             Feature f => (c.Features, f.Name),
             Proficiency p => (c.Proficiencies, p.Name),
+            ClassLevel e => (c.Identity.Classes.Count > 1 ? c.Identity.Classes : null, e.Name),
             Spell s => (c.Spellcasting.Spells, s.Name),
             Resource r => (c.Resources, r.Name),
             Effect e => (c.Effects, e.Name),

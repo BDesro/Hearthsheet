@@ -48,6 +48,24 @@ public sealed class AtLeastConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Per-spell save DC ("DC 15") from [spell, character]; empty when the spell's class has no ability.</summary>
+public sealed class SpellDcConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture) =>
+        values is [Spell s, Character c] && CharacterRules.SpellSaveDc(c, s) is { } dc ? $"DC {dc}" : "";
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>Lets a DataGrid column (which is outside the visual tree) bind to the view's DataContext.</summary>
+public sealed class BindingProxy : Freezable
+{
+    public static readonly DependencyProperty DataProperty = DependencyProperty.Register(nameof(Data), typeof(object), typeof(BindingProxy));
+    public object? Data { get => GetValue(DataProperty); set => SetValue(DataProperty, value); }
+    protected override Freezable CreateInstanceCore() => new BindingProxy();
+}
+
 public sealed class EnumDisplayConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
@@ -83,6 +101,7 @@ public static class Lookups
     public static Option[] OptionalAbilities { get; } =
         [new(null, "None"), .. Enum.GetValues<Ability>().Select(a => new Option(a, a.ToString()))];
 
+    public static CasterType[] CasterTypes { get; } = Enum.GetValues<CasterType>();
     public static ProficiencyLevel[] ProficiencyLevels { get; } = Enum.GetValues<ProficiencyLevel>();
     public static ProficiencyCategory[] ProficiencyCategories { get; } = Enum.GetValues<ProficiencyCategory>();
     public static FeatureSource[] FeatureSources { get; } = Enum.GetValues<FeatureSource>();

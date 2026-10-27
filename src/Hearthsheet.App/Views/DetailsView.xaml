@@ -7,6 +7,7 @@
              xmlns:domain="clr-namespace:Hearthsheet.Core.Domain;assembly=Hearthsheet.Core">
     <!-- Categorized editor over the same CharacterViewModel as the sheet and dashboard. -->
     <UserControl.Resources>
+        <mvvm:BindingProxy x:Key="Proxy" Data="{Binding}" />
         <Style x:Key="Page" TargetType="ScrollViewer">
             <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
@@ -32,6 +33,33 @@
             <Button Style="{StaticResource IconButton}" Content="✕" ToolTip="Remove"
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding}" AutomationProperties.Name="Remove" />
+        </DataTemplate>
+        <Style x:Key="ClassSubclassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} subclass}" />
+        </Style>
+        <Style x:Key="ClassLevelBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} level}" />
+        </Style>
+        <Style x:Key="ClassDiceBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat={}{0} hit dice left}" />
+        </Style>
+        <Style x:Key="SpellClassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
+            <Setter Property="AutomationProperties.Name" Value="Spell class" />
+        </Style>
+        <DataTemplate x:Key="RemoveClassCell">
+            <Button Content="✕" ToolTip="Remove class"
+                    Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    CommandParameter="{Binding}" AutomationProperties.Name="{Binding Name, StringFormat=Remove {0}}">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding DataContext.Character.Identity.Classes.Count, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="1">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
         </DataTemplate>
         <!-- Template columns that host their own controls (pickers, combo boxes) are IsReadOnly so the grid never puts the
              cell in edit mode: entering edit mode rebuilds the cell and discards the control being clicked. -->
@@ -124,21 +152,81 @@
                             <TextBox Style="{StaticResource Wide}" Text="{Binding Character.Identity.PlayerName}" AutomationProperties.Name="Player name" />
                         </HeaderedContentControl>
                     </WrapPanel>
-                    <WrapPanel>
-                        <HeaderedContentControl Header="Class" Style="{StaticResource Field}">
-                            <ComboBox Width="180" IsEditable="True" ItemsSource="{x:Static mvvm:Lookups.ClassNames}"
-                                      Text="{Binding FirstClass.Name, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Class" />
-                        </HeaderedContentControl>
-                        <HeaderedContentControl Header="Subclass" Style="{StaticResource Field}">
-                            <TextBox Width="180" Text="{Binding FirstClass.Subclass}" AutomationProperties.Name="Subclass" />
-                        </HeaderedContentControl>
-                        <HeaderedContentControl Header="Level (1–20)" Style="{StaticResource Field}">
-                            <TextBox Style="{StaticResource Num}" Text="{Binding FirstClass.Level}" AutomationProperties.Name="Level" />
-                        </HeaderedContentControl>
-                        <HeaderedContentControl Header=" " Style="{StaticResource Field}">
+                    <DockPanel Margin="0,6,0,6">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="Add class…" Command="{Binding AddClass}" ToolTip="Take a first level in another class (multiclass)" />
+                            <Button Content="Level up…" Command="{Binding LevelUp}" />
                             <Button Content="Apply class defaults…" Command="{Binding ApplyClassDefaults}" />
-                        </HeaderedContentControl>
-                    </WrapPanel>
+                        </StackPanel>
+                        <TextBlock Text="Classes" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Text="The first row is the starting class (it sets saving throw proficiencies and first-level hit points). Hit dice and caster types are per class." />
+                    <DataGrid ItemsSource="{Binding Character.Identity.Classes}" AlternationCount="100">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock x:Name="Mark" Text="" Foreground="{StaticResource InkMuted}" FontSize="11" VerticalAlignment="Center" Margin="4,0" />
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="0">
+                                                <Setter TargetName="Mark" Property="Text" Value="Starting class" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Class" Width="Auto" MinWidth="150" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox IsEditable="True" BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.ClassNames}"
+                                                  Text="{Binding Name, UpdateSourceTrigger=LostFocus}" AutomationProperties.Name="Class name" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Subclass" Width="*" MinWidth="120" Binding="{Binding Subclass}" EditingElementStyle="{StaticResource ClassSubclassBox}" />
+                            <DataGridTextColumn Header="Level" Width="Auto" MinWidth="55" Binding="{Binding Level}" EditingElementStyle="{StaticResource ClassLevelBox}" />
+                            <DataGridTemplateColumn Header="Hit die" Width="Auto" MinWidth="75" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.HitDieSizes}" SelectedItem="{Binding HitDie}" ItemStringFormat="d{0}"
+                                                  AutomationProperties.Name="{Binding Name, StringFormat={}{0} hit die}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Dice left" Width="Auto" MinWidth="65" Binding="{Binding HitDiceRemaining}" EditingElementStyle="{StaticResource ClassDiceBox}" />
+                            <DataGridTemplateColumn Header="Caster" Width="Auto" MinWidth="85" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.CasterTypes}" SelectedItem="{Binding Caster}"
+                                                  AutomationProperties.Name="{Binding Name, StringFormat={}{0} caster type}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Ability" Width="Auto" MinWidth="95" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox BorderThickness="0" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                                  SelectedValue="{Binding SpellcastingAbility}" AutomationProperties.Name="{Binding Name, StringFormat={}{0} spellcasting ability}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="Auto" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Style="{StaticResource IconButton}" Content="▲" ToolTip="Move up"
+                                                    Command="{Binding DataContext.MoveClassUp, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} up}" />
+                                            <Button Style="{StaticResource IconButton}" Content="▼" ToolTip="Move down"
+                                                    Command="{Binding DataContext.MoveClassDown, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding Name, StringFormat=Move {0} down}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="36" IsReadOnly="True" CellTemplate="{StaticResource RemoveClassCell}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
                     <WrapPanel>
                         <HeaderedContentControl Header="Species" Style="{StaticResource Field}">
                             <ComboBox Width="180" IsEditable="True" ItemsSource="{x:Static mvvm:Lookups.Species}"
@@ -262,11 +350,6 @@
                         <HeaderedContentControl Header="Temporary HP" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.TemporaryHp}" AutomationProperties.Name="Temporary hit points" /></HeaderedContentControl>
                     </WrapPanel>
                     <WrapPanel>
-                        <HeaderedContentControl Header="Hit die" Style="{StaticResource Field}">
-                            <ComboBox Width="80" ItemsSource="{x:Static mvvm:Lookups.HitDieSizes}" SelectedItem="{Binding FirstClass.HitDie}"
-                                      ItemStringFormat="d{0}" AutomationProperties.Name="Hit die size" />
-                        </HeaderedContentControl>
-                        <HeaderedContentControl Header="Hit dice remaining" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding FirstClass.HitDiceRemaining}" AutomationProperties.Name="Hit dice remaining" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Death save successes" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.DeathSaveSuccesses}" AutomationProperties.Name="Death save successes" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Death save failures" Style="{StaticResource Field}"><TextBox Style="{StaticResource Num}" Text="{Binding Character.Combat.DeathSaveFailures}" AutomationProperties.Name="Death save failures" /></HeaderedContentControl>
                         <HeaderedContentControl Header="Stable" Style="{StaticResource Field}"><CheckBox Content="Stable at 0 HP" IsChecked="{Binding Character.Combat.IsStable}" Margin="0,5,0,0" /></HeaderedContentControl>
@@ -498,10 +581,6 @@
                         <Run Text=". Spell text is yours to enter — no rulebook text is bundled." />
                     </TextBlock>
                     <WrapPanel>
-                        <HeaderedContentControl Header="Spellcasting ability" Style="{StaticResource Field}">
-                            <ComboBox Width="160" ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                                      SelectedValue="{Binding FirstClass.SpellcastingAbility}" AutomationProperties.Name="Spellcasting ability" />
-                        </HeaderedContentControl>
                         <HeaderedContentControl Header="Spellcasting class" Style="{StaticResource Field}">
                             <TextBox Width="180" Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class" />
                         </HeaderedContentControl>
@@ -530,6 +609,19 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <Border Style="{StaticResource Card}" Padding="10,6" Margin="0,0,8,8" HorizontalAlignment="Left">
+                        <StackPanel>
+                            <TextBlock Text="Pact Magic" FontWeight="SemiBold" ToolTip="Warlock-style slots that come back on a short rest. Enter them by hand for features like Profane Soul." />
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="Level" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Level}" AutomationProperties.Name="Pact slot level" />
+                                <TextBlock Text="Max" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Maximum}" AutomationProperties.Name="Pact slots maximum" />
+                                <TextBlock Text="Used" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Expended}" AutomationProperties.Name="Pact slots used" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                     <DockPanel Margin="0,8,0,6">
                         <Button DockPanel.Dock="Right" Content="+ Add spell" Command="{Binding AddSpell}" CommandParameter="{Binding SelectedItem.Level, ElementName=SpellGrid}" />
                         <TextBlock Text="Spells" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -539,6 +631,8 @@
                             <DataGridCheckBoxColumn Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridComboBoxColumn Header="Lvl" Width="Auto" MinWidth="55" ItemsSource="{x:Static mvvm:Lookups.SpellLevels}" SelectedItemBinding="{Binding Level}" />
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
+                            <DataGridTextColumn Header="Class" Width="Auto" MinWidth="90" Binding="{Binding Class}" EditingElementStyle="{StaticResource SpellClassBox}"
+                                                Visibility="{Binding Data.IsMultiCaster, Source={StaticResource Proxy}, Converter={StaticResource VisibleWhen}}" />
                             <DataGridTemplateColumn Header="School" Width="Auto" MinWidth="120" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
