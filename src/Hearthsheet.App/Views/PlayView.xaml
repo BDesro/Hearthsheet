@@ -221,7 +221,11 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
-                            <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat=Pact {0}}" Width="56" ToolTip="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" AutomationProperties.Name="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat=Pact {0}}" Width="56" AutomationProperties.Name="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" VerticalAlignment="Center">
+                                <TextBlock.ToolTip>
+                                    <TextBlock Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact slots, level {0}'}" />
+                                </TextBlock.ToolTip>
+                            </TextBlock>
                             <ItemsControl ItemsSource="{Binding PactPips}" IsTabStop="False">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
