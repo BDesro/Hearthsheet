@@ -329,7 +329,7 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
 
     private static string Describe(Character c)
     {
-        var parts = new[] { c.Identity.Species, $"{CharacterRules.ClassSummary(c)} {CharacterRules.TotalLevel(c)}".Trim() }
+        var parts = new[] { c.Identity.Species, CharacterRules.ClassAndLevelText(c) }
             .Where(p => !string.IsNullOrWhiteSpace(p));
         return string.Join(" · ", parts);
     }

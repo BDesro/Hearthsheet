@@ -54,7 +54,12 @@ public static class CharacterJson
     }
 
     private static JsonObject Section(JsonObject parent, string key) =>
-        parent[key] as JsonObject ?? (JsonObject)(parent[key] = new JsonObject());
+        parent[key] switch
+        {
+            JsonObject o => o,
+            null => (JsonObject)(parent[key] = new JsonObject()),
+            _ => throw new CharacterFormatException($"Character data is malformed: \"{key}\" must be an object."),
+        };
 
     /// <summary>Schema 2 to 3: folds the single-class fields into <c>identity.classes[0]</c>.</summary>
     private static void MigrateToClasses(JsonObject node)
@@ -67,8 +72,12 @@ public static class CharacterJson
         {
             var value = o[key];
             o.Remove(key);
-            try { return value is null ? fallback : value.GetValue<T>(); }
-            catch (Exception ex) when (ex is FormatException or InvalidOperationException) { return fallback; }
+            if (value is null) return fallback;
+            try { return value.GetValue<T>(); }
+            catch (Exception ex) when (ex is FormatException or InvalidOperationException)
+            {
+                throw new CharacterFormatException($"Character data is malformed: \"{key}\" has the wrong type.", ex);
+            }
         }
 
         var name = Take(identity, "className", "");

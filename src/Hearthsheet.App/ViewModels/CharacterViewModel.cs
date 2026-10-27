@@ -119,9 +119,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public bool IsStable => Character.Combat.IsStable && Character.Combat.CurrentHp == 0 && !IsDead;
     public string VitalStatus => IsDead ? "Dead" : IsStable ? "Stable" : IsDying ? "Dying" : "";
     public string Title => string.IsNullOrWhiteSpace(Character.Identity.Name) ? "Unnamed character" : Character.Identity.Name;
-    public string Summary => (Character.Identity.Classes.Count == 1
-        ? $"{Character.Identity.Species} {CharacterRules.ClassSummary(Character)} {CharacterRules.TotalLevel(Character)}"
-        : $"{Character.Identity.Species} {CharacterRules.ClassSummary(Character)}").Trim();
+    public string Summary => $"{Character.Identity.Species} {CharacterRules.ClassAndLevelText(Character)}".Trim();
     /// <summary>The class entry the single-class editors bind to.</summary>
     public ClassLevel FirstClass => Character.Identity.Classes[0];
     public IReadOnlyList<string> WeaponTypeOptions => CharacterRules.WeaponTypeOptions(Character);

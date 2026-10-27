@@ -96,6 +96,9 @@ public class SerializationTests
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":0,\"character\":{}}")]
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":1,\"character\":{\"abilities\":{\"strength\":\"lots\"}}}")]
     [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":1,\"character\":{\"conditions\":[\"OnFire\"]}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"identity\":{\"level\":\"lots\"}}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"identity\":[]}}")]
+    [InlineData("{\"format\":\"dndsheet.character\",\"schemaVersion\":2,\"character\":{\"spellcasting\":{\"ability\":5}}}")]
     public void Import_RejectsInvalidFiles(string text) =>
         Assert.Throws<CharacterFormatException>(() => _portable.Import(text));
 
@@ -145,8 +148,9 @@ public class SerializationTests
         Assert.Single(empty.Identity.Classes);
 
         var over = CharacterJson.Deserialize(
-            """{"identity":{"classes":[{"name":"Fighter","level":15},{"name":"Wizard","level":10}]}}""", 3);
+            """{"identity":{"classes":[{"name":"Fighter","level":15},{"name":"Wizard","level":10,"hitDiceRemaining":10}]}}""", 3);
         Assert.Equal([15, 5], over.Identity.Classes.Select(x => x.Level));
+        Assert.Equal(5, over.Identity.Classes[1].HitDiceRemaining);
 
         var dice = CharacterJson.Deserialize("""{"identity":{"classes":[{"level":3,"hitDiceRemaining":9}]}}""", 3);
         Assert.Equal(3, dice.Identity.Classes[0].HitDiceRemaining);

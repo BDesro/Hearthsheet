@@ -26,7 +26,7 @@ public sealed class CharacterLibrary(
     {
         var c = CharacterFactory.Create(options);
         repository.Save(c);
-        logger.LogInformation("Character created: {Name} ({Class} {Level})", c.Identity.Name, CharacterRules.ClassSummary(c), CharacterRules.TotalLevel(c));
+        logger.LogInformation("Character created: {Name} ({ClassAndLevel})", c.Identity.Name, CharacterRules.ClassAndLevelText(c));
         return c;
     }
 

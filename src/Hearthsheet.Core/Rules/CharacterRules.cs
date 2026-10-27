@@ -133,6 +133,10 @@ public static class CharacterRules
             $"{e.Name} {e.Level}{(string.IsNullOrWhiteSpace(e.Subclass) ? "" : $" ({e.Subclass})")}".Trim()));
     }
 
+    /// <summary>"Fighter 11" for one class (total level appended); the multiclass summary already carries each level.</summary>
+    public static string ClassAndLevelText(Character c) =>
+        c.Identity.Classes.Count == 1 ? $"{ClassSummary(c)} {TotalLevel(c)}".Trim() : ClassSummary(c);
+
     // First entry with an ability; Task 2 replaces this with a per-class lookup.
     private static Ability? SpellAbility(Character c) => c.Identity.Classes.FirstOrDefault(e => e.SpellcastingAbility is not null)?.SpellcastingAbility;
 

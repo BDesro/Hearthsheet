@@ -56,8 +56,10 @@ public class RulesTests
         var c = new Character();
         c.Identity.Classes[0] = new ClassLevel { Name = "Fighter", Level = 11, Subclass = "Echo Knight" };
         Assert.Equal("Fighter", CharacterRules.ClassSummary(c));
+        Assert.Equal("Fighter 11", CharacterRules.ClassAndLevelText(c));
         c.Identity.Classes.Add(new ClassLevel { Name = "Blood Hunter", Level = 1 });
         Assert.Equal("Fighter 11 (Echo Knight) / Blood Hunter 1", CharacterRules.ClassSummary(c));
+        Assert.Equal("Fighter 11 (Echo Knight) / Blood Hunter 1", CharacterRules.ClassAndLevelText(c));
     }
 
     [Fact]

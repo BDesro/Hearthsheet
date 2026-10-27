@@ -66,7 +66,7 @@ Character (aggregate root, Guid Id)
 ├── Weapons[]        id, types, ability, damage dice/type, notes, Effects[] (to-hit, damage, type): every bonus comes from effects
 ├── WondrousItems[]  same shape as Items, listed separately
 ├── Currency         cp/sp/ep/gp/pp
-├── Spellcasting     ability, class, concentration, Slots[1..9] (max/expended), Spells[]
+├── Spellcasting     class, concentration, Slots[1..9] (max/expended), Spells[]
 ├── Resources[]      current/max, recovers on (manual/short/long), optional partial amount
 ├── Conditions[]     the 14 standard conditions
 ├── ExhaustionLevel
