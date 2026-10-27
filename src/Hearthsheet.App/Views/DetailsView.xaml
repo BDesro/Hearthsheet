@@ -35,6 +35,10 @@
                     Command="{Binding DataContext.RemoveEntry, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     CommandParameter="{Binding}" AutomationProperties.Name="Remove" />
         </DataTemplate>
+        <!-- Class rows are as tall as their combo boxes; centre the plain text cells to line up with them. -->
+        <Style x:Key="ClassCellText" TargetType="TextBlock" BasedOn="{x:Static DataGridTextColumn.DefaultElementStyle}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
         <Style x:Key="ClassSubclassBox" TargetType="TextBox" BasedOn="{x:Static DataGridTextColumn.DefaultEditingElementStyle}">
             <Setter Property="AutomationProperties.Name" Value="{Binding Name, Converter={StaticResource ClassName}, StringFormat={}{0} subclass}" />
         </Style>
@@ -186,8 +190,8 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Subclass" Width="*" MinWidth="120" Binding="{Binding Subclass}" EditingElementStyle="{StaticResource ClassSubclassBox}" />
-                            <DataGridTextColumn Header="Level" Width="Auto" MinWidth="55" Binding="{Binding Level}" EditingElementStyle="{StaticResource ClassLevelBox}" />
+                            <DataGridTextColumn Header="Subclass" Width="*" MinWidth="120" Binding="{Binding Subclass}" ElementStyle="{StaticResource ClassCellText}" EditingElementStyle="{StaticResource ClassSubclassBox}" />
+                            <DataGridTextColumn Header="Level" Width="Auto" MinWidth="55" Binding="{Binding Level}" ElementStyle="{StaticResource ClassCellText}" EditingElementStyle="{StaticResource ClassLevelBox}" />
                             <DataGridTemplateColumn Header="Hit die" Width="Auto" MinWidth="75" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -196,7 +200,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Dice left" Width="Auto" MinWidth="65" Binding="{Binding HitDiceRemaining}" EditingElementStyle="{StaticResource ClassDiceBox}" />
+                            <DataGridTextColumn Header="Dice left" Width="Auto" MinWidth="65" Binding="{Binding HitDiceRemaining}" ElementStyle="{StaticResource ClassCellText}" EditingElementStyle="{StaticResource ClassDiceBox}" />
                             <DataGridTemplateColumn Header="Caster" Width="Auto" MinWidth="85" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

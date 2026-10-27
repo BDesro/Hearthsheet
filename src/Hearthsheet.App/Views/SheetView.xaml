@@ -727,7 +727,7 @@
                                     <Border Height="1" Background="{StaticResource SheetLine}" />
                                     <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Spellcasting Class" />
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
-                                        <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Pact Magic" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                        <TextBlock Style="{StaticResource SheetLabelLeft}" Text="{Binding Character.Spellcasting.PactSlots.Level, StringFormat='Pact Magic · level {0}'}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                         <ItemsControl ItemsSource="{Binding PactPips}" IsTabStop="False" Focusable="False" AutomationProperties.Name="Pact slots">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
