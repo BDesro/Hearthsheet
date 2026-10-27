@@ -188,7 +188,7 @@ public static class CharacterFactory
     }
 
     /// <summary>Recomputes only what has a source (spec 6): regular slots if a Full/Half/Third entry exists, pact slots if a Pact entry does.</summary>
-    private static void RecomputeSlots(Character c)
+    internal static void RecomputeSlots(Character c)
     {
         var classes = c.Identity.Classes;
         if (classes.Any(e => e.Caster is CasterType.Full or CasterType.Half or CasterType.Third))
@@ -280,8 +280,7 @@ public static class CharacterFactory
             }
         }
 
-        var con = CharacterRules.AbilityModifier(c.Abilities.Constitution);
-        var gain = Math.Max(1, (options.Roll ?? die / 2 + 1) + con);
+        var gain = options.Roll is { } roll ? Math.Max(1, roll + RawConModifier(c)) : AverageHitPointGain(c, die);
         c.Combat.MaxHp += gain;
         c.Combat.CurrentHp += gain;
         report.Changes.Add($"{entry.Name} is now level {entry.Level} (total {CharacterRules.TotalLevel(c)}); +{gain} maximum HP.");
@@ -290,6 +289,11 @@ public static class CharacterFactory
         report.NeedsAttention.Add($"Add {entry.Name} {entry.Level} features by hand.");
         return report;
     }
+
+    /// <summary>HP gained for a level at the average roll. Uses the stored CON score: max HP is stored, so an item's CON must not be baked in.</summary>
+    public static int AverageHitPointGain(Character c, int hitDie) => Math.Max(1, hitDie / 2 + 1 + RawConModifier(c));
+
+    private static int RawConModifier(Character c) => CharacterRules.AbilityModifier(c.Abilities.Constitution);
 }
 
 public sealed record LevelUpOptions(int? Roll = null, int? HitDie = null, CasterType? Caster = null, Ability? Ability = null);

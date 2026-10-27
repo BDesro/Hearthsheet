@@ -1,3 +1,4 @@
+using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
@@ -293,5 +294,73 @@ public class LevelUpTests
         (c.Spellcasting.SlotLevel(1).Maximum, c.Spellcasting.SlotLevel(1).Expended) = (3, 3);
         CharacterFactory.LevelUp(c, "Ranger", new());
         Assert.Equal((2, 2), (c.Spellcasting.SlotLevel(1).Maximum, c.Spellcasting.SlotLevel(1).Expended));
+    }
+
+    [Fact]
+    public void AverageHitPointGain_UsesRawConstitution()
+    {
+        var c = Fighter11(); // CON 14 (+2)
+        var belt = new Effect { Name = "Belt" };
+        belt.Modifiers.Add(new Modifier { Target = StatTargets.AbilityScore(Ability.Constitution), Kind = ModifierKind.Set, Value = 19 });
+        c.Effects.Add(belt);
+        Assert.Equal(6 + 2, CharacterFactory.AverageHitPointGain(c, 10));
+        var hp = c.Combat.MaxHp;
+        CharacterFactory.LevelUp(c, "Fighter", new());
+        Assert.Equal(hp + CharacterFactory.AverageHitPointGain(c, 10), c.Combat.MaxHp);
+    }
+
+    [Fact]
+    public void Session_SettingThirdCasterSubclass_RecomputesSlots()
+    {
+        var c = Fighter11();
+        c.Identity.Classes[0].Level = 3;
+        using var session = new CharacterSession(c);
+        c.Identity.Classes[0].Subclass = "Eldritch Knight";
+        Assert.Equal(2, c.Spellcasting.SlotLevel(1).Maximum);
+    }
+
+    [Fact]
+    public void Session_ChangingCasterType_RecomputesSlots()
+    {
+        var c = Wizard(3);
+        using var session = new CharacterSession(c);
+        c.Identity.Classes[0].Caster = CasterType.Half;
+        Assert.Equal((3, 0), (c.Spellcasting.SlotLevel(1).Maximum, c.Spellcasting.SlotLevel(2).Maximum));
+    }
+
+    [Fact]
+    public void Session_RenamingClass_RetagsItsSpells()
+    {
+        var c = Wizard(3);
+        CharacterFactory.LevelUp(c, "Cleric", new());
+        c.Spellcasting.Spells.Add(new Spell { Name = "Bless", Class = "cleric " });
+        c.Spellcasting.Spells.Add(new Spell { Name = "Shield", Class = "Wizard" });
+        c.Spellcasting.Spells.Add(new Spell { Name = "Light" });
+        using var session = new CharacterSession(c);
+        c.Identity.Classes[1].Name = "Cleric (Life)";
+        Assert.Equal(["Cleric (Life)", "Wizard", ""], c.Spellcasting.Spells.Select(s => s.Class));
+    }
+
+    [Fact]
+    public void Session_RenamingAddedClass_RetagsItsSpells()
+    {
+        var c = Wizard(3);
+        using var session = new CharacterSession(c);
+        CharacterFactory.LevelUp(c, "Cleric", new());
+        c.Spellcasting.Spells.Add(new Spell { Name = "Bless", Class = "Cleric" });
+        c.Identity.Classes[1].Name = "Priest";
+        Assert.Equal("Priest", c.Spellcasting.Spells[0].Class);
+    }
+
+    [Fact]
+    public void HitDiceRemaining_IsCappedAtLevel()
+    {
+        var e = new ClassLevel { Level = 4 };
+        e.HitDiceRemaining = 9;
+        Assert.Equal(4, e.HitDiceRemaining);
+        e.Level = 2;
+        Assert.Equal(2, e.HitDiceRemaining);
+        e.Level = 5;
+        Assert.Equal(2, e.HitDiceRemaining);
     }
 }

@@ -50,9 +50,18 @@ public sealed class ClassLevel : Observable, System.Text.Json.Serialization.IJso
             }
         }
     } = "";
-    public int Level { get; set => SetClamped(ref field, value, 1, 20); } = 1;
+    public int Level
+    {
+        get;
+        set
+        {
+            SetClamped(ref field, value, 1, 20);
+            if (!_loading && HitDiceRemaining > field) HitDiceRemaining = field;
+        }
+    } = 1;
+    /// <summary>At most <see cref="Level"/>; while loading only 0..20, since Normalize caps it once every property is read.</summary>
     public int HitDie { get; set => SetClamped(ref field, value, 4, 20); } = 8;
-    public int HitDiceRemaining { get; set => SetClamped(ref field, value, 0, 20); } = 1;
+    public int HitDiceRemaining { get; set => SetClamped(ref field, value, 0, _loading ? 20 : Level); } = 1;
     public CasterType Caster { get; set => Set(ref field, value); }
     public Ability? SpellcastingAbility { get; set => Set(ref field, value); }
 }
