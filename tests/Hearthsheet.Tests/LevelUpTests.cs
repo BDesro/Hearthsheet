@@ -195,10 +195,21 @@ public class LevelUpTests
     {
         var c = new Character();
         var e = c.Identity.Classes[0];
-        (e.Name, e.Level, e.HitDie, e.Caster, e.SpellcastingAbility) = ("Fighter", 5, 6, CasterType.Full, Ability.Intelligence);
+        (e.Name, e.Level, e.HitDie, e.Caster, e.SpellcastingAbility) = ("Wizard", 5, 6, CasterType.Full, Ability.Intelligence);
         CharacterFactory.ApplyClassDefaults(c);
+        Assert.Equal([4, 3, 2], c.Spellcasting.Slots.Select(s => s.Maximum).Take(3));
+        c.Proficiencies.Add(new Proficiency { Category = ProficiencyCategory.Tool, Name = "Dice set" });
+        c.Spellcasting.SpellcastingClass = "Wizard";
+        (c.Spellcasting.PactSlots.Level, c.Spellcasting.PactSlots.Maximum) = (2, 2);
+
+        e.Name = "Fighter";
+        CharacterFactory.ApplyClassDefaults(c);
+
         Assert.Equal((10, CasterType.None, null), (e.HitDie, e.Caster, e.SpellcastingAbility));
-        Assert.All(c.Spellcasting.Slots, s => Assert.Equal(0, s.Maximum) );
+        Assert.All(c.Spellcasting.Slots, s => Assert.Equal(0, s.Maximum));
+        Assert.Equal("", c.Spellcasting.SpellcastingClass);
+        Assert.Equal((2, 2), (c.Spellcasting.PactSlots.Level, c.Spellcasting.PactSlots.Maximum));
+        Assert.Equal("Dice set", Assert.Single(c.Proficiencies).Name);
     }
 
     [Fact]

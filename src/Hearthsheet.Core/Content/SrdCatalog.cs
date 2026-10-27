@@ -180,8 +180,11 @@ public static class CharacterFactory
             + classes.Sum(e => (e.Level - (e == classes[0] ? 1 : 0)) * Math.Max(1, e.HitDie / 2 + 1 + con)));
         foreach (var e in classes) e.HitDiceRemaining = e.Level;
 
-        if (CharacterRules.PrimaryCaster(c) is { } caster) c.Spellcasting.SpellcastingClass = caster.Name;
+        c.Spellcasting.SpellcastingClass = CharacterRules.PrimaryCaster(c)?.Name ?? "";
         RecomputeSlots(c);
+        // Unlike LevelUp, this recomputes from the class, so regular slots with no source go to 0. Hand-set pact slots are left alone.
+        if (!classes.Any(e => e.Caster is CasterType.Full or CasterType.Half or CasterType.Third))
+            foreach (var slot in c.Spellcasting.Slots) (slot.Maximum, slot.Expended) = (0, 0);
     }
 
     /// <summary>Recomputes only what has a source (spec 6): regular slots if a Full/Half/Third entry exists, pact slots if a Pact entry does.</summary>
