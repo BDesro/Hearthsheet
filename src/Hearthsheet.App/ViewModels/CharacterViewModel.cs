@@ -117,11 +117,11 @@ public sealed class CharacterViewModel : Observable, IDisposable
     /// <summary>One "Wizard · INT · DC 15 · +7" line per casting entry.</summary>
     public IReadOnlyList<string> CasterLines =>
         [.. Character.Identity.Classes.Where(e => e.SpellcastingAbility is not null).Select(e =>
-            $"{e.Name} · {e.SpellcastingAbility!.Value.Abbreviation()} · DC {CharacterRules.SpellSaveDc(Character, e)} · {CharacterRules.FormatModifier(CharacterRules.SpellAttackBonus(Character, e) ?? 0)}")];
+            $"{e.Name} · {e.SpellcastingAbility!.Value.Abbreviation()} · DC {CharacterRules.SpellSaveDc(Character, e)} · {CharacterRules.FormatModifier(CharacterRules.SpellAttackBonus(Character, e)!.Value)}")];
     /// <summary>The entry the sheet's ability picker edits: the primary caster, or the first class until one casts.</summary>
     public ClassLevel SpellcastingEntry => CharacterRules.PrimaryCaster(Character) ?? FirstClass;
     public string ClassSummary => CharacterRules.ClassSummary(Character);
-    public string PrimaryCasterName => CharacterRules.PrimaryCaster(Character)?.Name ?? "";
+    public string ClassLevelHeader => $"Class & Level · total {TotalLevel}";
     /// <summary>One pip per pact slot, filled while available.</summary>
     public IReadOnlyList<SlotPip> PactPips
     {

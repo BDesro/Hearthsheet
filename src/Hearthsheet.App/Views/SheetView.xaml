@@ -189,6 +189,7 @@
                                 </UniformGrid>
                             </Border>
                             <!-- Two or more classes: one calculated box replaces Class / Level / Subclass (edited in Details). -->
+                            <!-- Twin of the single-class UniformGrid above; keep the shared fields in step. -->
                             <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMulticlass, Converter={StaticResource VisibleWhen}}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -198,7 +199,7 @@
                                         <RowDefinition Height="*" /><RowDefinition Height="*" />
                                     </Grid.RowDefinitions>
                                     <Border Grid.ColumnSpan="2" Style="{StaticResource SheetShadedBox}" Padding="3,2" Margin="3,2">
-                                        <HeaderedContentControl Header="{Binding TotalLevel, StringFormat='Class &amp; Level · total {0}'}" Style="{StaticResource SheetField}" Margin="2,0">
+                                        <HeaderedContentControl Header="{Binding ClassLevelHeader, Mode=OneWay}" Style="{StaticResource SheetField}" Margin="2,0">
                                             <TextBlock Text="{Binding ClassSummary, Mode=OneWay}" TextWrapping="Wrap" FontSize="11" />
                                         </HeaderedContentControl>
                                     </Border>
@@ -719,14 +720,10 @@
                             </Grid.ColumnDefinitions>
                             <Border Style="{StaticResource SheetShadedBox}" VerticalAlignment="Center" Padding="10,8">
                                 <StackPanel>
-                                    <Grid>
-                                        <TextBox Style="{StaticResource SheetInput}" FontSize="18" FontWeight="SemiBold"
-                                                 Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class" />
-                                        <!-- The primary caster's name stands in while the label is blank. -->
-                                        <TextBlock FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource SheetFaint}" IsHitTestVisible="False" Margin="2,0"
-                                                   Text="{Binding PrimaryCasterName, Mode=OneWay}"
-                                                   Visibility="{Binding Character.Spellcasting.SpellcastingClass, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
-                                    </Grid>
+                                    <!-- The label is ignored with several casters (the strip's CasterLines carry the detail). -->
+                                    <TextBox Style="{StaticResource SheetInput}" FontSize="18" FontWeight="SemiBold"
+                                             Text="{Binding Character.Spellcasting.SpellcastingClass}" AutomationProperties.Name="Spellcasting class"
+                                             Visibility="{Binding IsMultiCaster, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
                                     <Border Height="1" Background="{StaticResource SheetLine}" />
                                     <TextBlock Style="{StaticResource SheetLabelLeft}" Text="Spellcasting Class" />
                                     <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding Character.Spellcasting.PactSlots.Maximum, Converter={StaticResource VisibleWhen}}">
@@ -766,6 +763,7 @@
                                 </UniformGrid>
                             </Border>
                             <!-- Several casters: one read-only line each replaces the ability, DC and attack cells. -->
+                            <!-- Twin of the single-caster UniformGrid above; keep Concentrating On in step. -->
                             <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMultiCaster, Converter={StaticResource VisibleWhen}}">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
