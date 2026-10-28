@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 
 namespace Hearthsheet.Tests;
 
@@ -128,6 +128,14 @@ public class SupabaseAuthTests
         var (auth, _) = Create(_ => throw new InvalidOperationException());
         Assert.False(auth.Restore());
         Assert.False(auth.IsSignedIn);
+    }
+
+    [Fact]
+    public void Restore_ReturnsFalse_WhenSecretStoreFails()
+    {
+        var auth = new SupabaseAuth(new SupabaseHttp(Options, new SupabaseStub(_ => throw new InvalidOperationException())), new ThrowingSecrets(), _time);
+        Assert.False(auth.Restore());
+        Assert.Null(auth.UserId);
     }
 
     [Fact]

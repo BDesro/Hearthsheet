@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Hearthsheet.App/Hearthsheet.App.csproj" />
+    <Project Path="src/Hearthsheet.Cloud/Hearthsheet.Cloud.csproj" />
     <Project Path="src/Hearthsheet.Core/Hearthsheet.Core.csproj" />
     <Project Path="src/Hearthsheet.Infrastructure/Hearthsheet.Infrastructure.csproj" />
+    <Project Path="src/Hearthsheet.Presentation/Hearthsheet.Presentation.csproj" />
     <Project Path="src/Hearthsheet.Updater/Hearthsheet.Updater.csproj" />
   </Folder>
   <Folder Name="/tests/">

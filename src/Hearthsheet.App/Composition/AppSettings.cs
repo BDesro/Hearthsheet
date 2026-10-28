@@ -1,6 +1,6 @@
 using System.Reflection;
 using Hearthsheet.Infrastructure;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 using Hearthsheet.Infrastructure.Updates;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;

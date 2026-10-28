@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Hearthsheet.Core.Sync;
 
-namespace Hearthsheet.Infrastructure.Sync;
+namespace Hearthsheet.Cloud;
 
 /// <summary>
 /// The <c>public.characters</c> table through PostgREST. Row-level security limits every call to the

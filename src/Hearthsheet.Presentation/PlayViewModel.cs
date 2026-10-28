@@ -1,11 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Hearthsheet.App.Mvvm;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 using Microsoft.Extensions.Logging;
 
-namespace Hearthsheet.App.ViewModels;
+namespace Hearthsheet.Presentation;
 
 /// <summary>
 /// Gameplay dashboard actions. Each command calls a domain operation (Character.TakeDamage,
@@ -16,10 +15,10 @@ public sealed class PlayViewModel : Observable
     private const int MaxLogEntries = 200;
     private readonly CharacterViewModel _owner;
     private readonly RestService _rest;
-    private readonly Dialogs _dialogs;
+    private readonly IDialogs _dialogs;
     private readonly ILogger _log;
 
-    public PlayViewModel(CharacterViewModel owner, RestService rest, Dialogs dialogs, ILogger log)
+    public PlayViewModel(CharacterViewModel owner, RestService rest, IDialogs dialogs, ILogger log)
     {
         _owner = owner;
         _rest = rest;

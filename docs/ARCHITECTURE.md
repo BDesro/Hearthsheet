@@ -35,19 +35,20 @@ src/
     Serialization/         JSON format, schema version check, portable .dndchar files
     Content/               SRD 5.1 facts: class table, spell-slot progressions, CharacterFactory
     Sync/                  Cloud sync algorithm and cloud contracts
+  Hearthsheet.Presentation    UI-neutral view models: CharacterViewModel, PlayViewModel, rows, RelayCommand, Lookups, IDialogs
+  Hearthsheet.Cloud           Supabase auth, character store and HTTP client; the secret-store contract. No platform code
   Hearthsheet.Infrastructure  Windows / I/O concerns
     Persistence/           SqliteCharacterRepository
     Logging/               ILoggerProvider writing rolling daily files, secret redaction
     Security/              Windows Credential Manager secret store
     Updates/               GitHub release source, UpdateService
-    Sync/                  Supabase auth, character store, HTTP client
     AppPaths.cs            Per-user data locations, daily database backup
   Hearthsheet.Updater         Tiny console exe that swaps the install folder after the app exits
-  Hearthsheet.App             WPF presentation: views, view models, dialogs, composition root
+  Hearthsheet.App             WPF: views, main/sync/update view models, dialogs, converters, composition root
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
 
-Dependencies point inward: App → Infrastructure → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable.
+Dependencies point inward: App → Presentation, Infrastructure → Cloud → Core, and Presentation → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable. Cloud and Presentation have no WPF, SQLite or Windows code, so a web app can share them.
 
 ## 3. Domain model: one source of truth
 
@@ -99,7 +100,7 @@ Modifiers are active on features, on effects, and on items and wondrous items th
 
 - The domain classes themselves raise change notifications, so every view binds straight to the same objects. No view has its own copy of character state.
 - `ChangeTracker` walks the object graph by reflection, subscribing to nested objects and to items as they are added or removed. The domain doesn't need parent pointers.
-- `CharacterViewModel` is shared by all three views. It adds only derived values and thin "row" view models (for example `SkillRow` = the stored `SkillEntry` + its computed total). Refreshes are coalesced per dispatcher pass, so a long rest that touches dozens of values refreshes once.
+- `CharacterViewModel` is shared by all three views. It adds only derived values and thin "row" view models (for example `SkillRow` = the stored `SkillEntry` + its computed total). Refreshes are coalesced: the first change posts one refresh through the UI's post action (the WPF dispatcher on the desktop), so a long rest that touches dozens of values refreshes once. It lives in `Hearthsheet.Presentation` and asks its questions through `IDialogs`, so any UI can host it.
 - Dashboard actions are `PlayViewModel` commands that call domain methods or `RestService`, then log the result. They never manipulate controls.
 
 ## 5. Rests

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Hearthsheet.App.Composition;
-using Hearthsheet.App.Mvvm;
+using Hearthsheet.Presentation;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
@@ -165,7 +165,8 @@ public sealed class MainViewModel : Observable
     {
         var session = new CharacterSession(character);
         session.Changed += OnCharacterChanged;
-        Current = new CharacterViewModel(session, _s.Rest, _s.Dialogs, _s.Loggers.CreateLogger("Gameplay"));
+        Current = new CharacterViewModel(session, _s.Rest, _s.Dialogs, _s.Loggers.CreateLogger("Gameplay"),
+            refresh => Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.DataBind, refresh));
         SaveStatus = "All changes saved";
         _log.LogDebug("View: character {Name} opened", character.Identity.Name);
     }

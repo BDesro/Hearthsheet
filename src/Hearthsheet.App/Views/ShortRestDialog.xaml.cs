@@ -1,6 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
-using Hearthsheet.App.ViewModels;
+using Hearthsheet.Presentation;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 

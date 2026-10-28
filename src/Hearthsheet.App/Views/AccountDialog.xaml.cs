@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Automation;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 
 namespace Hearthsheet.App.Views;
 
