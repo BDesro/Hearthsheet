@@ -385,7 +385,18 @@ Each phase is its own PR into `dev`; releases follow the existing `dev` → `mai
   - The web project must not set `TrimMode=full` without `TrimmerRootAssembly` for Core and Presentation, and the
     decision 5 self-check still guards this.
   - Download size of `_framework`: 16 MB uncompressed, **2.9 MB Brotli**, for an empty app plus Core.
-- **Test project:** created after Beau approves (see the plan's Task 1).
+- **Test project:** `Hearthsheet-Test`, ref `rmsddsevwefnpqopjbol` (`us-east-2`, Postgres 17, free, quoted $0/month),
+  created 2026-10-28.
+  - `0001_cloud_sync.sql` applied. RLS on, the three policies and the purge job are present.
+  - Advisors: security has no findings; performance has only "unused index" on the empty table.
+  - Two-user RLS check (throwaway users, rolled back): user B saw, updated and deleted 0 of user A's rows.
+  - Auth settings (`docs/CLOUD_SYNC.md` steps 3 and 6) are still for Beau to set in the dashboard.
+- **Table grants differ between the projects.** Supabase's default privileges gave the new project's `anon` and
+  `authenticated` every privilege on `characters`, including DELETE and TRUNCATE. The live project has fewer
+  (`anon`: SELECT, REFERENCES, TRIGGER, TRUNCATE; `authenticated`: those plus INSERT and UPDATE). Neither is exposed
+  today: RLS blocks DELETE (no delete policy), and PostgREST can't issue TRUNCATE. Migration `0002` should
+  `revoke all on public.characters from anon, authenticated` and then grant exactly what `0001` lists, so both projects
+  match and the grants don't depend on Supabase's defaults.
 
 ## Left to the builder
 
