@@ -49,13 +49,9 @@ dotnet run --project src/Hearthsheet.App
 dotnet test Hearthsheet.slnx
 ```
 
-Debug builds start in **development mode**: a diagnostics console window opens next to the app, and logging is verbose. See [Configuration](#configuration).
+Debug and Release builds behave the same. For verbose logs, set `Logging:FileMinimumLevel` to `Debug` (see [Configuration](#configuration)).
 
-To keep test data away from your real characters:
-
-```bash
-dotnet run --project src/Hearthsheet.App -- --Application:DataDirectory=%TEMP%\hearthsheet-dev
-```
+To keep test data away from your real characters, set `Application:DataDirectory` in `%LOCALAPPDATA%\Hearthsheet\appsettings.user.json` to a scratch folder (for example `C:\\Temp\\hearthsheet-dev`), and remove it when you're done.
 
 ## Packaging a release
 
