@@ -24,6 +24,24 @@ public class CommandRequeryTests
     }
 
     [Fact]
+    public async Task AsyncCommand_RunsTheTask()
+    {
+        var done = new TaskCompletionSource();
+        var ran = false;
+        var command = new RelayCommand(async () =>
+        {
+            await Task.Yield();
+            ran = true;
+            done.SetResult();
+        });
+
+        command.Execute(null);
+        await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(ran);
+    }
+
+    [Fact]
     public void Raise_DropsCollectedCommands()
     {
         CreateGarbageCommands(100);

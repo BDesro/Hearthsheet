@@ -6,14 +6,16 @@ namespace Hearthsheet.Presentation;
 /// <summary>The modal questions the character view models ask; each UI implements them with its own dialogs.</summary>
 public interface IDialogs
 {
-    bool Confirm(string message, string title = "Confirm");
-    void Info(string message);
+    Task<bool> ConfirmAsync(string message, string title = "Confirm");
+    Task InfoAsync(string message);
+    Task ErrorAsync(string message);
+    Task<NewCharacterOptions?> NewCharacterAsync();
 
     /// <param name="className">The class the dialog starts on; null starts blank.</param>
-    (string ClassName, LevelUpOptions Options)? LevelUp(Character c, string? className = null);
+    Task<(string ClassName, LevelUpOptions Options)?> LevelUpAsync(Character c, string? className = null);
 
-    QuickAddResult? QuickAdd(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription);
+    Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription);
 
     /// <returns>True when the user chose to finish the short rest.</returns>
-    bool ShortRest(PlayViewModel play, Character character);
+    Task<bool> ShortRestAsync(PlayViewModel play, Character character);
 }

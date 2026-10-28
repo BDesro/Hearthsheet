@@ -15,42 +15,48 @@ public sealed class Dialogs : IDialogs
 {
     private static Window? Owner => Application.Current?.MainWindow is { IsLoaded: true } w ? w : null;
 
-    public bool Confirm(string message, string title = "Confirm") =>
-        Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+    public Task<bool> ConfirmAsync(string message, string title = "Confirm") =>
+        Task.FromResult(Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
 
-    public void Error(string message) =>
+    public Task ErrorAsync(string message)
+    {
         Show(message, "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Error);
+        return Task.CompletedTask;
+    }
 
-    public void Info(string message) =>
+    public Task InfoAsync(string message)
+    {
         Show(message, "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Information);
+        return Task.CompletedTask;
+    }
 
     private static MessageBoxResult Show(string message, string title, MessageBoxButton buttons, MessageBoxImage image) =>
         Owner is { } owner
             ? MessageBox.Show(owner, message, title, buttons, image, MessageBoxResult.None)
             : MessageBox.Show(message, title, buttons, image, MessageBoxResult.None);
 
-    public NewCharacterOptions? NewCharacter()
+    public Task<NewCharacterOptions?> NewCharacterAsync()
     {
         var dialog = new NewCharacterDialog { Owner = Owner };
-        return dialog.ShowDialog() == true ? dialog.Result : null;
+        return Task.FromResult(dialog.ShowDialog() == true ? dialog.Result : null);
     }
 
-    public QuickAddResult? QuickAdd(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription)
+    public Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription)
     {
         var dialog = new QuickAddDialog(title, kinds, defaultKind, withDescription) { Owner = Owner };
-        return dialog.ShowDialog() == true ? dialog.Result : null;
+        return Task.FromResult(dialog.ShowDialog() == true ? dialog.Result : null);
     }
 
     /// <param name="className">The class the dialog starts on; null starts blank.</param>
-    public (string ClassName, LevelUpOptions Options)? LevelUp(Character c, string? className = null)
+    public Task<(string ClassName, LevelUpOptions Options)?> LevelUpAsync(Character c, string? className = null)
     {
         var dialog = new LevelUpDialog(c, className) { Owner = Owner };
-        return dialog.ShowDialog() == true ? (dialog.ClassName, dialog.Options) : null;
+        return Task.FromResult<(string ClassName, LevelUpOptions Options)?>(dialog.ShowDialog() == true ? (dialog.ClassName, dialog.Options) : null);
     }
 
     /// <returns>True when the user chose to finish the short rest.</returns>
-    public bool ShortRest(PlayViewModel play, Character character) =>
-        new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true;
+    public Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
+        Task.FromResult(new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true);
 
     public void ShowUpdates(UpdateViewModel vm) =>
         new UpdateDialog { Owner = Owner, DataContext = vm }.ShowDialog();

@@ -23,6 +23,15 @@ public sealed class RelayCommand(Action<object?> execute, Func<object?, bool>? c
     public RelayCommand(Action execute, Func<bool>? canExecute = null)
         : this(_ => execute(), canExecute is null ? null : _ => canExecute()) { }
 
+    /// <summary>Runs the task fire-and-forget; a failure surfaces on the UI's unhandled-exception path, as a throwing synchronous command does.</summary>
+    public RelayCommand(Func<Task> execute, Func<bool>? canExecute = null)
+        : this(_ => Run(execute()), canExecute is null ? null : _ => canExecute()) { }
+
+    public RelayCommand(Func<object?, Task> execute, Func<object?, bool>? canExecute = null)
+        : this(p => Run(execute(p)), canExecute) { }
+
+    private static async void Run(Task task) => await task;
+
     public override bool CanExecute(object? parameter) => canExecute?.Invoke(parameter) ?? true;
     public override void Execute(object? parameter) => execute(parameter);
 }

@@ -92,7 +92,7 @@ public sealed class UpdateViewModel : Observable
     private async Task InstallAsync()
     {
         if (Available is not { } release) return;
-        if (!_dialogs.Confirm($"Download and install version {release.Version}? The application will restart; your characters are saved first.", "Install update"))
+        if (!_dialogs.ConfirmAsync($"Download and install version {release.Version}? The application will restart; your characters are saved first.", "Install update").Result)
             return;
         if (!_beforeShutdown())
         {

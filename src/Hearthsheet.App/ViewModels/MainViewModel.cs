@@ -120,7 +120,7 @@ public sealed class MainViewModel : Observable
     {
         if (Current is null || !Current.Session.IsDirty) return true;
         if (Save()) return true;
-        return _s.Dialogs.Confirm("The character could not be saved. Close anyway and lose recent changes?", "Unsaved changes");
+        return _s.Dialogs.ConfirmAsync("The character could not be saved. Close anyway and lose recent changes?", "Unsaved changes").Result;
     }
 
     private void ReloadList(Guid? select = null)
@@ -136,7 +136,7 @@ public sealed class MainViewModel : Observable
         catch (SqliteException ex)
         {
             _log.LogError(ex, "Could not list characters");
-            _s.Dialogs.Error("The character list could not be read. See the log for details.");
+            _s.Dialogs.ErrorAsync("The character list could not be read. See the log for details.").Wait();
         }
     }
 
@@ -148,7 +148,7 @@ public sealed class MainViewModel : Observable
             var character = _s.Repository.Load(id);
             if (character is null)
             {
-                _s.Dialogs.Error("That character no longer exists.");
+                _s.Dialogs.ErrorAsync("That character no longer exists.").Wait();
                 ReloadList();
                 return;
             }
@@ -157,7 +157,7 @@ public sealed class MainViewModel : Observable
         catch (CharacterFormatException ex)
         {
             _log.LogError(ex, "Character {Id} could not be loaded", id);
-            _s.Dialogs.Error($"This character could not be opened:\n\n{ex.Message}\n\nA backup of the database is kept in:\n{_s.Paths.Backups}");
+            _s.Dialogs.ErrorAsync($"This character could not be opened:\n\n{ex.Message}\n\nA backup of the database is kept in:\n{_s.Paths.Backups}").Wait();
         }
     }
 
@@ -195,7 +195,7 @@ public sealed class MainViewModel : Observable
         {
             _log.LogError(ex, "Save failed");
             SaveStatus = "Save failed — changes are still in memory";
-            _s.Dialogs.Error($"The character could not be saved:\n\n{ex.Message}");
+            _s.Dialogs.ErrorAsync($"The character could not be saved:\n\n{ex.Message}").Wait();
             return false;
         }
     }
@@ -270,7 +270,7 @@ public sealed class MainViewModel : Observable
 
     private void CreateCharacter()
     {
-        var options = _s.Dialogs.NewCharacter();
+        var options = _s.Dialogs.NewCharacterAsync().Result;
         if (options is null) return;
         if (!Save()) return;
         var character = _s.Library.Create(options);
@@ -291,7 +291,7 @@ public sealed class MainViewModel : Observable
     {
         var target = SelectedSummary;
         if (target is null) return;
-        if (!_s.Dialogs.Confirm($"Permanently delete “{target.Name}”?\n\nExport it first if you may want it back. This cannot be undone.", "Delete character"))
+        if (!_s.Dialogs.ConfirmAsync($"Permanently delete “{target.Name}”?\n\nExport it first if you may want it back. This cannot be undone.", "Delete character").Result)
             return;
         if (Current?.Character.Id == target.Id)
         {
@@ -320,12 +320,12 @@ public sealed class MainViewModel : Observable
         catch (CharacterFormatException ex)
         {
             _log.LogWarning("Import rejected: {Reason}", ex.Message);
-            _s.Dialogs.Error($"This file could not be imported:\n\n{ex.Message}");
+            _s.Dialogs.ErrorAsync($"This file could not be imported:\n\n{ex.Message}").Wait();
         }
         catch (IOException ex)
         {
             _log.LogWarning(ex, "Import failed");
-            _s.Dialogs.Error($"The file could not be read:\n\n{ex.Message}");
+            _s.Dialogs.ErrorAsync($"The file could not be read:\n\n{ex.Message}").Wait();
         }
     }
 
@@ -342,7 +342,7 @@ public sealed class MainViewModel : Observable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             _log.LogError(ex, "Export failed");
-            _s.Dialogs.Error($"The character could not be exported:\n\n{ex.Message}");
+            _s.Dialogs.ErrorAsync($"The character could not be exported:\n\n{ex.Message}").Wait();
         }
     }
 
