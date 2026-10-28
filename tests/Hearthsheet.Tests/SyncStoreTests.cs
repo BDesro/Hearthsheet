@@ -1,7 +1,6 @@
 using Hearthsheet.Core.Serialization;
 using Hearthsheet.Core.Sync;
 using Hearthsheet.Infrastructure.Persistence;
-using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Hearthsheet.Tests;
@@ -18,21 +17,7 @@ public class SyncStoreTests : IDisposable
     public void UpgradeFromVersion1_KeepsRowsAndMarksThemUnsynced()
     {
         var c = Samples.Rich();
-        using (var connection = new SqliteConnection($"Data Source={_dir.File("characters.db")};Pooling=False"))
-        {
-            connection.Open();
-            using var command = connection.CreateCommand();
-            command.CommandText = """
-                CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-                INSERT INTO meta VALUES ('db_version', '1');
-                CREATE TABLE characters (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL,
-                    schema_version INTEGER NOT NULL, data TEXT NOT NULL, created_utc TEXT NOT NULL, updated_utc TEXT NOT NULL);
-                INSERT INTO characters VALUES ($id, 'Arannis', '', 1, $data, '2026-01-01T00:00:00.0000000Z', '2026-01-01T00:00:00.0000000Z');
-                """;
-            command.Parameters.AddWithValue("$id", c.Id.ToString());
-            command.Parameters.AddWithValue("$data", CharacterJson.Serialize(c));
-            command.ExecuteNonQuery();
-        }
+        UpgradeBackupTests.CreateVersion1Database(_dir.File("characters.db"), c);
 
         var repo = NewRepository();
         Assert.Equal("Arannis", repo.Load(c.Id)!.Identity.Name);

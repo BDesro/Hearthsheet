@@ -402,3 +402,102 @@ public class ChangeTrackerTests
         Assert.Equal("Wizard", CharacterJson.Deserialize(v2, 2).Spellcasting.SpellcastingClass);
     }
 }
+
+public class UpgradeBackupTests : IDisposable
+{
+    private readonly TempDir _dir = new();
+    private string Db => _dir.File("characters.db");
+    private string Backups => _dir.File("backups");
+
+    public UpgradeBackupTests() => Directory.CreateDirectory(Backups);
+
+    public void Dispose() => _dir.Dispose();
+
+    private SqliteCharacterRepository Open(string? backups) =>
+        new(Db, NullLogger<SqliteCharacterRepository>.Instance, backups);
+
+    /// <summary>Builds a database exactly as version 1 of the app left it, holding one character.</summary>
+    internal static void CreateVersion1Database(string path, Character c)
+    {
+        using var connection = new SqliteConnection($"Data Source={path};Pooling=False");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta VALUES ('db_version', '1');
+            CREATE TABLE characters (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL,
+                schema_version INTEGER NOT NULL, data TEXT NOT NULL, created_utc TEXT NOT NULL, updated_utc TEXT NOT NULL);
+            INSERT INTO characters VALUES ($id, 'Arannis', '', 1, $data, '2026-01-01T00:00:00.0000000Z', '2026-01-01T00:00:00.0000000Z');
+            """;
+        command.Parameters.AddWithValue("$id", c.Id.ToString());
+        command.Parameters.AddWithValue("$data", CharacterJson.Serialize(c));
+        command.ExecuteNonQuery();
+    }
+
+    internal static object? Scalar(string path, string sql)
+    {
+        using var connection = new SqliteConnection($"Data Source={path};Pooling=False");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return command.ExecuteScalar();
+    }
+
+    [Fact]
+    public void UpgradeFromVersion1_WritesBackupFirst()
+    {
+        var c = Samples.Rich();
+        CreateVersion1Database(Db, c);
+
+        var repo = Open(Backups);
+
+        var backup = Assert.Single(Directory.GetFiles(Backups, "pre-upgrade-db1-*.db"));
+        Assert.Equal("1", Scalar(backup, "SELECT value FROM meta WHERE key = 'db_version'"));
+        Assert.Equal(1L, Scalar(backup, "SELECT COUNT(*) FROM characters"));
+        Assert.Equal("Arannis", repo.Load(c.Id)!.Identity.Name);
+    }
+
+    [Fact]
+    public void BackupFailure_LeavesDatabaseAtVersion1()
+    {
+        CreateVersion1Database(Db, Samples.Rich());
+        var blocker = _dir.File("blocker");
+        File.WriteAllText(blocker, "");
+
+        Assert.Throws<InvalidOperationException>(() => Open(Path.Combine(blocker, "sub")));
+
+        Assert.Equal("1", Scalar(Db, "SELECT value FROM meta WHERE key = 'db_version'"));
+        Assert.Equal(0L, Scalar(Db, "SELECT COUNT(*) FROM pragma_table_info('characters') WHERE name = 'dirty'"));
+    }
+
+    [Fact]
+    public void NoUpgradeNeeded_WritesNoBackup()
+    {
+        Open(Backups);
+        Open(Backups);
+        Assert.Empty(Directory.GetFiles(Backups, "pre-upgrade-*"));
+    }
+
+    [Fact]
+    public void SchemaVersionRaise_BacksUpOnce()
+    {
+        Open(Backups);
+        var previous = CharacterJson.CurrentSchemaVersion - 1;
+        Scalar(Db, $"UPDATE meta SET value = '{previous}' WHERE key = 'last_schema_version'");
+
+        Open(Backups);
+        Open(Backups);
+
+        Assert.Single(Directory.GetFiles(Backups, $"pre-upgrade-db2-schema{previous}-*.db"));
+    }
+
+    [Fact]
+    public void NewerDatabase_IsRefusedWithoutBackup()
+    {
+        CreateVersion1Database(Db, Samples.Rich());
+        Scalar(Db, "UPDATE meta SET value = '99' WHERE key = 'db_version'");
+
+        Assert.Throws<InvalidOperationException>(() => Open(Backups));
+        Assert.Empty(Directory.GetFiles(Backups));
+    }
+}

@@ -79,7 +79,7 @@ public partial class App
     private MainViewModel Compose(AppSettings settings, AppPaths paths)
     {
         var factory = _loggerFactory!;
-        var repository = new SqliteCharacterRepository(paths.Database, factory.CreateLogger<SqliteCharacterRepository>());
+        var repository = new SqliteCharacterRepository(paths.Database, factory.CreateLogger<SqliteCharacterRepository>(), paths.Backups);
         try
         {
             DatabaseBackups.RunDaily(repository, paths.Backups, keep: 10, factory.CreateLogger("Backup"));

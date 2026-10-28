@@ -136,6 +136,8 @@ To change rest rules (another edition, a variant or a homebrew rule), replace or
 
 The only migration so far is 2 → 3 (above). To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
 
+**Upgrades never run without a backup.** Each database upgrade step (`UpgradeToN`) runs in one transaction. Before any of them runs, and the first time the app starts on a higher `CurrentSchemaVersion` (tracked in `meta.last_schema_version`), `SqliteCharacterRepository` writes `backups/pre-upgrade-db{n}-schema{m}-{timestamp}.db`. The daily rotation never deletes these. If that backup fails, nothing is upgraded and startup reports the error. There are no downgrade paths: newer data is refused, not converted.
+
 ## 8. Import / export
 
 A `.dndchar` file is UTF-8 JSON:

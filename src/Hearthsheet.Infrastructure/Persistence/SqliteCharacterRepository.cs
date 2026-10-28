@@ -18,11 +18,14 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
 {
     private const int DatabaseVersion = 2;
 
+    private readonly string _databasePath;
     private readonly string _connectionString;
     private readonly ILogger _logger;
 
-    public SqliteCharacterRepository(string databasePath, ILogger<SqliteCharacterRepository> logger)
+    /// <param name="backupDirectory">Where a backup is written before any upgrade; null skips it (tests only).</param>
+    public SqliteCharacterRepository(string databasePath, ILogger<SqliteCharacterRepository> logger, string? backupDirectory = null)
     {
+        _databasePath = databasePath;
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = databasePath,
@@ -31,7 +34,7 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
             Pooling = false,
         }.ToString();
         _logger = logger;
-        Initialize();
+        Initialize(backupDirectory);
     }
 
     private SqliteConnection Open()
@@ -44,8 +47,9 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
         return connection;
     }
 
-    private void Initialize()
+    private void Initialize(string? backupDirectory)
     {
+        var existed = File.Exists(_databasePath);
         using var connection = Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
@@ -77,8 +81,37 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
             throw new InvalidOperationException(
                 "The character database was created by a newer version of the application. Update the application to use it.");
         }
+
+        version.CommandText = "SELECT value FROM meta WHERE key = 'last_schema_version'";
+        var lastSchema = version.ExecuteScalar() is string s ? int.Parse(s, CultureInfo.InvariantCulture) : existed ? 0 : CharacterJson.CurrentSchemaVersion;
+        if (existed && backupDirectory is not null && (current < DatabaseVersion || lastSchema < CharacterJson.CurrentSchemaVersion))
+            BackupBeforeUpgrade(backupDirectory, current, lastSchema);
+
         if (current < 2) UpgradeTo2(connection);
+        version.CommandText = "INSERT INTO meta (key, value) VALUES ('last_schema_version', $v) ON CONFLICT(key) DO UPDATE SET value = $v";
+        version.Parameters.AddWithValue("$v", CharacterJson.CurrentSchemaVersion.ToString(CultureInfo.InvariantCulture));
+        version.ExecuteNonQuery();
         _logger.LogInformation("Database initialized");
+    }
+
+    /// <summary>
+    /// Every database or character-schema upgrade is preceded by a backup that the daily rotation never deletes.
+    /// Without one, nothing is upgraded: an upgrade with no way back is the data-loss risk this exists to remove.
+    /// </summary>
+    private void BackupBeforeUpgrade(string backupDirectory, int fromDb, int fromSchema)
+    {
+        var path = Path.Combine(backupDirectory, $"pre-upgrade-db{fromDb}-schema{fromSchema}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.db");
+        try
+        {
+            BackupTo(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException)
+        {
+            _logger.LogError(ex, "Pre-upgrade backup failed; database left unchanged");
+            throw new InvalidOperationException(
+                "Hearthsheet could not back up your characters before upgrading them, so nothing was changed. " + ex.Message, ex);
+        }
+        _logger.LogInformation("Pre-upgrade backup written: {File}", Path.GetFileName(path));
     }
 
     /// <summary>Adds cloud sync bookkeeping. Existing rows start dirty and never-synced.</summary>
