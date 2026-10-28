@@ -335,6 +335,44 @@ public class RepositoryTests : IDisposable
         Assert.Equal("Hero", imported.Identity.Name);
     }
 
+    private CharacterLibrary NewLibrary(SqliteCharacterRepository repo) =>
+        new(repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
+
+    [Fact]
+    public void ImportText_RejectsOversizedText()
+    {
+        var library = NewLibrary(NewRepository());
+        var text = new string('x', (int)PortableCharacterFile.MaxFileBytes + 1);
+        Assert.Throws<CharacterFormatException>(() => library.Import(text, "big.dndchar"));
+    }
+
+    [Fact]
+    public void ExportAll_WritesOneEntryPerCharacter_AndRoundTrips()
+    {
+        var repo = NewRepository();
+        var library = NewLibrary(repo);
+        foreach (var name in new[] { "Arannis", "Arannis", "Bo/rin" })
+        {
+            var c = new Character();
+            c.Identity.Name = name;
+            repo.Save(c);
+        }
+
+        using var ms = new MemoryStream();
+        library.ExportAll(ms);
+        ms.Position = 0;
+        using var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
+
+        var names = zip.Entries.Select(e => e.FullName).Order().ToList();
+        Assert.Equal(["Arannis (2).dndchar", "Arannis.dndchar", "Bo_rin.dndchar"], names);
+        foreach (var entry in zip.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var imported = library.Import(reader.ReadToEnd(), entry.FullName);
+            Assert.Equal(entry.FullName.StartsWith("Arannis") ? "Arannis" : "Bo/rin", imported.Identity.Name);
+        }
+    }
+
     private void ExecuteSql(string sql)
     {
         using var connection = new SqliteConnection($"Data Source={_dir.File("characters.db")};Pooling=False");

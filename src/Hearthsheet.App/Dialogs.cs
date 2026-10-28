@@ -101,4 +101,16 @@ public sealed class Dialogs : IDialogs
         };
         return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
+
+    public string? SaveZipFile(string suggestedName)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export all characters",
+            FileName = suggestedName + ".zip",
+            DefaultExt = ".zip",
+            Filter = "Zip archive (*.zip)|*.zip",
+        };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
+    }
 }

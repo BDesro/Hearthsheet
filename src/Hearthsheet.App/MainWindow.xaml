@@ -39,6 +39,8 @@
                 <Separator />
                 <MenuItem Header="_Import character…" Command="{Binding ImportCharacter}" />
                 <MenuItem Header="_Export character…" Command="{Binding ExportCharacter}" />
+                <MenuItem Header="Export a_ll characters…" Command="{Binding ExportAllCharacters}"
+                          AutomationProperties.Name="Export all characters" />
                 <Separator />
                 <MenuItem Header="_Save" Command="{Binding SaveCharacter}" InputGestureText="Ctrl+S" />
                 <MenuItem Header="_Print sheet…" Command="ApplicationCommands.Print" InputGestureText="Ctrl+P" />

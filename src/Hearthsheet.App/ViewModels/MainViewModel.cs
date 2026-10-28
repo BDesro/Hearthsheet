@@ -41,6 +41,7 @@ public sealed class MainViewModel : Observable
         DeleteCharacter = new RelayCommand(Delete, () => SelectedSummary is not null);
         ImportCharacter = new RelayCommand(Import);
         ExportCharacter = new RelayCommand(Export, () => Current is not null);
+        ExportAllCharacters = new RelayCommand(ExportAll);
         SaveCharacter = new RelayCommand(() => Save(), () => Current is not null);
         ShowView = new RelayCommand(p => SelectedView = int.TryParse(p as string, out var v) ? v : 0, _ => Current is not null);
         ZoomIn = new RelayCommand(() => Zoom += 0.1);
@@ -98,6 +99,7 @@ public sealed class MainViewModel : Observable
     public ICommand DeleteCharacter { get; }
     public ICommand ImportCharacter { get; }
     public ICommand ExportCharacter { get; }
+    public ICommand ExportAllCharacters { get; }
     public ICommand SaveCharacter { get; }
     public ICommand ShowView { get; }
     public ICommand ZoomIn { get; }
@@ -343,6 +345,24 @@ public sealed class MainViewModel : Observable
         {
             _log.LogError(ex, "Export failed");
             _s.Dialogs.ErrorAsync($"The character could not be exported:\n\n{ex.Message}").Wait();
+        }
+    }
+
+    private void ExportAll()
+    {
+        var path = _s.Dialogs.SaveZipFile($"Hearthsheet characters {DateTime.Now:yyyy-MM-dd}");
+        if (path is null) return;
+        var temp = Path.GetFullPath(path) + ".tmp";
+        try
+        {
+            using (var stream = File.Create(temp)) _s.Library.ExportAll(stream);
+            File.Move(temp, Path.GetFullPath(path), overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _log.LogError(ex, "Export all failed");
+            try { File.Delete(temp); } catch (IOException) { }
+            _s.Dialogs.ErrorAsync($"The characters could not be exported:\n\n{ex.Message}").Wait();
         }
     }
 
