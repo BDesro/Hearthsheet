@@ -11,6 +11,10 @@ else
         <div class="preview-banner" role="note">Preview – not the final Hearthsheet. Don't rely on it for real characters.</div>
     }
     <h1>Hearthsheet</h1>
+    @if (DevPage is not null)
+    {
+        <DynamicComponent Type="DevPage" />
+    }
 }
 
 @code {

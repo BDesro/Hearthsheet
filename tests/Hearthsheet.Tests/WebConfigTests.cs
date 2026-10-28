@@ -50,7 +50,7 @@ public class WebConfigTests
             .Where(f => (f.EndsWith(".razor") || f.EndsWith(".cs"))
                 && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                 && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"));
-        Assert.Empty(files.Where(f => File.ReadAllText(f).Contains("MarkupString")));
+        Assert.DoesNotContain(files, f => File.ReadAllText(f).Contains("MarkupString"));
     }
 
     [Fact]

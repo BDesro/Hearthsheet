@@ -1,0 +1,65 @@
+@* TEMPORARY Task 8 dev page: Debug builds only (excluded from Release in the csproj), removed in Task 11. *@
+@using Hearthsheet.Core.Content
+@using Hearthsheet.Core.Storage
+@using Hearthsheet.Web.Storage
+@using Microsoft.JSInterop
+@using Microsoft.Extensions.Logging
+@implements IDisposable
+@inject IJSRuntime JS
+@inject ILoggerFactory Loggers
+
+<section aria-label="Storage dev page">
+    <h2>Storage dev page (temporary, Debug only)</h2>
+    @if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    else if (_store is null)
+    {
+        <p>Opening store…</p>
+    }
+    else
+    {
+        <p id="journal-state" role="status">@(_journal!.Failed ? "Failed: not saved on this device" : "Saved on this device")</p>
+        <button type="button" @onclick="Save">Save a character</button>
+        <button type="button" @onclick="() => _journal!.RetryAsync()">Try again</button>
+        <ul id="characters">
+            @foreach (var c in _store.List())
+            {
+                <li>@c.Name</li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private const string DevUserId = "00000000-0000-4000-8000-000000000008";
+    private MemoryCharacterStore? _store;
+    private IndexedDbJournal? _journal;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var storage = await BrowserStorage.CreateAsync(JS, Loggers);
+            _store = await storage.OpenAccountAsync(DevUserId);
+            _journal = storage.AccountJournal!;
+            _journal.StateChanged += OnStateChanged;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void Save() =>
+        _store!.Save(CharacterFactory.Create(new NewCharacterOptions($"Dev {DateTime.Now:HH:mm:ss.fff}", "Fighter", 1, "Human", "Soldier")));
+
+    private void OnStateChanged(object? sender, EventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        if (_journal is not null) _journal.StateChanged -= OnStateChanged;
+    }
+}

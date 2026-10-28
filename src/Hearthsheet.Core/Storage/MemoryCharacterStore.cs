@@ -13,7 +13,10 @@ namespace Hearthsheet.Core.Storage;
 /// <summary>One persisted record: Json null removes the key.</summary>
 public sealed record StoreRecord(string Key, string? Json);
 
-/// <summary>Receives each store change as one batch, in order. Must not block.</summary>
+/// <summary>
+/// Receives each store change as one batch, in order. Must not block and must not throw: an implementation reports
+/// a failed write out of band (for example a <c>Failed</c> flag the UI shows), never by throwing into the store.
+/// </summary>
 public interface IStoreJournal { void Write(IReadOnlyList<StoreRecord> batch); }
 
 /// <summary>A stored character row, the same columns as the desktop's <c>characters</c> table.</summary>
