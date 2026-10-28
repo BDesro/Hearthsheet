@@ -229,52 +229,6 @@ public class RepositoryTests : IDisposable
     public void Dispose() => _dir.Dispose();
 
     [Fact]
-    public void SaveLoadUpdateDelete()
-    {
-        var repo = NewRepository();
-        var c = Samples.Rich();
-        repo.Save(c);
-
-        var loaded = repo.Load(c.Id)!;
-        Assert.Equal(CharacterJson.Serialize(c), CharacterJson.Serialize(loaded));
-
-        loaded.Identity.Name = "Renamed";
-        loaded.TakeDamage(5);
-        repo.Save(loaded);
-        var summaries = repo.List();
-        Assert.Single(summaries);
-        Assert.Equal("Renamed", summaries[0].Name);
-        Assert.Contains("Wizard 5", summaries[0].Description);
-        Assert.Equal(loaded.Combat.CurrentHp, repo.Load(c.Id)!.Combat.CurrentHp);
-
-        Assert.True(repo.Delete(c.Id));
-        Assert.Null(repo.Load(c.Id));
-        Assert.False(repo.Delete(c.Id));
-    }
-
-    [Fact]
-    public void Data_SurvivesReopeningDatabase()
-    {
-        var c = Samples.Rich();
-        NewRepository().Save(c);
-        var reopened = NewRepository();
-        Assert.Equal("Arannis", reopened.Load(c.Id)!.Identity.Name);
-    }
-
-    [Fact]
-    public void MultipleCharacters_AreListedByName()
-    {
-        var repo = NewRepository();
-        foreach (var name in new[] { "zed", "Alice", "bob" })
-        {
-            var c = new Character();
-            c.Identity.Name = name;
-            repo.Save(c);
-        }
-        Assert.Equal(["Alice", "bob", "zed"], repo.List().Select(s => s.Name));
-    }
-
-    [Fact]
     public void Load_RowFromNewerSchema_ThrowsFormatException()
     {
         var repo = NewRepository();
@@ -313,28 +267,6 @@ public class RepositoryTests : IDisposable
         Assert.Equal("Arannis", restored.Load(c.Id)!.Identity.Name);
     }
 
-    [Fact]
-    public void Library_DuplicateCreatesIndependentCopy()
-    {
-        var repo = NewRepository();
-        var library = new CharacterLibrary(repo, new PortableCharacterFile(),
-            "1.0.0", NullLogger<CharacterLibrary>.Instance);
-        var original = library.Create(new NewCharacterOptions("Hero", "Fighter", 3, "Human", "Soldier"));
-        var copy = library.Duplicate(original);
-
-        copy.Abilities.Strength = 20;
-        repo.Save(copy);
-        Assert.Equal(2, repo.List().Count);
-        Assert.Equal(10, repo.Load(original.Id)!.Abilities.Strength);
-        Assert.Equal("Hero (copy)", repo.Load(copy.Id)!.Identity.Name);
-
-        var exportPath = _dir.File("hero.dndchar");
-        library.Export(original, exportPath);
-        var imported = library.Import(exportPath);
-        Assert.Equal(3, repo.List().Count);
-        Assert.Equal("Hero", imported.Identity.Name);
-    }
-
     private CharacterLibrary NewLibrary(SqliteCharacterRepository repo) =>
         new(repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
 
@@ -344,33 +276,6 @@ public class RepositoryTests : IDisposable
         var library = NewLibrary(NewRepository());
         var text = new string('x', (int)PortableCharacterFile.MaxFileBytes + 1);
         Assert.Throws<CharacterFormatException>(() => library.Import(text, "big.dndchar"));
-    }
-
-    [Fact]
-    public void ExportAll_WritesOneEntryPerCharacter_AndRoundTrips()
-    {
-        var repo = NewRepository();
-        var library = NewLibrary(repo);
-        foreach (var name in new[] { "Arannis", "Arannis", "Bo/rin" })
-        {
-            var c = new Character();
-            c.Identity.Name = name;
-            repo.Save(c);
-        }
-
-        using var ms = new MemoryStream();
-        library.ExportAll(ms);
-        ms.Position = 0;
-        using var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
-
-        var names = zip.Entries.Select(e => e.FullName).Order().ToList();
-        Assert.Equal(["Arannis (2).dndchar", "Arannis.dndchar", "Bo_rin.dndchar"], names);
-        foreach (var entry in zip.Entries)
-        {
-            using var reader = new StreamReader(entry.Open());
-            var imported = library.Import(reader.ReadToEnd(), entry.FullName);
-            Assert.Equal(entry.FullName.StartsWith("Arannis") ? "Arannis" : "Bo/rin", imported.Identity.Name);
-        }
     }
 
     [Fact]

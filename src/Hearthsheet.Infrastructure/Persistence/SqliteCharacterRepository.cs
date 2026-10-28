@@ -179,8 +179,8 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
                 dirty = 1, local_revision = characters.local_revision + 1
             """;
         command.Parameters.AddWithValue("$id", character.Id.ToString());
-        command.Parameters.AddWithValue("$name", DisplayName(character));
-        command.Parameters.AddWithValue("$description", Describe(character));
+        command.Parameters.AddWithValue("$name", CharacterSummaryText.DisplayName(character));
+        command.Parameters.AddWithValue("$description", CharacterSummaryText.Describe(character));
         command.Parameters.AddWithValue("$version", CharacterJson.CurrentSchemaVersion);
         command.Parameters.AddWithValue("$data", CharacterJson.Serialize(character));
         command.Parameters.AddWithValue("$now", now);
@@ -251,7 +251,7 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
                 data = excluded.data, updated_utc = excluded.updated_utc, cloud_revision = excluded.cloud_revision, dirty = 0
             WHERE characters.dirty = 0 OR characters.local_revision = $expected OR $force
             """,
-            ("$id", character.Id.ToString()), ("$name", DisplayName(character)), ("$description", Describe(character)),
+            ("$id", character.Id.ToString()), ("$name", CharacterSummaryText.DisplayName(character)), ("$description", CharacterSummaryText.Describe(character)),
             ("$version", CharacterJson.CurrentSchemaVersion), ("$data", CharacterJson.Serialize(character)), ("$now", now),
             ("$cloud", cloudRevision), ("$expected", ifLocalRevision), ("$force", force ? 1 : 0)) > 0;
     }
@@ -355,15 +355,5 @@ public sealed class SqliteCharacterRepository : ICharacterRepository, ISyncLocal
         }.ToString());
         destination.Open();
         source.BackupDatabase(destination);
-    }
-
-    private static string DisplayName(Character c) =>
-        string.IsNullOrWhiteSpace(c.Identity.Name) ? "Unnamed character" : c.Identity.Name;
-
-    private static string Describe(Character c)
-    {
-        var parts = new[] { c.Identity.Species, CharacterRules.ClassAndLevelText(c) }
-            .Where(p => !string.IsNullOrWhiteSpace(p));
-        return string.Join(" · ", parts);
     }
 }
