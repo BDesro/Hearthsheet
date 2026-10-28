@@ -12,6 +12,7 @@ using Hearthsheet.Infrastructure.Persistence;
 using Hearthsheet.Infrastructure.Security;
 using Hearthsheet.Cloud;
 using Hearthsheet.Infrastructure.Updates;
+using Hearthsheet.Presentation;
 using Microsoft.Extensions.Logging;
 
 namespace Hearthsheet.App;
@@ -23,11 +24,14 @@ public partial class App
     private ILogger _log = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
     // Held while the app runs so the installer and uninstaller (AppMutex in packaging/Hearthsheet.iss) wait for it to close.
     private Mutex? _runningMutex;
+    // CommandManager holds RequerySuggested handlers weakly; this field keeps the bridge to the shared commands alive.
+    private static readonly EventHandler RequeryBridge = (_, _) => CommandRequery.Raise();
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         _runningMutex = new Mutex(false, "Hearthsheet");
+        System.Windows.Input.CommandManager.RequerySuggested += RequeryBridge;
         Mvvm.DataGridHeaders.KeepWordsWhole();
 
         AppSettings settings;

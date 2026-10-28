@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Hearthsheet.App.Composition;
-using Hearthsheet.App.Mvvm;
+using Hearthsheet.Presentation;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;

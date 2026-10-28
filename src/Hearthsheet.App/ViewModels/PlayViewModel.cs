@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Hearthsheet.App.Mvvm;
+using Hearthsheet.Presentation;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 using Microsoft.Extensions.Logging;
