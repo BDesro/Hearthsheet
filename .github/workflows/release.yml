@@ -34,6 +34,10 @@ jobs:
       - name: Test
         if: steps.version.outputs.new == 'true'
         run: dotnet test Hearthsheet.slnx -c Release
+      - name: Install Inno Setup if the runner lacks it
+        if: steps.version.outputs.new == 'true'
+        shell: pwsh
+        run: if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
       - name: Package
         if: steps.version.outputs.new == 'true'
         shell: pwsh
@@ -45,4 +49,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = 'v${{ steps.version.outputs.version }}'
-          gh release create $tag (Get-Item artifacts/*.zip).FullName artifacts/SHA256SUMS.txt --target $env:GITHUB_SHA --title "Hearthsheet $tag" --notes-file RELEASE_NOTES.md
+          gh release create $tag (Get-Item artifacts/*.zip).FullName artifacts/Hearthsheet-Setup.exe artifacts/SHA256SUMS.txt --target $env:GITHUB_SHA --title "Hearthsheet $tag" --notes-file RELEASE_NOTES.md
