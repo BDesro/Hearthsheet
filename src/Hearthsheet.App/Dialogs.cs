@@ -4,7 +4,7 @@ using Hearthsheet.App.Views;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Serialization;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 using Microsoft.Win32;
 
 namespace Hearthsheet.App;

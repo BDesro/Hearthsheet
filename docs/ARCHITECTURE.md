@@ -35,19 +35,19 @@ src/
     Serialization/         JSON format, schema version check, portable .dndchar files
     Content/               SRD 5.1 facts: class table, spell-slot progressions, CharacterFactory
     Sync/                  Cloud sync algorithm and cloud contracts
+  Hearthsheet.Cloud           Supabase auth, character store and HTTP client; the secret-store contract. No platform code
   Hearthsheet.Infrastructure  Windows / I/O concerns
     Persistence/           SqliteCharacterRepository
     Logging/               ILoggerProvider writing rolling daily files, secret redaction
     Security/              Windows Credential Manager secret store
     Updates/               GitHub release source, UpdateService
-    Sync/                  Supabase auth, character store, HTTP client
     AppPaths.cs            Per-user data locations, daily database backup
   Hearthsheet.Updater         Tiny console exe that swaps the install folder after the app exits
   Hearthsheet.App             WPF presentation: views, view models, dialogs, composition root
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
 
-Dependencies point inward: App → Infrastructure → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable.
+Dependencies point inward: App → Infrastructure → Cloud → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable. Cloud has no WPF, SQLite or Windows code, so the web app can share it.
 
 ## 3. Domain model: one source of truth
 

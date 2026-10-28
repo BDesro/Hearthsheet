@@ -3,7 +3,7 @@ using System.Windows.Threading;
 using Hearthsheet.App.Mvvm;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 using Microsoft.Extensions.Logging;
 
 namespace Hearthsheet.App.ViewModels;

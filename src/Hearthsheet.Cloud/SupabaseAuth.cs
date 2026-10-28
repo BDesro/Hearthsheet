@@ -1,11 +1,9 @@
-using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Security;
 
-namespace Hearthsheet.Infrastructure.Sync;
+namespace Hearthsheet.Cloud;
 
 /// <summary>
 /// The signed-in Supabase Auth session. The access token lives only in memory. The refresh token (plus user id
@@ -40,7 +38,7 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
         {
             saved = secrets.Read(SecretKey) is { } json ? JsonSerializer.Deserialize<SavedSession>(json) : null;
         }
-        catch (Exception ex) when (ex is JsonException or Win32Exception)
+        catch (Exception ex) when (ex is JsonException or SecretStoreException)
         {
             saved = null;
         }
@@ -196,7 +194,7 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
             else
                 secrets.Delete(SecretKey);
         }
-        catch (Win32Exception)
+        catch (SecretStoreException)
         {
             // Failing to remember only means signing in again next launch.
         }
@@ -209,7 +207,7 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
         {
             secrets.Delete(SecretKey);
         }
-        catch (Win32Exception)
+        catch (SecretStoreException)
         {
         }
     }

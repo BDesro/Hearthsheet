@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hearthsheet.Core\Hearthsheet.Core.csproj" />
+    <ProjectReference Include="..\..\src\Hearthsheet.Cloud\Hearthsheet.Cloud.csproj" />
     <ProjectReference Include="..\..\src\Hearthsheet.Infrastructure\Hearthsheet.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Hearthsheet.Updater\Hearthsheet.Updater.csproj" />
   </ItemGroup>

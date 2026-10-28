@@ -10,7 +10,7 @@ using Hearthsheet.Infrastructure;
 using Hearthsheet.Infrastructure.Logging;
 using Hearthsheet.Infrastructure.Persistence;
 using Hearthsheet.Infrastructure.Security;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 using Hearthsheet.Infrastructure.Updates;
 using Microsoft.Extensions.Logging;
 
