@@ -239,7 +239,8 @@ Needs a fresh Windows user account or a VM **without .NET installed**, and two r
 
 - [ ] Download the setup through a browser (so it gets the downloaded-file mark) and pass SmartScreen. Capture `docs/images/smartscreen.png` for the README.
 - [ ] Install with the desktop shortcut ticked, then reinstall with it unticked. The desktop shortcut is created or left alone accordingly, and there is one Start menu entry.
-- [ ] Run setup while Hearthsheet is open. It asks to close it.
+- [ ] Run setup while Hearthsheet is open: it says Hearthsheet is running and waits (AppMutex) until you close it. Do the same for uninstall.
+- [ ] With a custom `DataDirectory` *inside* `%LOCALAPPDATA%\Hearthsheet` (e.g. `%LOCALAPPDATA%\Hearthsheet\mine`), uninstall choosing **Yes**: that folder survives, and the app's own files around it are gone.
 - [ ] Install over a 1.4.0 `Install.cmd` install. The app starts, characters are intact, and `Install.cmd` is gone from the folder.
 - [ ] In-app update N → N+1. *Apps* shows N+1 after the next start, and `Hearthsheet Uninstall\unins000.exe` still exists.
 - [ ] Uninstall choosing **No**: the program folders are gone and the data is kept. Reinstall: the characters are back. Uninstall choosing **Yes**: `%LOCALAPPDATA%\Hearthsheet` and the `Hearthsheet/supabase-session` credential are gone. With a custom `DataDirectory` set, the prompt names it and the folder survives.

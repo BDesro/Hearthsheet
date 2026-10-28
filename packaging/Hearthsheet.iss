@@ -24,7 +24,9 @@ PrivilegesRequired=lowest
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
-CloseApplications=yes
+; The app holds this mutex while running (App.xaml.cs), so setup and the uninstaller wait until it's closed.
+AppMutex=Hearthsheet
+CloseApplications=force
 OutputBaseFilename=Hearthsheet-Setup
 SetupIconFile=..\src\Hearthsheet.App\Assets\Hearthsheet.ico
 UninstallDisplayIcon={app}\Hearthsheet.exe
@@ -59,7 +61,8 @@ Type: filesandordirs; Name: "{localappdata}\Programs\Hearthsheet.backup"
 
 [Code]
 // The Application:DataDirectory override from appsettings.user.json, or '' if none.
-// ponytail: substring scan, not a JSON parser; non-ASCII paths may display garbled (they're only shown, never deleted).
+// Only used for the prompt text, never to decide what to delete.
+// ponytail: substring scan, not a JSON parser; non-ASCII paths may display garbled.
 function CustomDataDirectory(): String;
 var
   Json: AnsiString;
@@ -84,17 +87,27 @@ begin
   Result := Trim(Result);
 end;
 
+// Deletes only the files the app itself creates, so anything else in the folder (a custom data folder placed
+// inside it, say) survives. The folder itself goes only if that leaves it empty.
+procedure DeleteUserData(Root: String);
+begin
+  DeleteFile(Root + '\characters.db');
+  DeleteFile(Root + '\characters.db-wal');
+  DeleteFile(Root + '\characters.db-shm');
+  DeleteFile(Root + '\appsettings.user.json');
+  DelTree(Root + '\backups', True, True, True);
+  DelTree(Root + '\logs', True, True, True);
+  DelTree(Root + '\updates', True, True, True);
+  RemoveDir(Root);
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  Root, Custom, Msg: String;
-  KeepRoot: Boolean;
+  Custom, Msg: String;
   Rc: Integer;
 begin
   if (CurUninstallStep <> usPostUninstall) or UninstallSilent then Exit;
-  Root := ExpandConstant('{localappdata}\Hearthsheet');
   Custom := CustomDataDirectory();
-  // A custom folder inside the default one would go with it, so then only the sign-in is removed.
-  KeepRoot := (Custom <> '') and (Pos(Lowercase(AddBackslash(Root)), Lowercase(AddBackslash(Custom))) = 1);
 
   Msg := 'Also delete your characters, settings and backups?' + #13#10#13#10 +
     'Your characters will be gone for good unless you exported them or use cloud sync. ' +
@@ -104,7 +117,7 @@ begin
 
   if MsgBox(Msg, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
   begin
-    if not KeepRoot then DelTree(Root, True, True, True);
+    DeleteUserData(ExpandConstant('{localappdata}\Hearthsheet'));
     Exec(ExpandConstant('{sys}\cmdkey.exe'), '/delete:Hearthsheet/supabase-session', '', SW_HIDE, ewWaitUntilTerminated, Rc);
   end;
 end;

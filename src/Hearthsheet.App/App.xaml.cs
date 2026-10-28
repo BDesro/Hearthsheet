@@ -21,10 +21,13 @@ public partial class App
 {
     private ILoggerFactory? _loggerFactory;
     private ILogger _log = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+    // Held while the app runs so the installer and uninstaller (AppMutex in packaging/Hearthsheet.iss) wait for it to close.
+    private Mutex? _runningMutex;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        _runningMutex = new Mutex(false, "Hearthsheet");
         Mvvm.DataGridHeaders.KeepWordsWhole();
 
         AppSettings settings;
