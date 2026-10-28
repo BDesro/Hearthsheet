@@ -165,7 +165,8 @@ public sealed class MainViewModel : Observable
     {
         var session = new CharacterSession(character);
         session.Changed += OnCharacterChanged;
-        Current = new CharacterViewModel(session, _s.Rest, _s.Dialogs, _s.Loggers.CreateLogger("Gameplay"));
+        Current = new CharacterViewModel(session, _s.Rest, _s.Dialogs, _s.Loggers.CreateLogger("Gameplay"),
+            refresh => Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.DataBind, refresh));
         SaveStatus = "All changes saved";
         _log.LogDebug("View: character {Name} opened", character.Identity.Name);
     }

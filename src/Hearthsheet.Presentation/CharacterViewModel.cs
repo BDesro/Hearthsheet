@@ -1,15 +1,13 @@
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Hearthsheet.Presentation;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 using Microsoft.Extensions.Logging;
 
-namespace Hearthsheet.App.ViewModels;
+namespace Hearthsheet.Presentation;
 
 /// <summary>
 /// The one view model for an open character, shared by the Sheet, Details and Play views. Stored values
@@ -19,15 +17,17 @@ namespace Hearthsheet.App.ViewModels;
 public sealed class CharacterViewModel : Observable, IDisposable
 {
     private readonly CharacterSession _session;
-    private readonly Dialogs _dialogs;
+    private readonly IDialogs _dialogs;
     private readonly ILogger _log;
+    private readonly Action<Action> _postToUi;
     private bool _refreshQueued;
 
-    public CharacterViewModel(CharacterSession session, RestService rest, Dialogs dialogs, ILogger log)
+    public CharacterViewModel(CharacterSession session, RestService rest, IDialogs dialogs, ILogger log, Action<Action> postToUi)
     {
         _session = session;
         _dialogs = dialogs;
         _log = log;
+        _postToUi = postToUi;
         var c = session.Character;
 
         Abilities = [.. AbilityInfo.All.Select(a => new AbilityRow(c, a))];
@@ -204,7 +204,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     {
         if (_refreshQueued) return;
         _refreshQueued = true;
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.DataBind, Refresh);
+        _postToUi(Refresh);
     }
 
     private void Refresh()

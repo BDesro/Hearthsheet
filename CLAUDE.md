@@ -21,9 +21,9 @@ Running the app uses your real data in `%LOCALAPPDATA%\Hearthsheet`. There is no
 
 ## Architecture (big picture)
 
-Five projects, dependencies point inward: `App` → `Infrastructure` → `Cloud` → `Core`; `Updater` is a standalone console exe.
+Six projects, dependencies point inward: `App` → `Presentation`, `Infrastructure` → `Cloud` → `Core`, and `Presentation` → `Core`; `Updater` is a standalone console exe.
 
-- **Core** has no WPF, SQLite or network references, so all game rules are unit-testable. **Cloud** is the Supabase client (auth, character store, `ISecretStore` contract) with no platform code, so a web app can share it. Tests reference Core, Cloud, Infrastructure and Updater, never App.
+- **Core** has no WPF, SQLite or network references, so all game rules are unit-testable. **Cloud** is the Supabase client (auth, character store, `ISecretStore` contract) with no platform code, so a web app can share it. **Presentation** holds the UI-neutral view models (`CharacterViewModel`, `PlayViewModel`, rows, `RelayCommand`, `Lookups`) behind `IDialogs` and a post-to-UI action, so a web UI can share them. Tests reference Core, Cloud, Presentation, Infrastructure and Updater, never App.
 - **One model, three views.** Sheet, Details and Play all bind directly to the same `Character` aggregate (domain classes derive from `Observable` and use `ObservableCollection`). No view holds its own copy of state. `ChangeTracker` subscribes to the whole object graph by reflection and feeds `CharacterSession.Changed`, which drives both `CharacterViewModel.Refresh()` (derived values) and the 2-second autosave.
 - **Stored vs derived.** Only authoritative values are persisted. Totals (modifiers, saves, skills, AC, speed, max HP, spell DC, attack bonuses, carried weight) are pure functions in `Core/Rules/CharacterRules.cs` exposed through `CharacterViewModel`. Never store a derived value.
 - **Modifiers** (`Target` key from `StatTargets`, `Kind` Bonus/Set, `Value`) are the one mechanism for bonuses and overrides on features, effects, equipped/attuned items and weapons. Add a new target there rather than special-casing.
@@ -31,7 +31,7 @@ Five projects, dependencies point inward: `App` → `Infrastructure` → `Cloud`
 - **Rests** are an ordered list of `IRestStep`s composed in `RestService.CreateDefault()`.
 - **Persistence**: SQLite, one row per character holding the JSON document (same shape as `.dndchar` export) plus denormalized list columns. `ICharacterRepository` is the only persistence contract Core knows.
 - **Schema changes**: bump `CharacterJson.CurrentSchemaVersion` and migrate the raw `JsonObject` in `CharacterJson.Deserialize` before typed deserialization. Newer-schema data is refused, not half-read. Table-level changes use `meta.db_version`.
-- **Composition**: no DI container, no MVVM toolkit. Everything is wired in `App.xaml.cs`; `Mvvm/` has a small `RelayCommand`. Config is only `appsettings.json` → per-user `appsettings.user.json` (`Composition/AppSettings.cs`).
+- **Composition**: no DI container, no MVVM toolkit. Everything is wired in `App.xaml.cs`; `Presentation/RelayCommand.cs` has a small `RelayCommand`; the WPF app bridges `CommandManager.RequerySuggested` to `CommandRequery.Raise()`. Config is only `appsettings.json` → per-user `appsettings.user.json` (`Composition/AppSettings.cs`).
 - **Cloud sync** is optional; local SQLite stays the source of truth. A sync pass never writes the open character directly; remote changes come back as deferred changes applied on the UI thread. Cloud wins conflicts (local saved as a conflict copy); an edit beats a delete. Server schema is in `supabase/migrations/`.
 - **Updates**: the app pulls GitHub Releases, verifies SHA-256 and the staged binary's version, then `Hearthsheet.Updater` swaps the install folder with backup/rollback. Only HTTPS GitHub hosts are contacted; keep that allowlist intact.
 

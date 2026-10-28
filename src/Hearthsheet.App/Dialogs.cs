@@ -5,12 +5,13 @@ using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Serialization;
 using Hearthsheet.Cloud;
+using Hearthsheet.Presentation;
 using Microsoft.Win32;
 
 namespace Hearthsheet.App;
 
 /// <summary>All modal UI launched from view models goes through here, keeping windows out of the view models.</summary>
-public sealed class Dialogs
+public sealed class Dialogs : IDialogs
 {
     private static Window? Owner => Application.Current?.MainWindow is { IsLoaded: true } w ? w : null;
 

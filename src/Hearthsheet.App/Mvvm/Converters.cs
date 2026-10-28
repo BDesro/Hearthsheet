@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using Hearthsheet.Core.Domain;
@@ -98,32 +98,4 @@ public sealed class EnumDisplayConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
-}
-
-/// <summary>Option lists for combo boxes, exposed statically for XAML.</summary>
-public static class Lookups
-{
-    public sealed record Option(object? Value, string Label);
-
-    public static Ability[] Abilities { get; } = Enum.GetValues<Ability>();
-
-    /// <summary>Abilities plus "none" for nullable ability fields.</summary>
-    public static Option[] OptionalAbilities { get; } =
-        [new(null, "None"), .. Enum.GetValues<Ability>().Select(a => new Option(a, a.ToString()))];
-
-    public static CasterType[] CasterTypes { get; } = Enum.GetValues<CasterType>();
-    public static ProficiencyLevel[] ProficiencyLevels { get; } = Enum.GetValues<ProficiencyLevel>();
-    public static ProficiencyCategory[] ProficiencyCategories { get; } = Enum.GetValues<ProficiencyCategory>();
-    public static FeatureSource[] FeatureSources { get; } = Enum.GetValues<FeatureSource>();
-    public static RecoveryTiming[] RecoveryTimings { get; } = Enum.GetValues<RecoveryTiming>();
-    public static EffectExpiry[] EffectExpiries { get; } = Enum.GetValues<EffectExpiry>();
-    public static ModifierKind[] ModifierKinds { get; } = Enum.GetValues<ModifierKind>();
-    public static IReadOnlyList<string> StatTargetKeys => StatTargets.All;
-    public static IReadOnlyList<string> ClassNames { get; } = Core.Content.SrdCatalog.Classes.Select(c => c.Name).ToList();
-    public static IReadOnlyList<string> Species => Core.Content.SrdCatalog.Species;
-    public static IReadOnlyList<string> Alignments => Core.Content.SrdCatalog.Alignments;
-    public static IReadOnlyList<int> HitDieSizes => Core.Content.SrdCatalog.HitDieSizes;
-    public static int[] SpellLevels { get; } = [.. Enumerable.Range(0, 10)];
-    public static string[] SpellSchools { get; } =
-        ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"];
 }
