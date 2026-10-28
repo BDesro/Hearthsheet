@@ -80,6 +80,49 @@ public class SupabaseAuthTests
         Assert.False(_secrets.ContainsKey(SupabaseAuth.SecretKey));
     }
 
+    private (SupabaseAuth Auth, SupabaseStub Stub) CreateWithSession(FakeSecrets session, Func<RecordedRequest, HttpResponseMessage> respond)
+    {
+        var stub = new SupabaseStub(respond);
+        return (new SupabaseAuth(new SupabaseHttp(Options, stub), _secrets, _time, session), stub);
+    }
+
+    [Fact]
+    public async Task SignIn_WithoutRemember_KeepsTheSessionInSessionSecretsOnly()
+    {
+        var session = new FakeSecrets();
+        _secrets[SupabaseAuth.SecretKey] = "old";
+        var (auth, _) = CreateWithSession(session, _ => Ok(SupabaseStub.Session("a1", "r1")));
+        await auth.SignInAsync("a@b.c", "password1", remember: false, default);
+        Assert.Contains("r1", session[SupabaseAuth.SecretKey]);
+        Assert.False(_secrets.ContainsKey(SupabaseAuth.SecretKey));
+    }
+
+    [Fact]
+    public async Task Restore_FromSessionSecrets_DoesNotPromoteToRemembered()
+    {
+        var session = new FakeSecrets();
+        var (first, _) = CreateWithSession(session, _ => Ok(SupabaseStub.Session("a1", "r1")));
+        await first.SignInAsync("a@b.c", "password1", remember: false, default);
+
+        var (auth, _) = CreateWithSession(session, _ => Ok(SupabaseStub.Session("a2", "r2")));
+        Assert.True(auth.Restore());
+        Assert.Equal("a2", await auth.GetAccessTokenAsync(default));
+        Assert.Contains("r2", session[SupabaseAuth.SecretKey]);
+        Assert.Empty(_secrets);
+    }
+
+    [Fact]
+    public async Task SignOut_ClearsBothStores()
+    {
+        var session = new FakeSecrets { [SupabaseAuth.SecretKey] = "s" };
+        _secrets[SupabaseAuth.SecretKey] = "s";
+        var (auth, _) = CreateWithSession(session, _ => Ok(SupabaseStub.Session("a1", "r1")));
+        await auth.SignInAsync("a@b.c", "password1", remember: true, default);
+        await auth.SignOutAsync(default);
+        Assert.Empty(session);
+        Assert.Empty(_secrets);
+    }
+
     [Fact]
     public async Task SignIn_BadCredentials_ShowsTheServerMessage()
     {
