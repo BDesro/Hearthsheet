@@ -52,6 +52,14 @@ public partial class App
         _log.LogInformation("Application started: version {Version}, build {Build}",
             AppSettings.AppVersion, AppSettings.BuildConfiguration);
         _log.LogDebug("Data directory: {Dir}", paths.Root);
+        try
+        {
+            InstallRegistration.RefreshDisplayVersion(Microsoft.Win32.Registry.CurrentUser, InstallRegistration.UninstallKey, AppSettings.AppVersion);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            _log.LogWarning(ex, "Could not update the installed version shown in Windows Apps");
+        }
         _log.LogDebug("Update source: {Owner}/{Repo} (enabled {Enabled})", settings.Updates.Owner, settings.Updates.Repository, settings.Updates.Enabled);
         if (!string.IsNullOrWhiteSpace(settings.Sync.Url) && !settings.Sync.IsConfigured)
             _log.LogWarning("Cloud sync is disabled: Sync:Url must be an https URL and Sync:AnonKey must be set");
