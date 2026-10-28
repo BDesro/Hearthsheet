@@ -9,8 +9,21 @@ project, for example for a fork, and then replace those two values.
 ## One-time setup
 
 1. **Create the project.** At supabase.com, create a free project and pick the region closest to your players.
-2. **Create the schema.** In the SQL editor, run `supabase/migrations/0001_cloud_sync.sql`. If `create extension pg_cron` fails, enable
-   **pg_cron** under Database → Extensions and run the file again.
+2. **Create the schema.** In the SQL editor, run `supabase/migrations/0001_cloud_sync.sql`, then `0002_guardrails.sql`. If
+   `create extension pg_cron` fails, enable **pg_cron** under Database → Extensions and run `0001` again.
+   `0002` adds the guardrails:
+   - exact table grants
+   - a 1 MB cap per character document
+   - at most 100 rows per user, deleted ones included (error "Character limit reached (100)…")
+   - the sign-up allowlist (`private.signup_allowlist`), seeded with every existing user's email.
+
+   On a project that already has `0001`, run only `0002`.
+
+   **Then enable the sign-up hook:** Authentication → Hooks → **Before User Created** → Postgres, function
+   `public.hook_before_user_created`, then Save. Until it is enabled, anyone can sign up. Its rules:
+   - An email on the allowlist can sign up.
+   - While the list has fewer than 10 entries, a new email is added (`source = 'auto'`) and allowed.
+   - Anyone else gets "Sign-ups are closed. Ask Beau to add your email."
 3. **Configure authentication.** Go to Authentication → Sign In / Providers, then click the **Email** row to expand it:
    - Email provider: **on**.
    - **Confirm email: off**, then Save. Sign-up is then instant and sends no email. The app expects a session straight from sign-up,
@@ -46,6 +59,19 @@ project, for example for a fork, and then replace those two values.
    environment variables. Then open Actions → **Supabase keep-alive** → **Run workflow** (or `gh workflow run "Supabase keep-alive"`).
    The workflow only appears there once it is on the default branch. A green run means the request reached the database. GitHub disables
    scheduled workflows after 60 days without repository activity; if that happens, re-enable it from the Actions tab.
+   - The test project (`Hearthsheet-Test`) uses its own pair of repository variables, `SUPABASE_TEST_URL` and
+     `SUPABASE_TEST_ANON_KEY`, with the same rules. Its ping is skipped while they are unset.
+
+## Letting a friend sign up
+
+Once the allowlist is full, add their email in the SQL editor before they sign up:
+
+```sql
+insert into private.signup_allowlist (email, source) values (lower(trim('friend@example.com')), 'manual');
+```
+
+Deleting a user does not free a slot. To free one, delete their row from `private.signup_allowlist`. The limit of 10 is a
+constant in `public.hook_before_user_created`; changing it takes a new migration.
 
 ## Manual test script
 
@@ -92,6 +118,8 @@ rollback;
 | Account dialog: "The sign-in service did not return a session" | **Confirm email** is still on (step 3). Turn it off, then delete the half-created user under Authentication → Users and create the account again. |
 | Keep-alive fails with exit code 22 | curl got an HTTP error. Check that `SUPABASE_URL` is the bare project URL (no `/rest/v1/`), that `SUPABASE_ANON_KEY` is the publishable key, and that the migration has been run. |
 | Reset email doesn't arrive | Check the spam folder and Resend's Emails log. If the log is empty, recheck the SMTP settings in step 5. |
+| Sign-up fails with "Sign-ups are closed. Ask Beau to add your email." | The allowlist is full. Add the email (see "Letting a friend sign up"). |
+| Upload fails with "Character limit reached (100)" | The account has 100 rows, including deleted characters that haven't been purged yet. Tombstones are purged 90 days after deletion. |
 | Reset email contains a link instead of a code | The Reset password template still has the default body. Use the one in step 6. |
 
 ## How a sync pass works
