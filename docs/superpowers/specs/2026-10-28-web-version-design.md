@@ -346,7 +346,6 @@ off and the link goes to friends.
      firing in a published (trimmed) build.
 1. **Shared foundations.**
    - Presentation and Supabase-client extraction (decisions 2 and 3).
-   - Async `Relink`.
    - The desktop keeps working, with all existing tests passing.
 2. **Web shell.**
    - IndexedDB store, single-tab lock, sign-in and account dialog, sync, character list, new/delete/import/export,
