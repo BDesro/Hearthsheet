@@ -373,6 +373,28 @@ public class RepositoryTests : IDisposable
         }
     }
 
+    [Fact]
+    public void ExportAll_SkipsUnreadableCharacter_AndReportsItsName()
+    {
+        var repo = NewRepository();
+        var library = NewLibrary(repo);
+        var good = new Character();
+        good.Identity.Name = "Good";
+        var bad = new Character();
+        bad.Identity.Name = "Broken";
+        repo.Save(good);
+        repo.Save(bad);
+        ExecuteSql($"UPDATE characters SET data = '{{broken' WHERE id = '{bad.Id}'");
+
+        using var ms = new MemoryStream();
+        var skipped = library.ExportAll(ms);
+        ms.Position = 0;
+        using var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
+
+        Assert.Equal(["Broken"], skipped);
+        Assert.Equal(["Good.dndchar"], zip.Entries.Select(e => e.FullName));
+    }
+
     private void ExecuteSql(string sql)
     {
         using var connection = new SqliteConnection($"Data Source={_dir.File("characters.db")};Pooling=False");

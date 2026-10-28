@@ -68,9 +68,11 @@ public sealed class CharacterLibrary(
         return c;
     }
 
-    /// <summary>Writes every stored character as a .dndchar entry in a zip. Unreadable characters are skipped and logged.</summary>
-    public void ExportAll(Stream zip)
+    /// <summary>Writes every stored character as a .dndchar entry in a zip. Unreadable characters are skipped and logged;
+    /// returns their display names (empty when everything was exported).</summary>
+    public IReadOnlyList<string> ExportAll(Stream zip)
     {
+        var skipped = new List<string>();
         using var archive = new ZipArchive(zip, ZipArchiveMode.Create, leaveOpen: true);
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var summary in repository.List())
@@ -80,6 +82,7 @@ public sealed class CharacterLibrary(
             catch (CharacterFormatException ex)
             {
                 logger.LogWarning(ex, "Export all: skipped unreadable character {Id}", summary.Id);
+                skipped.Add(summary.Name);
                 continue;
             }
             if (c is null) continue;
@@ -91,6 +94,7 @@ public sealed class CharacterLibrary(
             using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
             writer.Write(portable.Export(c, appVersion));
         }
+        return skipped;
     }
 
     private static string SafeFileName(string name)

@@ -353,9 +353,10 @@ public sealed class MainViewModel : Observable
         var path = _s.Dialogs.SaveZipFile($"Hearthsheet characters {DateTime.Now:yyyy-MM-dd}");
         if (path is null) return;
         var temp = Path.GetFullPath(path) + ".tmp";
+        IReadOnlyList<string> skipped;
         try
         {
-            using (var stream = File.Create(temp)) _s.Library.ExportAll(stream);
+            using (var stream = File.Create(temp)) skipped = _s.Library.ExportAll(stream);
             File.Move(temp, Path.GetFullPath(path), overwrite: true);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -363,7 +364,10 @@ public sealed class MainViewModel : Observable
             _log.LogError(ex, "Export all failed");
             try { File.Delete(temp); } catch (IOException) { }
             _s.Dialogs.ErrorAsync($"The characters could not be exported:\n\n{ex.Message}").Wait();
+            return;
         }
+        if (skipped.Count > 0)
+            _s.Dialogs.ErrorAsync($"These characters could not be read and are not in the zip:\n\n{string.Join("\n", skipped)}").Wait();
     }
 
     /// <summary>Before the updater takes over: persist everything. Returns false to abort the update.</summary>
