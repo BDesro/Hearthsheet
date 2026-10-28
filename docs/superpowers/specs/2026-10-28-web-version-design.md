@@ -375,6 +375,17 @@ Each phase is its own PR into `dev`; releases follow the existing `dev` → `mai
   per-row cap in decision 18 is about 60 times a real character.
 - **Sign-up hook:** Supabase docs list "Before User Created" as available on Free and Pro, so decision 19 needs no
   fallback.
+- **Blazor spike** (Phase 0, .NET SDK 10.0.402, `blazorwasm --empty` referencing Core, `dotnet publish -c Release`):
+  - Trimming ran ("Optimizing assemblies for size").
+  - With **no extra settings**, the published app:
+    - created a character with `CharacterFactory`
+    - fired `CharacterSession.Changed` on `TakeDamage` (change tracking works)
+    - round-tripped it through `CharacterJson` with name and HP intact
+  - The SDK's default trim mode trims framework assemblies and leaves referenced app assemblies like Core whole.
+  - The web project must not set `TrimMode=full` without `TrimmerRootAssembly` for Core and Presentation, and the
+    decision 5 self-check still guards this.
+  - Download size of `_framework`: 16 MB uncompressed, **2.9 MB Brotli**, for an empty app plus Core.
+- **Test project:** created after Beau approves (see the plan's Task 1).
 
 ## Left to the builder
 
