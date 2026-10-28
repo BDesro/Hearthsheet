@@ -135,10 +135,10 @@ avoids signing, installers and per-platform updaters entirely.
      that handling moves into `WindowsCredentialStore`, so the shared code stays platform-neutral.
    - On the web, `SupabaseHttp` is constructed with the browser's default handler (`new HttpClientHandler()`), not
      `SocketsHttpHandler`, which the browser doesn't support (`SupabaseHttp.cs`, constructor).
-4. **`CloudSync` gets no blocking waits.**
-   - `Relink` uses `_gate.Wait()` (`CloudSync.cs:104`), and browser WebAssembly is single-threaded, so it becomes
-     `RelinkAsync` with `WaitAsync`.
-   - Desktop callers are updated.
+4. **No blocking waits on the web's code path.**
+   - `Relink` uses `_gate.Wait()` (`CloudSync.cs:104`), and browser WebAssembly is single-threaded. Since decision 7a,
+     the web never relinks (each account has its own store), so `Relink` stays as it is and the web must never call it.
+     (Superseded: an earlier draft made it `RelinkAsync`.)
    - The builder also checks for any other `.Wait()`, `.Result` or `GetAwaiter().GetResult()` on the web's code path.
 5. **Trimming.**
    - `ChangeTracker` discovers properties by reflection and `System.Text.Json` deserializes by reflection.
@@ -359,6 +359,22 @@ off and the link goes to friends.
 6. **Audits and fixes**, then the launch gate.
 
 Each phase is its own PR into `dev`; releases follow the existing `dev` → `main` flow.
+
+## Live project facts (checked 2026-10-28 with the supabase plugin)
+
+- **Organization and project:** organization "BDesro Apps" is on the **free** plan, with one project,
+  `Hearthsheet-DB` (`us-east-2`, Postgres 17). A second free project fits within the free plan's two.
+- **Schema:**
+  - RLS is on for `characters`, with policies `own_select`, `own_insert` and `own_update`.
+  - The purge job `purge-character-tombstones` is scheduled.
+- **Advisors:**
+  - Performance: no findings.
+  - Security: one, "Leaked password protection disabled". That feature is a paid-plan option, so it's accepted, not
+    fixed.
+- **Usage:** one user, 3 rows (1 live), a real character document is about 17 KB, and the database is 11 MB. The 1 MB
+  per-row cap in decision 18 is about 60 times a real character.
+- **Sign-up hook:** Supabase docs list "Before User Created" as available on Free and Pro, so decision 19 needs no
+  fallback.
 
 ## Left to the builder
 
