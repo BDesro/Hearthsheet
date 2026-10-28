@@ -95,7 +95,7 @@ Modifiers are active on features, on effects, and on items and wondrous items th
             │ PropertyChanged / CollectionChanged
             ▼
    ChangeTracker ─► CharacterSession.Changed ─┬─► CharacterViewModel.Refresh()  (derived values → all views)
-                                              └─► MainViewModel autosave timer  (dirty flag, save after 2 s idle)
+                                              └─► ShellViewModel autosave timer (dirty flag, save after 2 s idle)
 ```
 
 - The domain classes themselves raise change notifications, so every view binds straight to the same objects. No view has its own copy of character state.

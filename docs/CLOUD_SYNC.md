@@ -99,7 +99,7 @@ rollback;
 `CloudSync.RunAsync` is guarded by a `SemaphoreSlim(1)`. A trigger that arrives while a pass is running is dropped, except the close
 trigger, which waits for the running pass and shares the same 5 s cap.
 
-Before the pass, `SyncViewModel` calls `MainViewModel.Save()` on the UI thread, so the open character's edits are on disk and `dirty`.
+Before the pass, `SyncViewModel` calls `ShellViewModel.Save()` on the UI thread, so the open character's edits are on disk and `dirty`.
 
 1. **Session.** Get an access token, refreshing if it has expired. A refresh rejection signs the user out, and the pass stops.
 2. **Account link.**

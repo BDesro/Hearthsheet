@@ -36,7 +36,8 @@ public partial class MainWindow
             e.Cancel = true;
             return;
         }
-        if (!vm.OnClosing())
+        // WPF dialogs complete synchronously, so this await finishes before Closing reads e.Cancel.
+        if (!await vm.OnClosingAsync())
         {
             e.Cancel = true;
             return;
@@ -100,7 +101,7 @@ public partial class MainWindow
         if (Target(this) is { } t) t.RenderMode = RenderMode.Default;
 
         // The title reads just "Hearthsheet" during the intro; hand it to the character title once the app shows.
-        SetBinding(TitleProperty, new Binding("Current.Title")
+        SetBinding(TitleProperty, new Binding("Shell.Current.Title")
         {
             StringFormat = "{0} — Hearthsheet", FallbackValue = "Hearthsheet", TargetNullValue = "Hearthsheet",
         });
