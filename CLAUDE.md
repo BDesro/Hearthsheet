@@ -12,6 +12,7 @@ dotnet test Hearthsheet.slnx
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests"          # one class
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests.LongRest"  # one test / name prefix
 dotnet run --project src/Hearthsheet.App
+dotnet run --project src/Hearthsheet.Web   # the Blazor WebAssembly PWA (preview; points at the Hearthsheet-Test Supabase project)
 pwsh ./scripts/publish.ps1     # needs Inno Setup 6; artifacts/Hearthsheet-Setup.exe + Hearthsheet-<version>-win-x64.zip + SHA256SUMS.txt
 ```
 
@@ -21,7 +22,7 @@ Running the app uses your real data in `%LOCALAPPDATA%\Hearthsheet`. There is no
 
 ## Architecture (big picture)
 
-Six projects, dependencies point inward: `App` → `Presentation`, `Infrastructure` → `Cloud` → `Core`, and `Presentation` → `Core`; `Updater` is a standalone console exe.
+Seven projects, dependencies point inward: `App` → `Presentation`, `Infrastructure` → `Cloud` → `Core`, `Web` → `Presentation`, `Cloud`, and `Presentation` → `Core`; `Updater` is a standalone console exe.
 
 - **Core** has no WPF, SQLite or network references, so all game rules are unit-testable. **Cloud** is the Supabase client (auth, character store, `ISecretStore` contract) with no platform code, so a web app can share it. **Presentation** holds the UI-neutral view models (`CharacterViewModel`, `PlayViewModel`, rows, `RelayCommand`, `Lookups`) behind `IDialogs` and a post-to-UI action, so a web UI can share them. Tests reference Core, Cloud, Presentation, Infrastructure and Updater, never App.
 - **One model, three views.** Sheet, Details and Play all bind directly to the same `Character` aggregate (domain classes derive from `Observable` and use `ObservableCollection`). No view holds its own copy of state. `ChangeTracker` subscribes to the whole object graph by reflection and feeds `CharacterSession.Changed`, which drives both `CharacterViewModel.Refresh()` (derived values) and the 2-second autosave.

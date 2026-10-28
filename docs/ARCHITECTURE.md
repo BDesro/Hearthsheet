@@ -45,6 +45,8 @@ src/
     AppPaths.cs            Per-user data locations, daily database backup
   Hearthsheet.Updater         Tiny console exe that swaps the install folder after the app exits
   Hearthsheet.App             WPF: views, main/sync/update view models, dialogs, converters, composition root
+  Hearthsheet.Web             Blazor WebAssembly PWA (preview): index.html/_headers (strict CSP, no inline script/style), startup
+                              ChangeTrackingSelfCheck, MemoryLogProvider (Cloud) for Download diagnostics
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
 

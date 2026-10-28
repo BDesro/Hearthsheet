@@ -1,0 +1,18 @@
+@inject IConfiguration Config
+
+@if (!SelfCheckPassed)
+{
+    <p role="alert">This build can't save changes. Please report it.</p>
+}
+else
+{
+    @if (Config.GetValue<bool>("Preview"))
+    {
+        <div class="preview-banner" role="note">Preview – not the final Hearthsheet. Don't rely on it for real characters.</div>
+    }
+    <h1>Hearthsheet</h1>
+}
+
+@code {
+    [Parameter] public bool SelfCheckPassed { get; set; }
+}
