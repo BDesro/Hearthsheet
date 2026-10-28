@@ -21,10 +21,13 @@ public partial class App
 {
     private ILoggerFactory? _loggerFactory;
     private ILogger _log = Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance;
+    // Held while the app runs so the installer and uninstaller (AppMutex in packaging/Hearthsheet.iss) wait for it to close.
+    private Mutex? _runningMutex;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        _runningMutex = new Mutex(false, "Hearthsheet");
         Mvvm.DataGridHeaders.KeepWordsWhole();
 
         AppSettings settings;
@@ -52,6 +55,14 @@ public partial class App
         _log.LogInformation("Application started: version {Version}, build {Build}",
             AppSettings.AppVersion, AppSettings.BuildConfiguration);
         _log.LogDebug("Data directory: {Dir}", paths.Root);
+        try
+        {
+            InstallRegistration.RefreshDisplayVersion(Microsoft.Win32.Registry.CurrentUser, InstallRegistration.UninstallKey, AppSettings.AppVersion);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            _log.LogWarning(ex, "Could not update the installed version shown in Windows Apps");
+        }
         _log.LogDebug("Update source: {Owner}/{Repo} (enabled {Enabled})", settings.Updates.Owner, settings.Updates.Repository, settings.Updates.Enabled);
         if (!string.IsNullOrWhiteSpace(settings.Sync.Url) && !settings.Sync.IsConfigured)
             _log.LogWarning("Cloud sync is disabled: Sync:Url must be an https URL and Sync:AnonKey must be set");
@@ -79,7 +90,7 @@ public partial class App
     private MainViewModel Compose(AppSettings settings, AppPaths paths)
     {
         var factory = _loggerFactory!;
-        var repository = new SqliteCharacterRepository(paths.Database, factory.CreateLogger<SqliteCharacterRepository>());
+        var repository = new SqliteCharacterRepository(paths.Database, factory.CreateLogger<SqliteCharacterRepository>(), paths.Backups);
         try
         {
             DatabaseBackups.RunDaily(repository, paths.Backups, keep: 10, factory.CreateLogger("Backup"));

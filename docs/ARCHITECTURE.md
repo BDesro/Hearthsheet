@@ -11,7 +11,7 @@
 | Printing | The same page visuals go to the printer through `XpsDocumentWriter`, so there's no second print layout |
 | Data binding | Two-way bindings plus `INotifyPropertyChanged` are what keeps three views in sync with one model |
 | High DPI, accessibility | Per-monitor-v2 DPI via `app.manifest`; UI Automation peers for screen readers and keyboard navigation |
-| Local database, packaging, updating | Ordinary .NET: SQLite in-process, xcopy-able folder, a small updater exe |
+| Local database, packaging, updating | Ordinary .NET: SQLite in-process, a self-contained folder installed by an Inno Setup installer, a small updater exe |
 
 Alternatives considered:
 
@@ -136,6 +136,8 @@ To change rest rules (another edition, a variant or a homebrew rule), replace or
 
 The only migration so far is 2 → 3 (above). To change the model incompatibly, bump the schema version and, in `CharacterJson.Deserialize`, rewrite the raw `JsonObject` from shape *n* to *n+1* before typed deserialization, so old shapes never need C# types. Files or rows from a *newer* schema are refused with an "update the application" message rather than being half-read.
 
+**Upgrades never run without a backup.** Each database upgrade step (`UpgradeToN`) runs in one transaction. Before any of them runs, and the first time the app starts on a higher `CurrentSchemaVersion` (tracked in `meta.last_schema_version`), `SqliteCharacterRepository` writes `backups/pre-upgrade-db{n}-schema{m}-{timestamp}.db`. The daily rotation never deletes these. If that backup fails, nothing is upgraded and startup reports the error. There are no downgrade paths: newer data is refused, not converted.
+
 ## 8. Import / export
 
 A `.dndchar` file is UTF-8 JSON:
@@ -159,7 +161,7 @@ Import treats the file as untrusted:
 
 ```text
 dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z is newer than the latest release tag: tests, scripts/publish.ps1, gh release create with GITHUB_TOKEN, which creates the tag)
-   → GitHub Release: Hearthsheet-X.Y.Z-win-x64.zip + SHA256SUMS.txt
+   → GitHub Release: Hearthsheet-Setup.exe (first install) + Hearthsheet-X.Y.Z-win-x64.zip (updates) + SHA256SUMS.txt (both)
    → App: UpdateService.CheckAsync   (GET api.github.com/repos/{owner}/{repo}/releases; newest stable release with an X.Y.Z tag)
    → user confirms; character saved
    → DownloadAndStageAsync           (download via asset API; size caps; SHA-256 must match SHA256SUMS; zip extracted with zip-slip protection;
@@ -170,6 +172,8 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 
 - No `git pull` and no developer credentials in the shipped app. The update repository is public, so the update path needs no token. Redirects are followed manually so every hop is checked: only HTTPS GitHub hosts are contacted. Secrets are never logged; a redaction filter also scrubs token-shaped strings from every log line as a backstop.
 - User data lives outside the install folder, so replacing the folder wholesale is safe.
+- **First install** is `Hearthsheet-Setup.exe` (`packaging/Hearthsheet.iss`, built by `scripts/publish.ps1` with Inno Setup 6), always at `releases/latest/download/Hearthsheet-Setup.exe`. It's per-user (`%LOCALAPPDATA%\Programs\Hearthsheet`, no admin), installs the same self-contained files as the zip, offers a desktop shortcut (ticked by default), clears the folder first so it upgrades an old zip install cleanly, and registers in *Settings → Apps* under a fixed `AppId`. Running it again over an install just reinstalls in place.
+- The uninstaller lives in `Programs\Hearthsheet Uninstall`, outside the folder the updater replaces. Because in-app updates bypass Inno, the app writes its own version to the Apps entry's `DisplayVersion` at startup (`InstallRegistration`, only when the entry exists), and the uninstaller removes the install folder and `Hearthsheet.backup` wholesale. Uninstalling asks whether to also delete `%LOCALAPPDATA%\Hearthsheet` and the saved cloud sign-in (default: keep). A custom `Application:DataDirectory` is never deleted.
 - **Limitation.** The checksum file comes from the same release, so it protects against corruption and truncation, not against a compromised GitHub account. The next step is signing packages (Authenticode, or a minisign/ECDSA signature checked against a public key embedded in the app). `VerifyStagedPackage` is where that check belongs.
 
 ## 10. Logging, diagnostics and configuration
@@ -187,7 +191,7 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 | Imported files | Size and depth limits, format check, typed deserialization only, range clamping, structural repair, entry caps, fresh id |
 | Database | Parameterized SQL only; per-user data folder |
 | Logging | No object dumps of secrets; regex redaction backstop |
-| Privilege | `asInvoker` manifest; per-user install; no admin rights ever needed |
+| Privilege | `asInvoker` manifest; per-user installer (`PrivilegesRequired=lowest`); no admin rights ever needed |
 | Cloud account | Optional; Supabase Auth over HTTPS to one configured host; refresh session in Credential Manager only with "Stay signed in"; passwords never stored; tokens never logged (JWT redaction) |
 | Cloud data | Row-level security per user; the public anon/publishable key only; pulled rows go through the import validation pipeline |
 
@@ -223,7 +227,7 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 - No bundled spell, feature or item content (see NOTICE.md).
 - A very long spell or feature list grows its sheet page beyond one printed page and is clipped when printing.
 - The update checksum isn't a signature (see §9). Update checks are off until `Updates:Owner/Repository` are configured.
-- A release package requires the .NET 10 Desktop Runtime (framework-dependent).
+- Releases are unsigned, so SmartScreen warns once on the downloaded installer (the README shows *More info → Run anyway*). Packages are self-contained, so about 70 MB.
 - No undo/redo; autosave plus daily backups are the safety net.
 - Persistence calls are synchronous on the UI thread. They are fine for single-character documents, and could move to async if the store ever becomes remote.
 - Cloud sync runs at startup, every few minutes and on close, not after each save; there are no live updates between devices.

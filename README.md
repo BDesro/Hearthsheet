@@ -15,20 +15,21 @@ Characters are stored locally in SQLite, autosaved, backed up daily, and can be 
 ## Requirements
 
 - Windows 10/11 (x64)
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) to run a release package
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) to build from source
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) and [Inno Setup 6](https://jrsoftware.org/isinfo.php) (`winget install JRSoftware.InnoSetup`) to build from source. Nothing else is needed to run a release: .NET is bundled.
 
 ## Install (double-click to launch)
 
-**From a release:** download `Hearthsheet-<version>-win-x64.zip` from the [Releases page](https://github.com/BDesro/Hearthsheet/releases), extract it, and double-click **`Install.cmd`**. The installer:
+**From a release:** download **[Hearthsheet-Setup.exe](https://github.com/BDesro/Hearthsheet/releases/latest/download/Hearthsheet-Setup.exe)** (always the newest version) and double-click it.
 
-1. Checks for the .NET 10 Desktop Runtime. If it's missing, it points you to Microsoft's download page and stops without changing anything.
-2. Copies the app to `%LOCALAPPDATA%\Programs\Hearthsheet` (no admin rights needed).
-3. Creates Start Menu and desktop shortcuts, then offers to launch the app.
+Windows will warn you first, because Hearthsheet isn't signed by a registered publisher. Click **More info**, then **Run anyway**:
 
-After that, the app updates itself from new releases. Your characters live in `%LOCALAPPDATA%\Hearthsheet`, so reinstalling never touches them. Installer options: `-NoDesktopShortcut`, `-NoLaunch`, `-InstallDir <path>`.
+![Windows protected your PC: click More info, then Run anyway](docs/images/smartscreen.png)
 
-**From source:** this checks for the .NET 10 SDK (and points you to its download page if missing), builds the package, and runs the same installer:
+The installer asks only one thing, whether to add a desktop shortcut (ticked by default). It installs to `%LOCALAPPDATA%\Programs\Hearthsheet` without admin rights, adds a Start menu shortcut, and can launch the app when it's done.
+
+After that, the app updates itself from new releases. Your characters live in `%LOCALAPPDATA%\Hearthsheet`, so reinstalling or updating never touches them. To remove it, use **Settings → Apps → Hearthsheet → Uninstall**. It asks whether to also delete your characters, settings and backups, and keeps them unless you say yes.
+
+**From source:** this checks for the .NET 10 SDK (and points you to its download page if missing), builds the package, and runs the installer it produced:
 
 ```bash
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
@@ -48,13 +49,9 @@ dotnet run --project src/Hearthsheet.App
 dotnet test Hearthsheet.slnx
 ```
 
-Debug builds start in **development mode**: a diagnostics console window opens next to the app, and logging is verbose. See [Configuration](#configuration).
+Debug and Release builds behave the same. For verbose logs, set `Logging:FileMinimumLevel` to `Debug` (see [Configuration](#configuration)).
 
-To keep test data away from your real characters:
-
-```bash
-dotnet run --project src/Hearthsheet.App -- --Application:DataDirectory=%TEMP%\hearthsheet-dev
-```
+To keep test data away from your real characters, set `Application:DataDirectory` in `%LOCALAPPDATA%\Hearthsheet\appsettings.user.json` to a scratch folder (for example `C:\\Temp\\hearthsheet-dev`), and remove it when you're done.
 
 ## Packaging a release
 
@@ -62,7 +59,7 @@ dotnet run --project src/Hearthsheet.App -- --Application:DataDirectory=%TEMP%\h
 pwsh ./scripts/publish.ps1
 ```
 
-This produces `artifacts/Hearthsheet-<version>-win-x64.zip` and `artifacts/SHA256SUMS.txt`. Use it to check a package locally; published releases are built by GitHub Actions.
+This produces `artifacts/Hearthsheet-Setup.exe` (the installer people download), `artifacts/Hearthsheet-<version>-win-x64.zip` (the in-app update package) and `artifacts/SHA256SUMS.txt`, with the .NET runtime bundled. It needs Inno Setup 6 (`winget install JRSoftware.InnoSetup`). Use it to check a package locally; published releases are built by GitHub Actions.
 
 ### Branches and releases
 
@@ -78,12 +75,10 @@ git pull
 gh pr create --base main --head dev --title "Release 1.3.0" --body "Changes: ..."
 ```
 
-When CI passes, merge the PR (merge commit). The **Release** workflow then runs on `main` by itself: it reads `<Version>`, and if it is newer than the latest release it runs the tests, builds the zip and checksum, and publishes the GitHub release, creating the tag on the merge commit. Otherwise it does nothing. Watch it with `gh run watch`, or in the repository's Actions tab. Installed copies show an "Update 1.3.0 available" button within a startup or two.
+When CI passes, merge the PR (merge commit). The **Release** workflow then runs on `main` by itself: it reads `<Version>`, and if it is newer than the latest release it runs the tests, builds the installer, zip and checksums, and publishes the GitHub release, creating the tag on the merge commit. Otherwise it does nothing. Watch it with `gh run watch`, or in the repository's Actions tab. Installed copies show an "Update 1.3.0 available" button within a startup or two.
 
 - Use [semantic versions](https://semver.org): patch for fixes, minor for features, major for breaking changes. Tags must be plain `X.Y.Z`; there is no pre-release channel.
 - If a release is broken, don't move or delete the tag (the ruleset blocks it anyway). Fix forward with the next patch version, through `dev` as usual.
-
-To install: unzip the package into a folder you own, for example `%LOCALAPPDATA%\Programs\Hearthsheet`, and run `Hearthsheet.exe`. The app never needs administrator rights.
 
 ## Configuration
 

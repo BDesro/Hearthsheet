@@ -277,6 +277,31 @@ public class InstallerTests : IDisposable
     public void UpdaterOptions_RejectBadArguments(params string[] args) => Assert.Null(UpdaterOptions.Parse(args));
 }
 
+[System.Runtime.Versioning.SupportedOSPlatform("windows")]
+public class InstallRegistrationTests : IDisposable
+{
+    private readonly string _path = @"Software\Hearthsheet.Tests\" + Guid.NewGuid();
+    public void Dispose() => Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Hearthsheet.Tests", throwOnMissingSubKey: false);
+
+    [Fact]
+    public void MissingKey_CreatesNothing()
+    {
+        Assert.False(InstallRegistration.RefreshDisplayVersion(Microsoft.Win32.Registry.CurrentUser, _path, "1.5.0"));
+        Assert.Null(Microsoft.Win32.Registry.CurrentUser.OpenSubKey(_path));
+    }
+
+    [Fact]
+    public void ExistingKey_GetsNewVersion()
+    {
+        using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(_path)) key.SetValue("DisplayVersion", "1.4.0");
+
+        Assert.True(InstallRegistration.RefreshDisplayVersion(Microsoft.Win32.Registry.CurrentUser, _path, "1.5.0"));
+
+        using var reopened = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(_path)!;
+        Assert.Equal("1.5.0", reopened.GetValue("DisplayVersion"));
+    }
+}
+
 public class RedactionTests
 {
     [Theory]
