@@ -39,6 +39,8 @@
                 <Separator />
                 <MenuItem Header="_Import character…" Command="{Binding ImportCharacter}" />
                 <MenuItem Header="_Export character…" Command="{Binding ExportCharacter}" />
+                <MenuItem Header="Export a_ll characters…" Command="{Binding ExportAllCharacters}"
+                          AutomationProperties.Name="Export all characters" />
                 <Separator />
                 <MenuItem Header="_Save" Command="{Binding SaveCharacter}" InputGestureText="Ctrl+S" />
                 <MenuItem Header="_Print sheet…" Command="ApplicationCommands.Print" InputGestureText="Ctrl+P" />
@@ -84,7 +86,7 @@
                 <Button DockPanel.Dock="Right" Margin="0,0,14,0" Padding="8,1" MinHeight="22" Command="{Binding Sync.SyncNow}"
                         Content="{Binding Sync.Status}" ToolTip="Sync now" AutomationProperties.Name="Cloud sync status. Sync now"
                         Visibility="{Binding Sync.IsConfigured, Converter={StaticResource VisibleWhen}}" />
-                <TextBlock Text="{Binding SaveStatus}" Foreground="{StaticResource InkMuted}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Shell.SaveStatus}" Foreground="{StaticResource InkMuted}" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
@@ -110,7 +112,7 @@
                     <Button Content="Delete" Command="{Binding DeleteCharacter}" Foreground="{StaticResource Danger}" Margin="4,0,0,0" Padding="4,5" />
                 </UniformGrid>
                 <Grid>
-                    <ListBox ItemsSource="{Binding Characters}" SelectedItem="{Binding SelectedSummary}" Background="Transparent" BorderThickness="0"
+                    <ListBox ItemsSource="{Binding Shell.Characters}" SelectedItem="{Binding Shell.SelectedSummary}" Background="Transparent" BorderThickness="0"
                              Padding="8,0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Characters">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
@@ -151,7 +153,7 @@
                     </ListBox>
                     <TextBlock Margin="16,8" TextWrapping="Wrap" Foreground="{StaticResource InkMuted}"
                                Text="No characters yet. Create one or import a .dndchar file."
-                               Visibility="{Binding Characters.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                               Visibility="{Binding Shell.Characters.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
                 </Grid>
             </DockPanel>
 
@@ -182,8 +184,8 @@
                             <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
                                 <DockPanel Margin="16,0">
                                     <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
-                                        <TextBlock Text="{Binding Current.Title}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                                        <TextBlock Text="{Binding Current.Summary}" Foreground="{StaticResource InkMuted}" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding Shell.Current.Title}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding Shell.Current.Summary}" Foreground="{StaticResource InkMuted}" HorizontalAlignment="Right" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" IsItemsHost="True" />
                                 </DockPanel>
@@ -193,13 +195,13 @@
                     </ControlTemplate>
                 </TabControl.Template>
                 <TabItem Header="Character Sheet">
-                    <views:SheetView x:Name="Sheet" DataContext="{Binding Current}" />
+                    <views:SheetView x:Name="Sheet" DataContext="{Binding Shell.Current}" />
                 </TabItem>
                 <TabItem Header="Details">
-                    <views:DetailsView DataContext="{Binding Current}" />
+                    <views:DetailsView DataContext="{Binding Shell.Current}" />
                 </TabItem>
                 <TabItem Header="Play">
-                    <views:PlayView DataContext="{Binding Current}" />
+                    <views:PlayView DataContext="{Binding Shell.Current}" />
                 </TabItem>
             </TabControl>
         </Grid>

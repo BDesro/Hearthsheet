@@ -42,24 +42,26 @@ public class CharacterViewModelTests
     }
 
     [Fact]
-    public void LongRest_DoesNothing_WhenNotConfirmed()
+    public async Task LongRest_DoesNothing_WhenNotConfirmed()
     {
         _dialogs.ConfirmAnswer = false;
         _vm.Character.TakeDamage(5);
         var hp = _vm.Character.Combat.CurrentHp;
 
         _vm.Play.LongRest.Execute(null);
+        await Task.Yield();
 
         Assert.Equal(hp, _vm.Character.Combat.CurrentHp);
     }
 
     [Fact]
-    public void LongRest_RestoresHp_WhenConfirmed()
+    public async Task LongRest_RestoresHp_WhenConfirmed()
     {
         _dialogs.ConfirmAnswer = true;
         _vm.Character.TakeDamage(5);
 
         _vm.Play.LongRest.Execute(null);
+        await Task.Yield();
 
         Assert.Equal(_vm.MaxHitPoints, _vm.Character.Combat.CurrentHp);
     }
@@ -67,10 +69,14 @@ public class CharacterViewModelTests
     private sealed class FakeDialogs : IDialogs
     {
         public bool ConfirmAnswer { get; set; }
-        public bool Confirm(string message, string title = "Confirm") => ConfirmAnswer;
-        public void Info(string message) { }
-        public (string ClassName, LevelUpOptions Options)? LevelUp(Character c, string? className = null) => null;
-        public QuickAddResult? QuickAdd(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription) => null;
-        public bool ShortRest(PlayViewModel play, Character character) => false;
+        public Task<bool> ConfirmAsync(string message, string title = "Confirm") => Task.FromResult(ConfirmAnswer);
+        public Task InfoAsync(string message) => Task.CompletedTask;
+        public Task ErrorAsync(string message) => Task.CompletedTask;
+        public Task<NewCharacterOptions?> NewCharacterAsync() => Task.FromResult<NewCharacterOptions?>(null);
+        public Task<(string ClassName, LevelUpOptions Options)?> LevelUpAsync(Character c, string? className = null) =>
+            Task.FromResult<(string ClassName, LevelUpOptions Options)?>(null);
+        public Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription) =>
+            Task.FromResult<QuickAddResult?>(null);
+        public Task<bool> ShortRestAsync(PlayViewModel play, Character character) => Task.FromResult(false);
     }
 }

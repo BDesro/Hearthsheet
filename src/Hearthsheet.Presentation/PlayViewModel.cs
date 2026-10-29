@@ -168,23 +168,23 @@ public sealed class PlayViewModel : Observable
         while (ActivityLog.Count > MaxLogEntries) ActivityLog.RemoveAt(ActivityLog.Count - 1);
     }
 
-    private void QuickAdd(string title, IReadOnlyList<object>? kinds, Func<Character, QuickAddResult, string> add,
+    private async Task QuickAdd(string title, IReadOnlyList<object>? kinds, Func<Character, QuickAddResult, string> add,
         object? defaultKind = null, bool withDescription = true)
     {
-        var result = _dialogs.QuickAdd(title, kinds, defaultKind, withDescription);
+        var result = await _dialogs.QuickAddAsync(title, kinds, defaultKind, withDescription);
         if (result is null) return;
         Act(title, c => add(c, result));
     }
 
-    private void DoShortRest()
+    private async Task DoShortRest()
     {
-        if (!_dialogs.ShortRest(this, Character)) return;
+        if (!await _dialogs.ShortRestAsync(this, Character)) return;
         Act("Short Rest", c => Describe(_rest.Rest(c, RestKind.Short)));
     }
 
-    private void DoLongRest()
+    private async Task DoLongRest()
     {
-        if (!_dialogs.Confirm("Take a long rest? HP, hit dice, spell slots and long-rest resources will be restored.", "Long Rest"))
+        if (!await _dialogs.ConfirmAsync("Take a long rest? HP, hit dice, spell slots and long-rest resources will be restored.", "Long Rest"))
             return;
         Act("Long Rest", c => Describe(_rest.Rest(c, RestKind.Long)));
     }

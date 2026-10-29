@@ -65,7 +65,8 @@ public sealed class SupabaseHttp
             BaseAddress = new Uri(options.Url.TrimEnd('/') + "/"),
             Timeout = TimeSpan.FromSeconds(20),
         };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Hearthsheet", userAgentVersion));
+        if (!OperatingSystem.IsBrowser()) // browsers forbid it and it would add CORS preflight noise
+            _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Hearthsheet", userAgentVersion));
     }
 
     /// <param name="method">HTTP method.</param>

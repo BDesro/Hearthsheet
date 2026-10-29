@@ -1,0 +1,53 @@
+@* Save state, unsynced changes and storage failures (spec 6 and 8: a failed write is never silent). *@
+@using Hearthsheet.Presentation
+@using Hearthsheet.Web.Storage
+@implements IDisposable
+
+<footer class="status-bar" aria-label="Status">
+    <span role="status">@Shell.SaveStatus</span>
+    @if (Sync.Status is { Length: > 0 } status)
+    {
+        <span role="status">@status</span>
+    }
+    @if (SyncStatus.Unsynced(Account.Store.UnsyncedCount) is { Length: > 0 } unsynced)
+    {
+        <span>@unsynced</span>
+    }
+    @if (Account.Journal.Failed)
+    {
+        <span role="alert" class="error">
+            Not saved on this device
+            <button type="button" aria-label="Try again: save characters" @onclick="Account.Journal.RetryAsync">Try again</button>
+        </span>
+    }
+    @if (Secrets.Failed)
+    {
+        <span role="alert" class="error">
+            Sign-in not saved on this device
+            <button type="button" aria-label="Try again: save sign-in" @onclick="Secrets.RetryAsync">Try again</button>
+        </span>
+    }
+</footer>
+
+@code {
+    [Parameter, EditorRequired] public ShellViewModel Shell { get; set; } = null!;
+    [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
+    [Parameter, EditorRequired] public WebSync Sync { get; set; } = null!;
+
+    /// <summary>The sign-in secrets' journal (<see cref="BrowserSecretStore.Journal"/>).</summary>
+    [Parameter, EditorRequired] public IndexedDbJournal Secrets { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        Account.Journal.StateChanged += OnChanged;
+        Secrets.StateChanged += OnChanged;
+    }
+
+    private void OnChanged(object? sender, EventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Account.Journal.StateChanged -= OnChanged;
+        Secrets.StateChanged -= OnChanged;
+    }
+}

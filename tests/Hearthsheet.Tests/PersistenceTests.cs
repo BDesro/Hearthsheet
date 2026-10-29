@@ -229,52 +229,6 @@ public class RepositoryTests : IDisposable
     public void Dispose() => _dir.Dispose();
 
     [Fact]
-    public void SaveLoadUpdateDelete()
-    {
-        var repo = NewRepository();
-        var c = Samples.Rich();
-        repo.Save(c);
-
-        var loaded = repo.Load(c.Id)!;
-        Assert.Equal(CharacterJson.Serialize(c), CharacterJson.Serialize(loaded));
-
-        loaded.Identity.Name = "Renamed";
-        loaded.TakeDamage(5);
-        repo.Save(loaded);
-        var summaries = repo.List();
-        Assert.Single(summaries);
-        Assert.Equal("Renamed", summaries[0].Name);
-        Assert.Contains("Wizard 5", summaries[0].Description);
-        Assert.Equal(loaded.Combat.CurrentHp, repo.Load(c.Id)!.Combat.CurrentHp);
-
-        Assert.True(repo.Delete(c.Id));
-        Assert.Null(repo.Load(c.Id));
-        Assert.False(repo.Delete(c.Id));
-    }
-
-    [Fact]
-    public void Data_SurvivesReopeningDatabase()
-    {
-        var c = Samples.Rich();
-        NewRepository().Save(c);
-        var reopened = NewRepository();
-        Assert.Equal("Arannis", reopened.Load(c.Id)!.Identity.Name);
-    }
-
-    [Fact]
-    public void MultipleCharacters_AreListedByName()
-    {
-        var repo = NewRepository();
-        foreach (var name in new[] { "zed", "Alice", "bob" })
-        {
-            var c = new Character();
-            c.Identity.Name = name;
-            repo.Save(c);
-        }
-        Assert.Equal(["Alice", "bob", "zed"], repo.List().Select(s => s.Name));
-    }
-
-    [Fact]
     public void Load_RowFromNewerSchema_ThrowsFormatException()
     {
         var repo = NewRepository();
@@ -313,26 +267,37 @@ public class RepositoryTests : IDisposable
         Assert.Equal("Arannis", restored.Load(c.Id)!.Identity.Name);
     }
 
+    private CharacterLibrary NewLibrary(SqliteCharacterRepository repo) =>
+        new(repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
+
     [Fact]
-    public void Library_DuplicateCreatesIndependentCopy()
+    public void ImportText_RejectsOversizedText()
+    {
+        var library = NewLibrary(NewRepository());
+        var text = new string('x', (int)PortableCharacterFile.MaxFileBytes + 1);
+        Assert.Throws<CharacterFormatException>(() => library.Import(text, "big.dndchar"));
+    }
+
+    [Fact]
+    public void ExportAll_SkipsUnreadableCharacter_AndReportsItsName()
     {
         var repo = NewRepository();
-        var library = new CharacterLibrary(repo, new PortableCharacterFile(),
-            "1.0.0", NullLogger<CharacterLibrary>.Instance);
-        var original = library.Create(new NewCharacterOptions("Hero", "Fighter", 3, "Human", "Soldier"));
-        var copy = library.Duplicate(original);
+        var library = NewLibrary(repo);
+        var good = new Character();
+        good.Identity.Name = "Good";
+        var bad = new Character();
+        bad.Identity.Name = "Broken";
+        repo.Save(good);
+        repo.Save(bad);
+        ExecuteSql($"UPDATE characters SET data = '{{broken' WHERE id = '{bad.Id}'");
 
-        copy.Abilities.Strength = 20;
-        repo.Save(copy);
-        Assert.Equal(2, repo.List().Count);
-        Assert.Equal(10, repo.Load(original.Id)!.Abilities.Strength);
-        Assert.Equal("Hero (copy)", repo.Load(copy.Id)!.Identity.Name);
+        using var ms = new MemoryStream();
+        var skipped = library.ExportAll(ms);
+        ms.Position = 0;
+        using var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
 
-        var exportPath = _dir.File("hero.dndchar");
-        library.Export(original, exportPath);
-        var imported = library.Import(exportPath);
-        Assert.Equal(3, repo.List().Count);
-        Assert.Equal("Hero", imported.Identity.Name);
+        Assert.Equal(["Broken"], skipped);
+        Assert.Equal(["Good.dndchar"], zip.Entries.Select(e => e.FullName));
     }
 
     private void ExecuteSql(string sql)

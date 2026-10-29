@@ -1,0 +1,59 @@
+@inject IConfiguration Config
+
+@if (!SelfCheckPassed)
+{
+    <p role="alert">This build can't save changes. Please report it.</p>
+}
+else
+{
+    @if (Config.GetValue<bool>("Preview"))
+    {
+        <div class="preview-banner" role="note">Preview – not the final Hearthsheet. Don't rely on it for real characters.</div>
+    }
+    <UpdateBanner SaveAll="SaveForUpdateAsync" />
+    <InstallHint />
+    <h1>Hearthsheet</h1>
+    <Modal />
+    @if (_error is not null)
+    {
+        <p role="alert">@_error</p>
+    }
+    @if (_lock is null)
+    {
+        @if (_error is null)
+        {
+            <p>Loading…</p>
+        }
+    }
+    else if (_lock.IsReadOnly)
+    {
+        <OtherTab Lock="_lock" TookOver="OpenStorageAsync" />
+    }
+    else if (_busy is not null || _storage is null || _auth is null)
+    {
+        <p role="status">@(_busy ?? "Loading…")</p>
+    }
+    else if (_account is null)
+    {
+        <SignIn Auth="_auth" SignedIn="OnSignedInAsync" />
+    }
+    else
+    {
+        @if (_askSignOut is { } unsynced)
+        {
+            <SignOutDialog Unsynced="unsynced" Busy="_signOutBusy" Error="@_signOutError" Chosen="OnSignOutChosenAsync" />
+        }
+        else
+        {
+            @if (!_auth.IsSignedIn)
+            {
+                <SignIn Auth="_auth" Email="@_account.Email" SignedIn="OnSignedInAsync" />
+            }
+            <Shell @key="_account" Account="_account" Storage="_storage" SignOut="SignOutAsync" SyncChanged="StateHasChanged" />
+        }
+    }
+}
+
+@code {
+    [Parameter] public bool SelfCheckPassed { get; set; }
+}

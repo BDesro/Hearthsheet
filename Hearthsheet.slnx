@@ -5,6 +5,7 @@
     <Project Path="src/Hearthsheet.Core/Hearthsheet.Core.csproj" />
     <Project Path="src/Hearthsheet.Infrastructure/Hearthsheet.Infrastructure.csproj" />
     <Project Path="src/Hearthsheet.Presentation/Hearthsheet.Presentation.csproj" />
+    <Project Path="src/Hearthsheet.Web/Hearthsheet.Web.csproj" />
     <Project Path="src/Hearthsheet.Updater/Hearthsheet.Updater.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -1,0 +1,137 @@
+@* Sign in, create an account, or reset a forgotten password with the emailed code. Shown alone until a session exists,
+   and under "Signed out – sign in to resume sync" when the last account's store is open offline. *@
+@using Hearthsheet.Cloud
+@using Hearthsheet.Core.Sync
+@using Microsoft.Extensions.Logging
+@inject ILogger<SignIn> Log
+
+<section class="sign-in" aria-labelledby="sign-in-title">
+    <h2 id="sign-in-title">@Title</h2>
+    @if (_info is not null)
+    {
+        <p role="status">@_info</p>
+    }
+    @if (_error is not null)
+    {
+        <p role="alert" class="error">@_error</p>
+    }
+    <form @onsubmit="SubmitAsync">
+        <label for="sign-in-email">Email</label>
+        <input id="sign-in-email" type="email" autocomplete="email" required @bind="_email" disabled="@_busy" />
+
+        @if (_mode == Mode.Reset)
+        {
+            <label for="sign-in-code">Code from the email</label>
+            <input id="sign-in-code" inputmode="numeric" autocomplete="one-time-code" required @bind="_code" disabled="@_busy" />
+        }
+        @if (_mode != Mode.Forgot)
+        {
+            <label for="sign-in-password">@(_mode == Mode.Reset ? "New password" : "Password")</label>
+            <input id="sign-in-password" type="password" required minlength="@(_mode == Mode.SignIn ? 1 : 8)"
+                   autocomplete="@(_mode == Mode.SignIn ? "current-password" : "new-password")" @bind="_password" disabled="@_busy" />
+
+            <label class="check" for="sign-in-remember"><input id="sign-in-remember" type="checkbox" @bind="_remember" disabled="@_busy" /> Stay signed in</label>
+        }
+        <button type="submit" disabled="@_busy">@SubmitText</button>
+    </form>
+    <p class="sign-in-links">
+        @if (_mode == Mode.SignIn)
+        {
+            <button type="button" class="link" @onclick="() => Switch(Mode.SignUp)" disabled="@_busy">Create an account</button>
+            <button type="button" class="link" @onclick="() => Switch(Mode.Forgot)" disabled="@_busy">Forgot password?</button>
+        }
+        else
+        {
+            <button type="button" class="link" @onclick="() => Switch(Mode.SignIn)" disabled="@_busy">Back to sign in</button>
+        }
+        @if (_mode == Mode.Forgot)
+        {
+            <button type="button" class="link" @onclick="() => Switch(Mode.Reset)" disabled="@_busy">I have a code</button>
+        }
+    </p>
+</section>
+
+@code {
+    private enum Mode { SignIn, SignUp, Forgot, Reset }
+
+    private Mode _mode;
+    private string _email = "";
+    private string _password = "";
+    private string _code = "";
+    private bool _remember;
+    private bool _busy;
+    private string? _error;
+    private string? _info;
+
+    [Parameter, EditorRequired] public SupabaseAuth Auth { get; set; } = null!;
+
+    /// <summary>Fills the email field (the last account's, when signing in again).</summary>
+    [Parameter] public string? Email { get; set; }
+
+    /// <summary>Raised after a session has started.</summary>
+    [Parameter] public EventCallback SignedIn { get; set; }
+
+    protected override void OnInitialized() => _email = Email ?? "";
+
+    private string Title => _mode switch
+    {
+        Mode.SignUp => "Create an account",
+        Mode.Forgot => "Reset your password",
+        Mode.Reset => "Set a new password",
+        _ => "Sign in",
+    };
+
+    private string SubmitText => _mode switch
+    {
+        Mode.SignUp => "Create account",
+        Mode.Forgot => "Email me a code",
+        Mode.Reset => "Set password and sign in",
+        _ => "Sign in",
+    };
+
+    private void Switch(Mode mode)
+    {
+        (_mode, _error, _info, _password, _code) = (mode, null, null, "", "");
+    }
+
+    private async Task SubmitAsync()
+    {
+        (_busy, _error, _info) = (true, null, null);
+        var email = _email.Trim();
+        try
+        {
+            switch (_mode)
+            {
+                case Mode.SignIn:
+                    await Auth.SignInAsync(email, _password, _remember, CancellationToken.None);
+                    break;
+                case Mode.SignUp:
+                    await Auth.SignUpAsync(email, _password, _remember, CancellationToken.None);
+                    break;
+                case Mode.Forgot:
+                    await Auth.RequestPasswordResetAsync(email, CancellationToken.None);
+                    Switch(Mode.Reset);
+                    _info = $"If {email} has an account, a code is on its way. Enter it with a new password.";
+                    return;
+                case Mode.Reset:
+                    await Auth.ResetPasswordAsync(email, _code.Trim(), _password, _remember, CancellationToken.None);
+                    break;
+            }
+            _password = "";
+            await SignedIn.InvokeAsync();
+        }
+        catch (CloudException ex)
+        {
+            _error = ex.Message; // safe to show; never includes the password or code
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Signing in failed unexpectedly");
+            _error = "Something went wrong. Try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

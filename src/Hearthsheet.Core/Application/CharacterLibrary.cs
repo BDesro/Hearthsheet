@@ -1,3 +1,5 @@
+using System.IO.Compression;
+using System.Text;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
@@ -53,5 +55,52 @@ public sealed class CharacterLibrary(
         repository.Save(c);
         logger.LogInformation("Character imported: {Name} from {File}", c.Identity.Name, Path.GetFileName(path));
         return c;
+    }
+
+    public string ExportText(Character c) => portable.Export(c, appVersion);
+
+    /// <exception cref="CharacterFormatException">The text is invalid, corrupt, too large or from a newer version.</exception>
+    public Character Import(string text, string sourceName)
+    {
+        var c = portable.Import(text);
+        repository.Save(c);
+        logger.LogInformation("Character imported: {Name} from {File}", c.Identity.Name, sourceName);
+        return c;
+    }
+
+    /// <summary>Writes every stored character as a .dndchar entry in a zip. Unreadable characters are skipped and logged;
+    /// returns their display names (empty when everything was exported).</summary>
+    public IReadOnlyList<string> ExportAll(Stream zip)
+    {
+        var skipped = new List<string>();
+        using var archive = new ZipArchive(zip, ZipArchiveMode.Create, leaveOpen: true);
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var summary in repository.List())
+        {
+            Character? c;
+            try { c = repository.Load(summary.Id); }
+            catch (CharacterFormatException ex)
+            {
+                logger.LogWarning(ex, "Export all: skipped unreadable character {Id}", summary.Id);
+                skipped.Add(summary.Name);
+                continue;
+            }
+            if (c is null) continue;
+
+            var stem = SafeFileName(c.Identity.Name);
+            var name = stem;
+            for (var n = 2; !used.Add(name); n++) name = $"{stem} ({n})";
+            var entry = archive.CreateEntry(name + PortableCharacterFile.FileExtension);
+            using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
+            writer.Write(portable.Export(c, appVersion));
+        }
+        return skipped;
+    }
+
+    private static string SafeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var s = string.Concat(name.Select(ch => invalid.Contains(ch) ? '_' : ch)).Trim();
+        return s.Length == 0 ? "Character" : s;
     }
 }

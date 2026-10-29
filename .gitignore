@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # graphify knowledge graph (local navigation aid)
 graphify-out/
+.wrangler/

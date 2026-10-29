@@ -113,6 +113,7 @@ Ctrl+N new character · Ctrl+S save · Ctrl+P print sheet · Ctrl+1/2/3 Sheet/De
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): stack choice, layers, domain model, persistence, updates, security, testing, limitations and extension points
 - [docs/CLOUD_SYNC.md](docs/CLOUD_SYNC.md): setting up the optional cloud sync (Supabase, Resend), the manual test script and troubleshooting
+- [docs/WEB.md](docs/WEB.md): how the web version is built and deployed, the one-time Cloudflare setup and the switch from preview to production
 - [NOTICE.md](NOTICE.md): intellectual-property and licensing notes
 
 ## License

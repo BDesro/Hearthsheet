@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Hearthsheet is a Windows desktop app (.NET 10, WPF) for playing and managing a D&D 5e character. `docs/ARCHITECTURE.md` is the detailed design reference (domain model, sync, updates, security, extension points); `docs/CLOUD_SYNC.md` covers the Supabase sync. Read the relevant section before changing those areas.
+Hearthsheet is a Windows desktop app (.NET 10, WPF) for playing and managing a D&D 5e character. `docs/ARCHITECTURE.md` is the detailed design reference (domain model, sync, updates, security, extension points); `docs/CLOUD_SYNC.md` covers the Supabase sync; `docs/WEB.md` covers the web app's deploy (Cloudflare Pages) and its preview-to-production switch. Read the relevant section before changing those areas.
 
 ## Commands
 
@@ -12,18 +12,19 @@ dotnet test Hearthsheet.slnx
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests"          # one class
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests.LongRest"  # one test / name prefix
 dotnet run --project src/Hearthsheet.App
+dotnet run --project src/Hearthsheet.Web   # the Blazor WebAssembly PWA (preview; points at the Hearthsheet-Test Supabase project)
 pwsh ./scripts/publish.ps1     # needs Inno Setup 6; artifacts/Hearthsheet-Setup.exe + Hearthsheet-<version>-win-x64.zip + SHA256SUMS.txt
 ```
 
-CI (`.github/workflows/ci.yml`) runs `dotnet build` and `dotnet test` in Release on `windows-latest`. There is no separate linter or formatter step.
+CI (`.github/workflows/ci.yml`) runs `dotnet build`, `dotnet test` and `dotnet publish src/Hearthsheet.Web -c Release` in Release on `windows-latest`. There is no separate linter or formatter step.
 
 Running the app uses your real data in `%LOCALAPPDATA%\Hearthsheet`. There is no command-line or environment-variable config (removed on purpose); to point at a scratch folder, set `Application:DataDirectory` in `%LOCALAPPDATA%\Hearthsheet\appsettings.user.json`.
 
 ## Architecture (big picture)
 
-Six projects, dependencies point inward: `App` → `Presentation`, `Infrastructure` → `Cloud` → `Core`, and `Presentation` → `Core`; `Updater` is a standalone console exe.
+Seven projects, dependencies point inward: `App` → `Presentation`, `Infrastructure` → `Cloud` → `Core`, `Web` → `Presentation`, `Cloud`, and `Presentation` → `Core`; `Updater` is a standalone console exe.
 
-- **Core** has no WPF, SQLite or network references, so all game rules are unit-testable. **Cloud** is the Supabase client (auth, character store, `ISecretStore` contract) with no platform code, so a web app can share it. **Presentation** holds the UI-neutral view models (`CharacterViewModel`, `PlayViewModel`, rows, `RelayCommand`, `Lookups`) behind `IDialogs` and a post-to-UI action, so a web UI can share them. Tests reference Core, Cloud, Presentation, Infrastructure and Updater, never App.
+- **Core** has no WPF, SQLite or network references, so all game rules are unit-testable. **Cloud** is the Supabase client (auth, character store, `ISecretStore` contract) with no platform code, so a web app can share it. **Presentation** holds the UI-neutral view models (`CharacterViewModel`, `PlayViewModel`, rows, `RelayCommand`, `Lookups`) behind `IDialogs` and a post-to-UI action, so a web UI can share them. **Web** is the Blazor WebAssembly PWA over the same view models, with browser storage instead of SQLite. Tests reference Core, Cloud, Presentation, Infrastructure and Updater, never App or Web; they link two Web source files with no Blazor dependencies (`WebDialogs.cs`, `WebSync.cs`).
 - **One model, three views.** Sheet, Details and Play all bind directly to the same `Character` aggregate (domain classes derive from `Observable` and use `ObservableCollection`). No view holds its own copy of state. `ChangeTracker` subscribes to the whole object graph by reflection and feeds `CharacterSession.Changed`, which drives both `CharacterViewModel.Refresh()` (derived values) and the 2-second autosave.
 - **Stored vs derived.** Only authoritative values are persisted. Totals (modifiers, saves, skills, AC, speed, max HP, spell DC, attack bonuses, carried weight) are pure functions in `Core/Rules/CharacterRules.cs` exposed through `CharacterViewModel`. Never store a derived value.
 - **Modifiers** (`Target` key from `StatTargets`, `Kind` Bonus/Set, `Value`) are the one mechanism for bonuses and overrides on features, effects, equipped/attuned items and weapons. Add a new target there rather than special-casing.

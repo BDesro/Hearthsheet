@@ -1,0 +1,138 @@
+@* The signed-in shell: account menu, character list, the open character and the status bar, over one account's store. *@
+@using System.Text
+@using Hearthsheet.Cloud
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@using Hearthsheet.Web.Storage
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject WebDialogs Dialogs
+@inject ILoggerFactory Loggers
+@inject MemoryLogProvider Logs
+@inject IJSRuntime JS
+
+<div class="shell">
+    <details class="account-menu">
+        <summary>@(Account.Email ?? "Account")</summary>
+        <div class="menu">
+            <button type="button" @onclick="ExportAllAsync">Export all characters</button>
+            <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
+            <button type="button" @onclick="SignOut">Sign out</button>
+        </div>
+    </details>
+    <nav class="sidebar" aria-label="Characters">
+        <CharacterList Shell="_shell" Account="Account" Storage="Storage" />
+    </nav>
+    <main class="main">
+        @if (_shell.Current is { } current)
+        {
+            <CharacterPlaceholder @key="current" Character="current.Character" />
+        }
+        else
+        {
+            <p>No character open. Choose New or Import to start.</p>
+        }
+    </main>
+    <StatusBar Shell="_shell" Account="Account" Sync="_sync" Secrets="Storage.Secrets.Journal" />
+</div>
+
+@code {
+    private ShellViewModel _shell = null!;
+    private WebSync _sync = null!;
+    private IJSObjectReference? _js;
+    private DotNetObjectReference<Shell>? _ref;
+    private bool _disposed;
+    private static int s_lastWatchId;
+    private readonly int _watchId = ++s_lastWatchId; // the browser has one thread
+
+    [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
+    [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
+    [Parameter] public EventCallback SignOut { get; set; }
+
+    /// <summary>A pass finished; the app re-renders (a pass can end the session: "Signed out – sign in to resume sync").</summary>
+    [Parameter] public EventCallback SyncChanged { get; set; }
+
+    private ILogger Log => Loggers.CreateLogger<Shell>();
+
+    protected override void OnInitialized()
+    {
+        // Back from the sign-out question: reopen the character that was open.
+        var reopen = Account.OpenCharacter();
+        _shell = new ShellViewModel(Account.Store, Account.Library, RestService.CreateDefault(), Dialogs, Loggers,
+            action => _ = InvokeAsync(action), TimeProvider.System, Account.Sync);
+        Account.Save = () => _shell.Save();
+        Account.OpenCharacter = () => _shell.OpenCharacterId;
+        _shell.PropertyChanged += OnChanged;
+        _shell.Characters.CollectionChanged += OnChanged;
+        _shell.Start();
+        if (reopen is { } id && _shell.Characters.FirstOrDefault(c => c.Id == id) is { } summary) _shell.SelectedSummary = summary;
+
+        _sync = new WebSync(Account.Sync, _shell, Account.Auth, Account.UserId, Account.Journal, Loggers.CreateLogger<WebSync>(),
+            action => _ = InvokeAsync(action), TimeProvider.System);
+        _sync.Changed += OnSyncChanged;
+        Account.WebSync = _sync;
+        _ = _sync.RunAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        if (_disposed) return;
+        (_js, _ref) = (js, DotNetObjectReference.Create(this));
+        _sync.IsVisible = await _js.InvokeAsync<bool>("watchPage", _ref, _watchId);
+    }
+
+    [JSInvokable] public void Online() => _sync.Online();
+    [JSInvokable] public void Visible(bool visible) => _sync.IsVisible = visible;
+
+    private void OnSyncChanged() => _ = InvokeAsync(SyncChanged.InvokeAsync);
+
+    private void OnChanged(object? sender, EventArgs e) => InvokeAsync(StateHasChanged);
+
+    private async Task ExportAllAsync()
+    {
+        if (!_shell.Save()) return;
+        try
+        {
+            using var zip = new MemoryStream();
+            var skipped = Account.Library.ExportAll(zip);
+            await Storage.DownloadAsync($"Hearthsheet characters {DateTime.Now:yyyy-MM-dd}.zip", "application/zip", zip.ToArray());
+            if (skipped.Count > 0)
+                await Dialogs.ErrorAsync($"These characters could not be read and are not in the zip:\n\n{string.Join("\n", skipped)}");
+        }
+        catch (JSException ex)
+        {
+            Log.LogError(ex, "Export all failed");
+            await Dialogs.ErrorAsync("The characters could not be exported. Try again.");
+        }
+    }
+
+    // The in-memory log of this session, already redacted (spec 22).
+    private async Task DownloadDiagnosticsAsync()
+    {
+        try
+        {
+            await Storage.DownloadAsync($"Hearthsheet diagnostics {DateTime.Now:yyyy-MM-dd HHmm}.txt", "text/plain",
+                Encoding.UTF8.GetBytes(Logs.Snapshot()));
+        }
+        catch (JSException ex)
+        {
+            Log.LogError(ex, "Downloading diagnostics failed");
+            await Dialogs.ErrorAsync("The diagnostics could not be downloaded. Try again.");
+        }
+    }
+
+    public void Dispose()
+    {
+        // Account.Save stays pointed at this view model: a lock release or sign-out after unmounting still saves through it.
+        _shell.PropertyChanged -= OnChanged;
+        _shell.Characters.CollectionChanged -= OnChanged;
+        _disposed = true;
+        _sync.Changed -= OnSyncChanged;
+        _sync.Dispose();
+        if (_js is not null) _ = _js.InvokeVoidAsync("unwatchPage", _watchId).AsTask();
+        _ref?.Dispose();
+    }
+}

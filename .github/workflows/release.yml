@@ -4,6 +4,7 @@ name: Release
 # that creates tag v<version> on the merge commit. Otherwise (a merge that didn't bump the version) it does nothing.
 # Uses the workflow's own GITHUB_TOKEN, no PAT. The release notes shown in the app's update dialog are RELEASE_NOTES.md:
 # plain text, rewritten for each release.
+# After a release, deploy-web publishes Hearthsheet.Web to the Cloudflare Pages project "hearthsheet" (docs/WEB.md).
 on:
   push:
     branches: [main]
@@ -14,6 +15,8 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    outputs:
+      new: ${{ steps.version.outputs.new }}
     steps:
       - uses: actions/checkout@v7
       - name: Read version and check that it is newer than the latest release
@@ -50,3 +53,32 @@ jobs:
         run: |
           $tag = 'v${{ steps.version.outputs.version }}'
           gh release create $tag (Get-Item artifacts/*.zip).FullName artifacts/Hearthsheet-Setup.exe artifacts/SHA256SUMS.txt --target $env:GITHUB_SHA --title "Hearthsheet $tag" --notes-file RELEASE_NOTES.md
+
+  # Spec 12/13: only after a new release on main (this workflow never runs for PRs, forks or dev). Cloudflare's own Git
+  # integration is not used. The token has only "Cloudflare Pages: Edit"; wrangler is pinned to an exact version.
+  # The token lives in the "production" environment, whose deployment branches are limited to main, so no other
+  # branch's workflow can read it.
+  deploy-web:
+    needs: release
+    if: needs.release.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    concurrency:
+      group: deploy-web
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish the web app
+        run: dotnet publish src/Hearthsheet.Web -c Release -o web
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.150.0 pages deploy web/wwwroot --project-name=hearthsheet --branch=main
