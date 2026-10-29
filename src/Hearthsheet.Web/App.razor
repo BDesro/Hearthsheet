@@ -11,9 +11,27 @@ else
         <div class="preview-banner" role="note">Preview – not the final Hearthsheet. Don't rely on it for real characters.</div>
     }
     <h1>Hearthsheet</h1>
-    @if (DevPage is not null)
+    @if (_error is not null)
     {
-        <DynamicComponent Type="DevPage" />
+        <p role="alert">@_error</p>
+    }
+    else if (_lock is null)
+    {
+        <p>Loading…</p>
+    }
+    else
+    {
+        @if (_lock.IsReadOnly)
+        {
+            <OtherTab Lock="_lock" TookOver="OpenStorageAsync" />
+        }
+        @if (_storage is not null && DevPage is not null)
+        {
+            @* A native disabled fieldset disables every control inside it while another tab holds the lock. *@
+            <fieldset class="app-content" disabled="@_lock.IsReadOnly">
+                <DynamicComponent @key="_storage" Type="DevPage" Parameters="DevParameters" />
+            </fieldset>
+        }
     }
 }
 

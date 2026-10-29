@@ -1,6 +1,62 @@
-// Hand-written browser glue; later tasks add tab-lock exports.
+// Hand-written browser glue: service worker, tab lock, IndexedDB and Web Storage.
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+}
+
+// ---- One tab at a time (spec decision 7): Web Lock "hearthsheet", take-over over BroadcastChannel "hearthsheet" ----
+
+let held = false;       // IndexedDB is refused unless this tab holds the lock, so a read-only tab can't write.
+let releaseLock = null; // resolves the promise that keeps the lock
+let owner = null;       // the .NET TabLock
+const channel = new BroadcastChannel('hearthsheet');
+channel.onmessage = e => {
+    if (e.data === 'release' && held) owner?.invokeMethodAsync('ReleaseRequested');
+};
+
+function requireLock() {
+    if (!held) throw new Error('Hearthsheet is open in another tab.');
+}
+
+// Resolves true once granted, false if not available (ifAvailable). Rejects if aborted before being granted. A lock
+// lost after the grant (another tab stole it) makes this tab read-only at once and tells .NET through LockLost.
+function request(options) {
+    return new Promise((resolve, reject) => {
+        let granted = false;
+        navigator.locks.request('hearthsheet', options, lock => {
+            if (!lock) { resolve(false); return; }
+            granted = true;
+            held = true;
+            resolve(true);
+            return new Promise(r => { releaseLock = r; });
+        }).catch(e => {
+            if (!granted) { reject(e); return; }
+            held = false;
+            releaseLock = null;
+            owner?.invokeMethodAsync('LockLost');
+        });
+    });
+}
+
+export function lockAcquire(dotnetRef) {
+    owner = dotnetRef;
+    return request({ ifAvailable: true });
+}
+
+export async function lockTakeOver() {
+    channel.postMessage('release');
+    try {
+        return await request({ signal: AbortSignal.timeout(3000) });
+    } catch {
+        // The holder didn't let go within 3 s (busy, frozen or in the background): take it anyway.
+        return await request({ steal: true });
+    }
+}
+
+// Called by .NET after it has saved and flushed. Refuses IndexedDB from here on, then lets the lock go.
+export function lockRelease() {
+    held = false;
+    releaseLock?.();
+    releaseLock = null;
 }
 
 // ---- IndexedDB: one database per name, one object store "records" (key = record key, value = JSON string) ----
@@ -29,6 +85,7 @@ function open(name) {
 }
 
 export async function idbLoad(dbName) {
+    requireLock();
     const db = await open(dbName);
     return new Promise((resolve, reject) => {
         const tx = db.transaction('records', 'readonly');
@@ -44,6 +101,7 @@ export async function idbLoad(dbName) {
 let failWrites = 0;
 
 export async function idbWrite(dbName, batch) {
+    requireLock();
     const db = await open(dbName);
     return new Promise((resolve, reject) => {
         const tx = db.transaction('records', 'readwrite');
@@ -60,6 +118,7 @@ export async function idbWrite(dbName, batch) {
 }
 
 export async function idbDelete(dbName) {
+    requireLock();
     const db = dbs.get(dbName);
     dbs.delete(dbName);
     if (db) (await db.catch(() => null))?.close();

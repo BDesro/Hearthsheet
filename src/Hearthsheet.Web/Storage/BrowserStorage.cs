@@ -68,6 +68,9 @@ public sealed class BrowserStorage
         await _js.InvokeVoidAsync("idbDelete", dbName);
     }
 
+    /// <summary>Completes when every open journal has written what it holds (or its head batch has failed).</summary>
+    public Task FlushAsync() => Task.WhenAll(Secrets.Journal.FlushAsync(), AccountJournal?.FlushAsync() ?? Task.CompletedTask);
+
     /// <summary>Asks the browser not to evict this site's storage (spec 8).</summary>
     public async Task<bool> PersistAsync() => await _js.InvokeAsync<bool>("persist");
 

@@ -1,0 +1,28 @@
+@* Shown while this tab doesn't hold the tab lock; everything else on the page is disabled. *@
+<section class="other-tab" role="status" aria-label="Open in another tab">
+    <p>Hearthsheet is open in another tab.</p>
+    <button type="button" @onclick="TakeOver" disabled="@_busy">@(_busy ? "Waiting for the other tab…" : "Use it here")</button>
+</section>
+
+@code {
+    private bool _busy;
+
+    [Parameter, EditorRequired] public TabLock Lock { get; set; } = null!;
+
+    /// <summary>Raised once this tab holds the lock, so the app can (re)load storage.</summary>
+    [Parameter] public EventCallback TookOver { get; set; }
+
+    private async Task TakeOver()
+    {
+        _busy = true;
+        try
+        {
+            await Lock.TakeOverAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+        await TookOver.InvokeAsync();
+    }
+}
