@@ -134,6 +134,7 @@ public sealed class MainViewModel : Observable
 
     private async Task ExportAllAsync()
     {
+        if (!Shell.Save()) return;
         var path = _s.Dialogs.SaveZipFile($"Hearthsheet characters {DateTime.Now:yyyy-MM-dd}");
         if (path is null) return;
         var temp = Path.GetFullPath(path) + ".tmp";

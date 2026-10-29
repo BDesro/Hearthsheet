@@ -13,6 +13,49 @@ internal sealed class ManualTime : TimeProvider
 {
     public DateTimeOffset Now { get; set; } = new(2026, 9, 29, 12, 0, 0, TimeSpan.Zero);
     public override DateTimeOffset GetUtcNow() => Now;
+
+    private readonly List<ManualTimer> _timers = [];
+
+    /// <summary>Timers fire only from <see cref="Advance"/>, on the calling thread.</summary>
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        var timer = new ManualTimer(this, callback, state);
+        timer.Change(dueTime, period);
+        _timers.Add(timer);
+        return timer;
+    }
+
+    public void Advance(TimeSpan by)
+    {
+        Now += by;
+        foreach (var timer in _timers.ToList()) timer.FireIfDue();
+    }
+
+    private sealed class ManualTimer(ManualTime time, TimerCallback callback, object? state) : ITimer
+    {
+        private DateTimeOffset? _due;
+        private TimeSpan _period = Timeout.InfiniteTimeSpan;
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            (_due, _period) = (dueTime == Timeout.InfiniteTimeSpan ? null : time.Now + dueTime, period);
+            return true;
+        }
+
+        public void FireIfDue()
+        {
+            if (_due is not { } due || due > time.Now) return;
+            _due = _period == Timeout.InfiniteTimeSpan ? null : due + _period;
+            callback(state);
+        }
+
+        public void Dispose() => _due = null;
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
 }
 
 /// <summary>In-memory stand-in for one account's cloud table. Every write moves the shared clock by a second.</summary>

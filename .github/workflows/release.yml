@@ -56,10 +56,13 @@ jobs:
 
   # Spec 12/13: only after a new release on main (this workflow never runs for PRs, forks or dev). Cloudflare's own Git
   # integration is not used. The token has only "Cloudflare Pages: Edit"; wrangler is pinned to an exact version.
+  # The token lives in the "production" environment, whose deployment branches are limited to main, so no other
+  # branch's workflow can read it.
   deploy-web:
     needs: release
     if: needs.release.outputs.new == 'true'
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
     concurrency:

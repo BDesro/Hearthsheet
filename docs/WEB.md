@@ -38,9 +38,14 @@ You need a free Cloudflare account (the Resend setup in `CLOUD_SYNC.md` already 
    gives no DNS, email or other access.
 3. **Find your account ID.** On the dashboard home page, open the account menu (⋯ next to the account name) →
    **Copy account ID**. It's also on the right of any Workers & Pages overview page.
-4. **Store both in GitHub.** In the repository, open **Settings** → **Secrets and variables** → **Actions**.
-   - **Secrets** tab → **New repository secret**: name `CLOUDFLARE_API_TOKEN`, value the token from step 2.
-   - **Variables** tab → **New repository variable**: name `CLOUDFLARE_ACCOUNT_ID`, value the ID from step 3.
+4. **Store both in a `production` environment, not at repository level.** A repository secret can be read by a
+   workflow on any branch of this repository; an environment limited to `main` keeps the token to the release job.
+   In the repository, open **Settings** → **Environments** → **New environment**, name it exactly `production`.
+   - **Deployment branches and tags** → **Selected branches and tags** → **Add deployment branch or tag rule** →
+     `main`.
+   - **Environment secrets** → **Add environment secret**: name `CLOUDFLARE_API_TOKEN`, value the token from step 2.
+   - **Environment variables** → **Add environment variable**: name `CLOUDFLARE_ACCOUNT_ID`, value the ID from step 3.
+   - If either was stored earlier under **Secrets and variables** → **Actions** at repository level, delete it there.
 5. **Check it.** The next release (a `dev` → `main` merge with a new version) runs **deploy-web**. A green run means
    the site is live. Open `https://hearthsheet.pages.dev` and check that the Preview banner shows.
 6. **If the token leaks or expires:** create a new one (step 2), replace the secret (step 4), then delete the old token

@@ -27,7 +27,7 @@
         @if (_mode != Mode.Forgot)
         {
             <label for="sign-in-password">@(_mode == Mode.Reset ? "New password" : "Password")</label>
-            <input id="sign-in-password" type="password" required minlength="@(_mode == Mode.SignIn ? 1 : 6)"
+            <input id="sign-in-password" type="password" required minlength="@(_mode == Mode.SignIn ? 1 : 8)"
                    autocomplete="@(_mode == Mode.SignIn ? "current-password" : "new-password")" @bind="_password" disabled="@_busy" />
 
             <label class="check" for="sign-in-remember"><input id="sign-in-remember" type="checkbox" @bind="_remember" disabled="@_busy" /> Stay signed in</label>

@@ -105,6 +105,40 @@ public sealed class ShellViewModelTests : IDisposable
         Assert.Empty(_shell.Characters);
     }
 
+    private void DrainPosted()
+    {
+        while (_posted.TryDequeue(out var action)) action();
+    }
+
+    [Fact]
+    public async Task Save_WithoutEdits_DoesNotMarkTheCharacterForSync()
+    {
+        await OpenSyncedCharacter();
+
+        Assert.True(_shell.Save());
+
+        Assert.Empty(_here.Repo.GetDirty());
+    }
+
+    [Fact]
+    public async Task Autosave_SavesAnEditAfterTwoSeconds_AndASecondSaveWritesNothing()
+    {
+        var id = await OpenSyncedCharacter();
+        _shell.Current!.Character.Identity.Name = "Local edit";
+        DrainPosted();
+        Assert.Empty(_here.Repo.GetDirty());
+
+        _time.Advance(TimeSpan.FromSeconds(2));
+        DrainPosted();
+
+        var saved = Assert.Single(_here.Repo.GetDirty());
+        Assert.Equal("Local edit", _here.Repo.Load(id)!.Identity.Name);
+        Assert.StartsWith("Saved", _shell.SaveStatus);
+
+        Assert.True(_shell.Save());
+        Assert.Equal(saved.LocalRevision, Assert.Single(_here.Repo.GetDirty()).LocalRevision);
+    }
+
     [Fact]
     public void SyncStatus_Unsynced()
     {

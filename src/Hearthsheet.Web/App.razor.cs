@@ -224,12 +224,14 @@ public partial class App
     private async Task FinishSignOutAsync(AccountSession account)
     {
         _busy = "Signing out…";
-        var storage = _storage!;
+        var (storage, auth) = (_storage!, _auth!);
         _account = null;
         try
         {
             await account.SaveAndFlushAsync();
-            await _auth!.SignOutAsync(CancellationToken.None);
+            // The lock went meanwhile: DropStorageAsync has closed this storage, so leave the session to the tab now holding it.
+            if (_storage != storage || _lock!.IsReadOnly) return;
+            await auth.SignOutAsync(CancellationToken.None);
             account.Close();
             await storage.ForgetAccountAsync(account.UserId);
         }

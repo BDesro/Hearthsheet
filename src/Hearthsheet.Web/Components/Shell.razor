@@ -98,7 +98,7 @@
         {
             using var zip = new MemoryStream();
             var skipped = Account.Library.ExportAll(zip);
-            await Storage.DownloadAsync("Hearthsheet characters.zip", "application/zip", zip.ToArray());
+            await Storage.DownloadAsync($"Hearthsheet characters {DateTime.Now:yyyy-MM-dd}.zip", "application/zip", zip.ToArray());
             if (skipped.Count > 0)
                 await Dialogs.ErrorAsync($"These characters could not be read and are not in the zip:\n\n{string.Join("\n", skipped)}");
         }

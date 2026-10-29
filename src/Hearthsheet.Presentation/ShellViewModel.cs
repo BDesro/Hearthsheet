@@ -150,7 +150,8 @@ public sealed class ShellViewModel : Observable
     public bool Save()
     {
         StopAutosave();
-        if (Current is null) return true;
+        // An unedited character is not rewritten: a save marks it dirty for sync, which would conflict with other devices.
+        if (Current is null || !Current.Session.IsDirty) return true;
         try
         {
             _repository.Save(Current.Character);
