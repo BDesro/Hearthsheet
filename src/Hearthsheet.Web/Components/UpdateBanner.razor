@@ -1,0 +1,53 @@
+@* Registers the service worker and offers a deployed update (spec 14). Never reloads by itself: the button saves and
+   flushes first, and stays put if that fails. *@
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject IJSRuntime JS
+
+@if (_ready)
+{
+    <div class="update-banner" role="status">
+        A new version is ready –
+        <button type="button" aria-label="Reload: a new version is ready" disabled="@_busy" @onclick="ReloadAsync">reload</button>
+    </div>
+}
+
+@code {
+    private bool _ready;
+    private bool _busy;
+    private IJSObjectReference? _js;
+    private DotNetObjectReference<UpdateBanner>? _ref;
+
+    /// <summary>Saves and flushes everything; false when something isn't on this device yet (the caller has said so).</summary>
+    [Parameter, EditorRequired] public Func<Task<bool>> SaveAll { get; set; } = null!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        _ref = DotNetObjectReference.Create(this);
+        await _js.InvokeVoidAsync("registerWorker", _ref);
+    }
+
+    [JSInvokable]
+    public void UpdateReady()
+    {
+        _ready = true;
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (await SaveAll()) await _js!.InvokeVoidAsync("applyUpdate");
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose() => _ref?.Dispose();
+}

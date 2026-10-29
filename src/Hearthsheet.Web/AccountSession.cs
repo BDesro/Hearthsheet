@@ -29,8 +29,11 @@ public sealed class AccountSession
     public CloudSync Sync { get; }
     public CharacterLibrary Library { get; }
 
-    /// <summary>Saves what the UI holds before the store is synced or closed. Task 11 sets it to the shell's <c>Save()</c>.</summary>
-    public Action Save { get; set; } = () => { };
+    /// <summary>
+    /// Saves what the UI holds before the store is synced or closed; false if the save failed. Task 11 sets it to the
+    /// shell's <c>Save()</c>.
+    /// </summary>
+    public Func<bool> Save { get; set; } = () => true;
 
     /// <summary>The character open in the UI, for <see cref="CloudSync.RunAsync"/>. Task 11 sets it from the shell.</summary>
     public Func<Guid?> OpenCharacter { get; set; } = () => null;

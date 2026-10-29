@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Hearthsheet is a Windows desktop app (.NET 10, WPF) for playing and managing a D&D 5e character. `docs/ARCHITECTURE.md` is the detailed design reference (domain model, sync, updates, security, extension points); `docs/CLOUD_SYNC.md` covers the Supabase sync. Read the relevant section before changing those areas.
+Hearthsheet is a Windows desktop app (.NET 10, WPF) for playing and managing a D&D 5e character. `docs/ARCHITECTURE.md` is the detailed design reference (domain model, sync, updates, security, extension points); `docs/CLOUD_SYNC.md` covers the Supabase sync; `docs/WEB.md` covers the web app's deploy (Cloudflare Pages) and its preview-to-production switch. Read the relevant section before changing those areas.
 
 ## Commands
 

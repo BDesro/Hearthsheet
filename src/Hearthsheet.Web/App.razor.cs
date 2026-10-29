@@ -247,6 +247,19 @@ public partial class App
         }
     }
 
+    // The update banner's reload: save → flush → reload only if everything is on this device. Otherwise the reload is
+    // refused, so edits that exist only in memory are never thrown away. A read-only tab holds nothing to save.
+    private async Task<bool> SaveForUpdateAsync()
+    {
+        if (_storage is not { } storage) return true;
+        if (_account?.Save() == false) return false; // the shell has already shown why
+        await storage.FlushAsync();
+        if (!(_account?.Journal.Failed ?? false) && !storage.Secrets.Journal.Failed) return true;
+        _ = Dialogs.ErrorAsync("Not saved on this device, so Hearthsheet didn't reload.\n\nUse \"Try again\" in the " +
+            "status bar, then reload again.");
+        return false;
+    }
+
     // The lock is going (or gone): save what's pending, then drop every storage object, so a tab without the lock holds
     // none and nothing stale can write later.
     private async Task DropStorageAsync()

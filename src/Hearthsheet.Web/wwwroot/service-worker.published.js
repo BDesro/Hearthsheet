@@ -5,6 +5,8 @@ self.importScripts('./service-worker-assets.js');
 self.addEventListener('install', event => event.waitUntil(onInstall(event)));
 self.addEventListener('activate', event => event.waitUntil(onActivate(event)));
 self.addEventListener('fetch', event => event.respondWith(onFetch(event)));
+// A new version waits until the page asks for it (the update banner's reload, after saving): never mid-session.
+self.addEventListener('message', event => { if (event.data === 'SKIP_WAITING') self.skipWaiting(); });
 
 const cacheNamePrefix = 'offline-cache-';
 const cacheName = `${cacheNamePrefix}${self.assetsManifest.version}`;
@@ -49,6 +51,9 @@ async function onFetch(event) {
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const cache = await caches.open(cacheName);
         cachedResponse = await cache.match(request);
+        // Cloudflare Pages redirects /index.html to /, so the cached index.html is a redirected response, which the
+        // browser refuses as the answer to a navigation. A copy without the redirect flag keeps its body and headers.
+        if (cachedResponse?.redirected) cachedResponse = new Response(cachedResponse.body, cachedResponse);
     }
 
     return cachedResponse || fetch(event.request);

@@ -50,7 +50,7 @@ src/
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
 
-Dependencies point inward: App → Presentation, Infrastructure → Cloud → Core, and Presentation → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable. Cloud and Presentation have no WPF, SQLite or Windows code, so a web app can share them.
+Dependencies point inward: App → Presentation, Infrastructure → Cloud → Core, Web → Presentation and Cloud, and Presentation → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable. Cloud and Presentation have no WPF, SQLite or Windows code, so a web app can share them.
 
 ## 3. Domain model: one source of truth
 
@@ -177,6 +177,7 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 - User data lives outside the install folder, so replacing the folder wholesale is safe.
 - **First install** is `Hearthsheet-Setup.exe` (`packaging/Hearthsheet.iss`, built by `scripts/publish.ps1` with Inno Setup 6), always at `releases/latest/download/Hearthsheet-Setup.exe`. It's per-user (`%LOCALAPPDATA%\Programs\Hearthsheet`, no admin), installs the same self-contained files as the zip, offers a desktop shortcut (ticked by default), clears the folder first so it upgrades an old zip install cleanly, and registers in *Settings → Apps* under a fixed `AppId`. Running it again over an install just reinstalls in place.
 - The uninstaller lives in `Programs\Hearthsheet Uninstall`, outside the folder the updater replaces. Because in-app updates bypass Inno, the app writes its own version to the Apps entry's `DisplayVersion` at startup (`InstallRegistration`, only when the entry exists), and the uninstaller removes the install folder and `Hearthsheet.backup` wholesale. Uninstalling asks whether to also delete `%LOCALAPPDATA%\Hearthsheet` and the saved cloud sign-in (default: keep). A custom `Application:DataDirectory` is never deleted.
+- **The web app** is published and deployed to Cloudflare Pages by the same release (`deploy-web` job, see [WEB.md](WEB.md)). Its service worker caches the hash-checked asset list for offline use; a new deploy installs in the background and the app shows "A new version is ready – reload". The reload saves and flushes first and never happens by itself.
 - **Limitation.** The checksum file comes from the same release, so it protects against corruption and truncation, not against a compromised GitHub account. The next step is signing packages (Authenticode, or a minisign/ECDSA signature checked against a public key embedded in the app). `VerifyStagedPackage` is where that check belongs.
 
 ## 10. Logging, diagnostics and configuration

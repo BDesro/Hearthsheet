@@ -1,6 +1,36 @@
 // Hand-written browser glue: service worker, tab lock, IndexedDB, Web Storage, downloads and dialogs.
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+
+// ---- Service worker and updates (spec decision 14): a new version waits, the banner asks, the page never reloads by itself ----
+
+// Called once by the UpdateBanner. A failed registration (no service worker support, private mode, a blocked script)
+// only costs offline use and updates, so it is logged, not thrown.
+export async function registerWorker(dotnetRef) {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        const reg = await navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+        // Only an update: the first install happens with no controller and needs no reload.
+        const ready = () => { if (navigator.serviceWorker.controller) dotnetRef.invokeMethodAsync('UpdateReady'); };
+        if (reg.waiting) ready(); // installed during an earlier visit, still waiting
+        reg.addEventListener('updatefound', () => {
+            const worker = reg.installing;
+            worker?.addEventListener('statechange', () => { if (worker.state === 'installed') ready(); });
+        });
+        setInterval(() => reg.update().catch(e => console.warn('Checking for a new version failed', e)), 60 * 60 * 1000);
+    } catch (e) {
+        console.error('Service worker registration failed', e);
+    }
+}
+
+// Called after .NET has saved and flushed. The waiting worker takes over, then the page reloads onto it.
+export async function applyUpdate() {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg?.waiting) { location.reload(); return; } // already activated (by another tab): just load it
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+    reg.waiting.postMessage('SKIP_WAITING');
+}
+
+export function isStandalone() {
+    return matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 }
 
 // ---- One tab at a time (spec decision 7): Web Lock "hearthsheet", take-over over BroadcastChannel "hearthsheet" ----

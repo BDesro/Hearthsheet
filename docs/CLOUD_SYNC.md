@@ -100,6 +100,12 @@ Both installations share one Windows Credential Manager entry (`Hearthsheet/supa
 | 9 | Forgot password → code → new password. | The email arrives from your domain and the new password works. |
 | 10 | Sign in to A as a second account. | The account-switch prompt appears, and both choices keep every local character. |
 | 11 | With more than 500 characters in the account, sign in from a fresh installation (a new data folder). | Every character is pulled, not just the first 500. |
+| 12 | Web: sign in, create "Brin". Desktop A: sync. | A lists Brin. |
+| 13 | Web: DevTools → Network → Offline. Rename Brin. | "1 change not yet synced" shows. Back online, it syncs by itself; A shows the new name after a sync. |
+| 14 | Web: open it in a second tab. | The second tab says Hearthsheet is open in another tab. "Use it here" moves it, and nothing typed in the first tab is lost. |
+| 15 | Web: visit once, go offline, reload. | The app and its characters load from the browser. |
+| 16 | Web: with an edit not yet saved, deploy a new version (or serve a second build locally, see docs/WEB.md). | "A new version is ready – reload" shows and the page doesn't reload by itself. "reload" keeps the edit. |
+| 17 | Web: in Chrome or Edge, use the install icon in the address bar. | Hearthsheet opens in its own window, and the install hint no longer shows there. |
 
 **Row-level security check** (SQL editor; replace the ids with two real user ids from Authentication → Users):
 

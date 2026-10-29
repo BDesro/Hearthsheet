@@ -53,3 +53,8 @@ dialog.dialog .dialog-buttons { margin-top: 1rem; justify-content: flex-end; }
 .character-list .name, .character-list .description { display: block; overflow-wrap: anywhere; }
 .character-list .description { font-size: 0.85rem; font-weight: normal; }
 .character input { width: min(100%, 24rem); padding: 0.4rem; display: block; }
+
+.update-banner, .install-hint { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 0.5rem 1rem; }
+.update-banner { background: #dbeafe; color: #1f1f1f; font-weight: bold; }
+.install-hint { border-bottom: 1px solid #9ca3af; }
+.install-hint p { margin: 0; flex: 1 1 20rem; }
