@@ -13,6 +13,7 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
     private readonly Lock _gate = new();
     private Task _pump = Task.CompletedTask;
     private bool _pumping;
+    private bool _closed;
 
     /// <summary>The head batch failed to write; it and everything after it are only in memory.</summary>
     public bool Failed { get; private set; }
@@ -23,12 +24,29 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
     /// <summary>Enqueues and returns; never throws (see <see cref="IStoreJournal"/>).</summary>
     public void Write(IReadOnlyList<StoreRecord> batch)
     {
-        lock (_gate) _queue.Enqueue(batch);
+        lock (_gate)
+        {
+            if (!_closed) _queue.Enqueue(batch);
+        }
         Pump();
     }
 
     /// <summary>Retries from the head; completes like <see cref="FlushAsync"/>.</summary>
     public Task RetryAsync() => Pump();
+
+    /// <summary>
+    /// Stops writing for good, dropping whatever is still queued: from here on <see cref="Write"/> and
+    /// <see cref="RetryAsync"/> log and do nothing. A batch already being written finishes; nothing starts after it.
+    /// For a store that has been handed to someone else (another browser tab), so it must never write again.
+    /// </summary>
+    public void Close()
+    {
+        lock (_gate)
+        {
+            _closed = true;
+            _queue.Clear();
+        }
+    }
 
     /// <summary>Completes when the queue is empty or the head batch has failed.</summary>
     public Task FlushAsync()
@@ -40,6 +58,11 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
     {
         lock (_gate)
         {
+            if (_closed)
+            {
+                logger.LogWarning("Ignored a write to a closed journal");
+                return _pump;
+            }
             if (_pumping || _queue.Count == 0) return _pump;
             _pumping = true;
             return _pump = RunAsync();
@@ -76,7 +99,13 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
                 if (changed) RaiseStateChanged();
                 return;
             }
-            lock (_gate) { _queue.Dequeue(); changed = Failed; Failed = false; }
+            lock (_gate)
+            {
+                // Close() may have emptied the queue while the head was being written.
+                if (_queue.Count > 0) _queue.Dequeue();
+                changed = Failed;
+                Failed = false;
+            }
             if (changed) RaiseStateChanged();
         }
     }

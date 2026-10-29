@@ -25,12 +25,13 @@ else
         {
             <OtherTab Lock="_lock" TookOver="OpenStorageAsync" />
         }
-        @if (_storage is not null && DevPage is not null)
+        else if (_storage is null)
         {
-            @* A native disabled fieldset disables every control inside it while another tab holds the lock. *@
-            <fieldset class="app-content" disabled="@_lock.IsReadOnly">
-                <DynamicComponent @key="_storage" Type="DevPage" Parameters="DevParameters" />
-            </fieldset>
+            <p>Loading…</p>
+        }
+        else if (DevPage is not null)
+        {
+            <DynamicComponent @key="_storage" Type="DevPage" Parameters="DevParameters" />
         }
     }
 }

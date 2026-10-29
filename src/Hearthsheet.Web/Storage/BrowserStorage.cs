@@ -71,6 +71,16 @@ public sealed class BrowserStorage
     /// <summary>Completes when every open journal has written what it holds (or its head batch has failed).</summary>
     public Task FlushAsync() => Task.WhenAll(Secrets.Journal.FlushAsync(), AccountJournal?.FlushAsync() ?? Task.CompletedTask);
 
+    /// <summary>
+    /// Stops every journal for good (see <c>OrderedJournal.Close</c>): for a tab that no longer holds the tab lock,
+    /// whose in-memory store must never write again. Flush first.
+    /// </summary>
+    public void Close()
+    {
+        Secrets.Journal.Close();
+        AccountJournal?.Close();
+    }
+
     /// <summary>Asks the browser not to evict this site's storage (spec 8).</summary>
     public async Task<bool> PersistAsync() => await _js.InvokeAsync<bool>("persist");
 

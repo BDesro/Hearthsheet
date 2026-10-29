@@ -143,4 +143,39 @@ public class OrderedJournalTests
         await journal.FlushAsync().WaitAsync(Timeout);
         Assert.True(journal.Failed);
     }
+
+    [Fact]
+    public async Task Close_FinishesTheBatchInFlight_ThenNeverWritesAgain()
+    {
+        var (journal, writer) = Create();
+        writer.Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        journal.Write(Batch("a"));
+        journal.Write(Batch("b"));
+        await writer.Started.Task.WaitAsync(Timeout);
+
+        journal.Close();
+        writer.Gate.SetResult();
+        await journal.FlushAsync().WaitAsync(Timeout);
+        journal.Write(Batch("c"));
+        await journal.RetryAsync().WaitAsync(Timeout);
+        await journal.FlushAsync().WaitAsync(Timeout);
+
+        Assert.Equal(["a"], writer.Written);
+        Assert.Equal(1, writer.Attempts);
+    }
+
+    [Fact]
+    public async Task Close_AfterAFailure_RetryDoesNotWrite()
+    {
+        var (journal, writer) = Create();
+        writer.FailNext = 1;
+        journal.Write(Batch("a"));
+        await journal.FlushAsync().WaitAsync(Timeout);
+
+        journal.Close();
+        await journal.RetryAsync().WaitAsync(Timeout);
+
+        Assert.Empty(writer.Written);
+        Assert.Equal(1, writer.Attempts);
+    }
 }

@@ -1,6 +1,6 @@
-@* Shown while this tab doesn't hold the tab lock; everything else on the page is disabled. *@
+@* Shown while this tab doesn't hold the tab lock, in place of the app: such a tab holds no storage and shows nothing editable. *@
 <section class="other-tab" role="status" aria-label="Open in another tab">
-    <p>Hearthsheet is open in another tab.</p>
+    <p>Hearthsheet is open in another tab</p>
     <button type="button" @onclick="TakeOver" disabled="@_busy">@(_busy ? "Waiting for the other tab…" : "Use it here")</button>
 </section>
 

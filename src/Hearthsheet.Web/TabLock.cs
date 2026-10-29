@@ -4,8 +4,9 @@ using Microsoft.JSInterop;
 namespace Hearthsheet.Web;
 
 /// <summary>
-/// One tab at a time (spec decision 7): the Web Lock <c>hearthsheet</c>. A tab without it is read-only: its editing UI
-/// is disabled and <c>hearthsheet.js</c> refuses every IndexedDB call, so nothing it does reaches storage.
+/// One tab at a time (spec decision 7): the Web Lock <c>hearthsheet</c>. A tab without it is read-only: it shows no
+/// editing UI, drops its storage objects (closed journals never write again), and <c>hearthsheet.js</c> refuses every
+/// IndexedDB call, so nothing it does reaches storage.
 /// </summary>
 public sealed class TabLock
 {
@@ -28,8 +29,10 @@ public sealed class TabLock
     public bool IsReadOnly { get; private set; } = true;
 
     /// <summary>
-    /// Another tab asked for the lock. Every handler runs in turn (save, then flush) before the lock is released. A
-    /// throwing handler is logged and the release goes ahead: the other tab takes the lock after 3 s anyway.
+    /// This tab is giving up the lock (another tab asked for it) or has lost it (another tab stole it). Editing is
+    /// already disabled; every handler then runs in turn (save, flush, drop storage), and only after that is a requested
+    /// lock released. A throwing handler is logged and the release goes ahead: the other tab takes the lock after 3 s
+    /// anyway. After a steal the handlers still run, but their writes are refused (the lock is gone).
     /// </summary>
     public event Func<Task>? ReleaseRequested;
 
@@ -52,17 +55,19 @@ public sealed class TabLock
     }
 
     [JSInvokable("ReleaseRequested")]
-    public Task OnReleaseRequested() =>
-        _releasing is { IsCompleted: false } ? _releasing : _releasing = ReleaseAsync();
+    public Task OnReleaseRequested() => LetGo(release: true);
 
     [JSInvokable]
-    public void LockLost()
+    public Task LockLost()
     {
         _logger.LogWarning("Another tab took Hearthsheet over without waiting for a save");
-        SetReadOnly();
+        return LetGo(release: false);
     }
 
-    private async Task ReleaseAsync()
+    private Task LetGo(bool release) =>
+        _releasing is { IsCompleted: false } ? _releasing : _releasing = LetGoAsync(release);
+
+    private async Task LetGoAsync(bool release)
     {
         // Editing stops first so nothing new is made while saving.
         SetReadOnly();
@@ -77,7 +82,7 @@ public sealed class TabLock
                 _logger.LogError(ex, "Saving before handing over to another tab failed");
             }
         }
-        await _js.InvokeVoidAsync("lockRelease");
+        if (release) await _js.InvokeVoidAsync("lockRelease");
     }
 
     private void SetReadOnly()

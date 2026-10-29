@@ -32,7 +32,7 @@ public partial class App
         {
             var tabLock = await TabLock.CreateAsync(JS, Loggers.CreateLogger<TabLock>());
             tabLock.Changed += () => InvokeAsync(StateHasChanged);
-            tabLock.ReleaseRequested += FlushStorageAsync;
+            tabLock.ReleaseRequested += DropStorageAsync;
             _lock = tabLock;
             if (await tabLock.AcquireAsync()) await OpenStorageAsync();
         }
@@ -43,12 +43,16 @@ public partial class App
         }
     }
 
-    // Also after a take-over: storage is loaded fresh, so this tab sees what the other tab saved.
+    // Also after a take-over: storage is loaded fresh, so this tab sees what the other tab saved. Nothing editable
+    // renders until it has loaded.
     private async Task OpenStorageAsync()
     {
         try
         {
-            _storage = await BrowserStorage.CreateAsync(JS, Loggers);
+            var storage = await BrowserStorage.CreateAsync(JS, Loggers);
+            // The lock went while loading (released or stolen): keep nothing.
+            if (_lock!.IsReadOnly) storage.Close();
+            else _storage = storage;
         }
         catch (Exception ex)
         {
@@ -57,6 +61,19 @@ public partial class App
         }
     }
 
-    // Task 11 adds the shell's Save() before this.
-    private Task FlushStorageAsync() => _storage?.FlushAsync() ?? Task.CompletedTask;
+    // The lock is going (or gone): save what's pending, then drop every storage object, so a tab without the lock holds
+    // none and nothing stale can write later. Task 11 adds the shell's Save() before the flush.
+    private async Task DropStorageAsync()
+    {
+        if (_storage is not { } storage) return;
+        _storage = null;
+        try
+        {
+            await storage.FlushAsync();
+        }
+        finally
+        {
+            storage.Close();
+        }
+    }
 }
