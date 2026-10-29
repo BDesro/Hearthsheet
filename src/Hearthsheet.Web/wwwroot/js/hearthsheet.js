@@ -10,11 +10,12 @@ export async function registerWorker(dotnetRef) {
         const reg = await navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
         // Only an update: the first install happens with no controller and needs no reload.
         const ready = () => { if (navigator.serviceWorker.controller) dotnetRef.invokeMethodAsync('UpdateReady'); };
-        if (reg.waiting) ready(); // installed during an earlier visit, still waiting
-        reg.addEventListener('updatefound', () => {
-            const worker = reg.installing;
-            worker?.addEventListener('statechange', () => { if (worker.state === 'installed') ready(); });
-        });
+        const track = worker => worker?.addEventListener('statechange', () => { if (worker.state === 'installed') ready(); });
+        // The update check of this page's navigation started before .NET booted, so a new worker may already be
+        // waiting or still installing; updatefound has fired for it by now.
+        if (reg.waiting) ready();
+        track(reg.installing);
+        reg.addEventListener('updatefound', () => track(reg.installing));
         setInterval(() => reg.update().catch(e => console.warn('Checking for a new version failed', e)), 60 * 60 * 1000);
     } catch (e) {
         console.error('Service worker registration failed', e);

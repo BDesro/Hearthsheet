@@ -253,8 +253,15 @@ public partial class App
     {
         if (_storage is not { } storage) return true;
         if (_account?.Save() == false) return false; // the shell has already shown why
-        await storage.FlushAsync();
-        if (!(_account?.Journal.Failed ?? false) && !storage.Secrets.Journal.Failed) return true;
+        try
+        {
+            await storage.FlushAsync();
+            if (!(_account?.Journal.Failed ?? false) && !storage.Secrets.Journal.Failed) return true;
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Flushing before an update reload failed");
+        }
         _ = Dialogs.ErrorAsync("Not saved on this device, so Hearthsheet didn't reload.\n\nUse \"Try again\" in the " +
             "status bar, then reload again.");
         return false;

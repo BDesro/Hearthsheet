@@ -8,7 +8,7 @@ Supabase directly. Until the launch gate it shows a "Preview" banner and uses th
 ## How it is built and deployed
 
 1. `dotnet publish src/Hearthsheet.Web -c Release -o <folder>` builds the site into `<folder>/wwwroot`. CI does this on
-   every push and pull request (`.github/workflows/ci.yml`), so a trimming problem fails the build. CI never deploys.
+   pushes to `main` and `dev` and on pull requests (`.github/workflows/ci.yml`), so a trimming problem fails the build. CI never deploys.
 2. Merging `dev` into `main` runs the Release workflow (`.github/workflows/release.yml`). When the version in
    `Directory.Build.props` is new, the `release` job tests, packages and publishes the desktop release. Then the
    `deploy-web` job publishes the web app and uploads it with Cloudflare's `wrangler` tool (pinned to 4.150.0):
@@ -28,7 +28,9 @@ You need a free Cloudflare account (the Resend setup in `CLOUD_SYNC.md` already 
 1. **Create the Pages project.** In the Cloudflare dashboard, open **Workers & Pages** → **Create** → **Pages** →
    **Upload assets** (direct upload, not "Connect to Git"). Name the project exactly `hearthsheet`. Cloudflare asks for a
    first upload: upload any small folder (for example one with a single `index.html`); the first release replaces it.
-   The site is then at `https://hearthsheet.pages.dev`.
+   The site is then at `https://hearthsheet.pages.dev`. Then open the project's **Settings** and check that the
+   **production branch** is `main`. If it's anything else, the release's `--branch=main` upload becomes a preview
+   deploy instead of the live site; change it to `main`.
 2. **Create the API token.** Click your profile icon → **My Profile** → **API Tokens** → **Create Token** → **Create
    Custom Token**. Name it `Hearthsheet deploy`. Under **Permissions** add one row only: **Account** → **Cloudflare
    Pages** → **Edit**. Under **Account Resources** choose your account. Leave everything else empty, then **Continue to
