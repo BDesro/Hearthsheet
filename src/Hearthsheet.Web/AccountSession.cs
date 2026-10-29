@@ -42,6 +42,13 @@ public sealed class AccountSession
         SupabaseHttp http, SupabaseAuth auth, ILoggerFactory loggers)
     {
         var store = await storage.OpenAccountAsync(userId);
+        // Link a new store to its account now, as a first pass would, so a pass under another user's session can
+        // only end in AccountMismatch, never link this store to that user and upload into their account.
+        if (store.GetSyncMeta().Account is null)
+        {
+            store.ResetSyncState(markAllDirty: true);
+            store.SetSyncAccount(userId);
+        }
         var sync = new CloudSync(store, store, new SupabaseCharacterStore(http, auth), auth, loggers.CreateLogger<CloudSync>());
         var library = new CharacterLibrary(store, new PortableCharacterFile(), AppVersion, loggers.CreateLogger<CharacterLibrary>());
         return new AccountSession(userId, email, store, storage.AccountJournal!, auth, sync, library);

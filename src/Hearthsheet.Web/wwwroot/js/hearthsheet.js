@@ -50,15 +50,18 @@ window.addEventListener('pagehide', pageHidden);
 // Hidden also goes through pageHidden above: save, flush, then a pass. A tab without the lock never syncs. ----
 
 let pageWatcher = null; // the .NET Shell
+let watcherId = 0;      // which Shell registered (each call gets a new JS wrapper, so refs can't be compared)
 window.addEventListener('online', () => { if (held) pageWatcher?.invokeMethodAsync('Online'); });
 document.addEventListener('visibilitychange', () => pageWatcher?.invokeMethodAsync('Visible', document.visibilityState === 'visible'));
 
-export function watchPage(dotnetRef) {
+export function watchPage(dotnetRef, id) {
     pageWatcher = dotnetRef;
+    watcherId = id;
     return document.visibilityState === 'visible';
 }
 
-export function unwatchPage() { pageWatcher = null; }
+// A newer Shell may already be watching; only the one that registered clears it.
+export function unwatchPage(id) { if (watcherId === id) pageWatcher = null; }
 
 export function lockAcquire(dotnetRef) {
     owner = dotnetRef;

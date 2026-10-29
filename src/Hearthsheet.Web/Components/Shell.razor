@@ -43,6 +43,8 @@
     private IJSObjectReference? _js;
     private DotNetObjectReference<Shell>? _ref;
     private bool _disposed;
+    private static int s_lastWatchId;
+    private readonly int _watchId = ++s_lastWatchId; // the browser has one thread
 
     [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
     [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
@@ -66,7 +68,7 @@
         _shell.Start();
         if (reopen is { } id && _shell.Characters.FirstOrDefault(c => c.Id == id) is { } summary) _shell.SelectedSummary = summary;
 
-        _sync = new WebSync(Account.Sync, _shell, Account.Auth, Account.Journal, Loggers.CreateLogger<WebSync>(),
+        _sync = new WebSync(Account.Sync, _shell, Account.Auth, Account.UserId, Account.Journal, Loggers.CreateLogger<WebSync>(),
             action => _ = InvokeAsync(action), TimeProvider.System);
         _sync.Changed += OnSyncChanged;
         Account.WebSync = _sync;
@@ -79,7 +81,7 @@
         var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
         if (_disposed) return;
         (_js, _ref) = (js, DotNetObjectReference.Create(this));
-        _sync.IsVisible = await _js.InvokeAsync<bool>("watchPage", _ref);
+        _sync.IsVisible = await _js.InvokeAsync<bool>("watchPage", _ref, _watchId);
     }
 
     [JSInvokable] public void Online() => _sync.Online();
@@ -130,7 +132,7 @@
         _disposed = true;
         _sync.Changed -= OnSyncChanged;
         _sync.Dispose();
-        if (_js is not null) _ = _js.InvokeVoidAsync("unwatchPage").AsTask();
+        if (_js is not null) _ = _js.InvokeVoidAsync("unwatchPage", _watchId).AsTask();
         _ref?.Dispose();
     }
 }

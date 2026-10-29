@@ -2,6 +2,7 @@ using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Rules;
 using Hearthsheet.Core.Serialization;
 using Hearthsheet.Core.Storage;
+using Hearthsheet.Core.Sync;
 using Hearthsheet.Presentation;
 using Hearthsheet.Web;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -28,7 +29,7 @@ public sealed class WebSyncTests : IDisposable
         var library = new CharacterLibrary(_here.Repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
         _shell = new ShellViewModel(_here.Repo, library, RestService.CreateDefault(), new WebDialogs(NullLogger<WebDialogs>.Instance), NullLoggerFactory.Instance,
             _ => { }, _time, _here.Sync);
-        _sync = new WebSync(_here.Sync, _shell, _session, new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
+        _sync = new WebSync(_here.Sync, _shell, _session, "user-1", new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
             NullLogger.Instance, a => a(), _time);
     }
 
@@ -94,7 +95,7 @@ public sealed class WebSyncTests : IDisposable
         var library = new CharacterLibrary(web.Repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
         var shell = new ShellViewModel(web.Repo, library, RestService.CreateDefault(), new WebDialogs(NullLogger<WebDialogs>.Instance), NullLoggerFactory.Instance,
             _ => { }, _time, web.Sync);
-        using var sync = new WebSync(web.Sync, shell, _session, new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
+        using var sync = new WebSync(web.Sync, shell, _session, "user-1", new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
             NullLogger.Instance, a => a(), _time);
         web.Add("Arannis");
         _cloud.Offline = true;
@@ -120,6 +121,36 @@ public sealed class WebSyncTests : IDisposable
 
         Assert.Equal("Signed out – sign in to resume sync", _sync.Status);
         Assert.Empty(_cloud.Rows);
+    }
+
+    [Fact]
+    public async Task AnotherUsersSession_RunsNoPass_AndUploadsNothing()
+    {
+        _here.Add("Arannis");
+        _session.UserId = "user-2"; // signing in as another account while this store's shell is still up
+
+        await _sync.RunAsync();
+
+        Assert.Equal("Signed out – sign in to resume sync", _sync.Status);
+        Assert.Empty(_cloud.Rows);
+        Assert.Null(_here.Sync.LinkedAccount);
+    }
+
+    [Fact]
+    public async Task APreLinkedStore_UnderAnotherUsersSession_UploadsNothing()
+    {
+        // The web links each store to its account when it opens it (AccountSession.OpenAsync).
+        var web = new WebMachine(new DictionaryJournal(), _cloud, _session, _time);
+        web.Repo.ResetSyncState(markAllDirty: true);
+        web.Repo.SetSyncAccount("user-A");
+        web.Add("Arannis");
+
+        var result = await web.SyncAsync(); // the session is user-1
+
+        Assert.Equal(SyncOutcome.AccountMismatch, result.Outcome);
+        Assert.Empty(_cloud.Rows);
+        Assert.Equal("user-A", web.Sync.LinkedAccount);
+        Assert.Equal(1, web.Repo.UnsyncedCount);
     }
 
     [Fact]

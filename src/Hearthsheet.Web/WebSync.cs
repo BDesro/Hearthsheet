@@ -17,16 +17,18 @@ public sealed class WebSync : IDisposable
     private readonly CloudSync _sync;
     private readonly ShellViewModel _shell;
     private readonly ICloudSession _auth;
+    private readonly string _accountUserId;
     private readonly OrderedJournal _journal;
     private readonly ILogger _log;
     private readonly TimeProvider _time;
     private readonly ITimer _timer;
     private bool _disposed;
 
-    public WebSync(CloudSync sync, ShellViewModel shell, ICloudSession auth, OrderedJournal journal, ILogger log,
-        Action<Action> postToUi, TimeProvider time)
+    /// <param name="accountUserId">The account whose store this is; the shared session must be that user to sync.</param>
+    public WebSync(CloudSync sync, ShellViewModel shell, ICloudSession auth, string accountUserId, OrderedJournal journal,
+        ILogger log, Action<Action> postToUi, TimeProvider time)
     {
-        (_sync, _shell, _auth, _journal, _log, _time) = (sync, shell, auth, journal, log, time);
+        (_sync, _shell, _auth, _accountUserId, _journal, _log, _time) = (sync, shell, auth, accountUserId, journal, log, time);
         _timer = time.CreateTimer(_ => postToUi(Tick), null, Interval, Interval);
     }
 
@@ -60,9 +62,10 @@ public sealed class WebSync : IDisposable
     public async Task RunAsync()
     {
         if (IsBusy || _disposed) return;
-        if (_auth.UserId is null)
+        if (_auth.UserId != _accountUserId)
         {
-            // The account's session ended (or never restored offline): App shows sign-in; nothing to sync until then.
+            // The account's session ended (or never restored offline), or another account is signing in and this
+            // store's shell hasn't gone yet: App shows sign-in; this store never syncs with another user's session.
             Status = SyncStatus.For(SyncResult.Of(SyncOutcome.SignedOut), _time.GetLocalNow())!;
             Changed?.Invoke();
             return;
@@ -79,7 +82,8 @@ public sealed class WebSync : IDisposable
             if (_disposed) return; // the shell is gone (lock lost, signed out): its view model is no longer shown
             if (result.Outcome == SyncOutcome.AccountMismatch)
             {
-                // Can't happen with one store per account.
+                // Stores are linked to their account when opened and the session is checked above, so this means a bug:
+                // CloudSync refused the pass and nothing was uploaded.
                 _log.LogError("Sync found this store linked to another account");
                 Status = "Sync failed — see the log";
                 return;
