@@ -1,4 +1,4 @@
-// Hand-written browser glue: service worker, tab lock, IndexedDB and Web Storage.
+// Hand-written browser glue: service worker, tab lock, IndexedDB, Web Storage, downloads and dialogs.
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
 }
@@ -37,6 +37,15 @@ function request(options) {
     });
 }
 
+// Leaving the page (tab closed, switched away, app minimised): save now, the autosave may not get its turn. The call
+// is synchronous so the IndexedDB write has started before a closing page stops running script. pagehide covers a tab
+// closed while already hidden (no visibilitychange then).
+function pageHidden() {
+    if (held) owner?.invokeMethod('PageHidden');
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pageHidden(); });
+window.addEventListener('pagehide', pageHidden);
+
 export function lockAcquire(dotnetRef) {
     owner = dotnetRef;
     return request({ ifAvailable: true });
@@ -61,7 +70,8 @@ export function lockRelease() {
 
 // ---- IndexedDB: one database per name, one object store "records" (key = record key, value = JSON string) ----
 
-const dbs = new Map(); // name -> Promise<IDBDatabase>
+const dbs = new Map();   // name -> Promise<IDBDatabase>
+const conns = new Map(); // name -> IDBDatabase, once open
 
 function open(name) {
     let db = dbs.get(name);
@@ -72,8 +82,9 @@ function open(name) {
             req.onsuccess = () => {
                 const conn = req.result;
                 // Let a delete (or a newer version) proceed, and reopen on next use.
-                conn.onversionchange = () => { conn.close(); dbs.delete(name); };
-                conn.onclose = () => dbs.delete(name);
+                conn.onversionchange = () => { conn.close(); dbs.delete(name); conns.delete(name); };
+                conn.onclose = () => { dbs.delete(name); conns.delete(name); };
+                conns.set(name, conn);
                 resolve(conn);
             };
             req.onerror = () => { dbs.delete(name); reject(req.error); };
@@ -102,7 +113,9 @@ let failWrites = 0;
 
 export async function idbWrite(dbName, batch) {
     requireLock();
-    const db = await open(dbName);
+    // An open connection is used at once, so the transaction exists before this call returns: a page closing right
+    // after a save (see visibilitychange) still commits it.
+    const db = conns.get(dbName) ?? await open(dbName);
     return new Promise((resolve, reject) => {
         const tx = db.transaction('records', 'readwrite');
         const store = tx.objectStore('records');
@@ -113,7 +126,8 @@ export async function idbWrite(dbName, batch) {
         tx.oncomplete = () => resolve();
         tx.onerror = e => reject(e.target.error ?? tx.error ?? new Error('IndexedDB request failed.'));
         tx.onabort = () => reject(tx.error ?? new Error('Write aborted.'));
-        if (failWrites > 0) { failWrites--; tx.abort(); }
+        if (failWrites > 0) { failWrites--; tx.abort(); return; }
+        tx.commit?.(); // don't wait for the event loop: a closing page may not give it another turn
     });
 }
 
@@ -121,6 +135,7 @@ export async function idbDelete(dbName) {
     requireLock();
     const db = dbs.get(dbName);
     dbs.delete(dbName);
+    conns.delete(dbName);
     if (db) (await db.catch(() => null))?.close();
     return new Promise((resolve, reject) => {
         const req = indexedDB.deleteDatabase(dbName);
@@ -151,6 +166,22 @@ export function download(name, mime, bytes) {
     const a = document.createElement('a');
     a.href = url;
     a.download = name;
+    document.body.append(a); // Firefox ignores clicks on a detached link
     a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ---- Dialogs: native modal <dialog> (inert background, Escape fires "close"); focus returns to the trigger ----
+
+let returnFocus = null;
+
+export function dialogShow(el) {
+    returnFocus ??= document.activeElement; // the trigger, kept while queued dialogs follow one another
+    el.showModal();
+}
+
+export function dialogsDone() {
+    returnFocus?.focus?.();
+    returnFocus = null;
 }

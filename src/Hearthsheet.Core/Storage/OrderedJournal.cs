@@ -54,8 +54,14 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
         lock (_gate) return _pump;
     }
 
+    // The pump starts on the caller's stack, outside _gate and without a yield, so the first write has begun before
+    // Write returns: a page that is closing gets its last save to storage, where a deferred start would never run.
+    // Only the writer's synchronous start runs there (under the store's lock, which calls Write); the writer must
+    // finish asynchronously, as IndexedDB does.
     private Task Pump()
     {
+        Task<Task> run;
+        Task pump;
         lock (_gate)
         {
             if (_closed)
@@ -65,8 +71,11 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
             }
             if (_pumping || _queue.Count == 0) return _pump;
             _pumping = true;
-            return _pump = RunAsync();
+            run = new Task<Task>(RunAsync);
+            _pump = pump = run.Unwrap();
         }
+        run.RunSynchronously();
+        return pump;
     }
 
     // _pumping and Failed change only under _gate, together with the queue, so a Write racing the pump's exit always
@@ -74,8 +83,6 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
     // _pumping from being left set.
     private async Task RunAsync()
     {
-        // Off the caller's stack: the store calls Write while holding its own lock.
-        await Task.Yield();
         while (true)
         {
             IReadOnlyList<StoreRecord> head;

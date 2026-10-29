@@ -44,6 +44,17 @@ public class OrderedJournalTests
 
     private static StoreRecord[] Batch(string key) => [new StoreRecord(key, "{}")];
 
+    // A closing page runs no more deferred work: the write must have started when Write returns.
+    [Fact]
+    public async Task Write_StartsTheWriterBeforeReturning()
+    {
+        var (journal, writer) = Create();
+        journal.Write(Batch("a"));
+        Assert.Equal(1, writer.Attempts);
+        await journal.FlushAsync().WaitAsync(Timeout);
+        Assert.Equal(["a"], writer.Written);
+    }
+
     [Fact]
     public async Task Failure_KeepsTheHeadAndOrder_UntilRetry()
     {

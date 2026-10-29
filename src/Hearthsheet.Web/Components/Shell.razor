@@ -1,0 +1,103 @@
+@* The signed-in shell: account menu, character list, the open character and the status bar, over one account's store. *@
+@using System.Text
+@using Hearthsheet.Cloud
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@using Hearthsheet.Web.Storage
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject WebDialogs Dialogs
+@inject ILoggerFactory Loggers
+@inject MemoryLogProvider Logs
+
+<div class="shell">
+    <details class="account-menu">
+        <summary>@(Account.Email ?? "Account")</summary>
+        <div class="menu">
+            <button type="button" @onclick="ExportAllAsync">Export all characters</button>
+            <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
+            <button type="button" @onclick="SignOut">Sign out</button>
+        </div>
+    </details>
+    <nav class="sidebar" aria-label="Characters">
+        <CharacterList Shell="_shell" Account="Account" Storage="Storage" />
+    </nav>
+    <main class="main">
+        @if (_shell.Current is { } current)
+        {
+            <CharacterPlaceholder @key="current" Character="current.Character" />
+        }
+        else
+        {
+            <p>No character open. Choose New or Import to start.</p>
+        }
+    </main>
+    <StatusBar Shell="_shell" Account="Account" Secrets="Storage.Secrets.Journal" />
+</div>
+
+@code {
+    private ShellViewModel _shell = null!;
+
+    [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
+    [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
+    [Parameter] public EventCallback SignOut { get; set; }
+
+    private ILogger Log => Loggers.CreateLogger<Shell>();
+
+    protected override void OnInitialized()
+    {
+        // Back from the sign-out question: reopen the character that was open.
+        var reopen = Account.OpenCharacter();
+        _shell = new ShellViewModel(Account.Store, Account.Library, RestService.CreateDefault(), Dialogs, Loggers,
+            action => _ = InvokeAsync(action), TimeProvider.System, Account.Sync);
+        Account.Save = () => _shell.Save();
+        Account.OpenCharacter = () => _shell.OpenCharacterId;
+        _shell.PropertyChanged += OnChanged;
+        _shell.Characters.CollectionChanged += OnChanged;
+        _shell.Start();
+        if (reopen is { } id && _shell.Characters.FirstOrDefault(c => c.Id == id) is { } summary) _shell.SelectedSummary = summary;
+    }
+
+    private void OnChanged(object? sender, EventArgs e) => InvokeAsync(StateHasChanged);
+
+    private async Task ExportAllAsync()
+    {
+        if (!_shell.Save()) return;
+        try
+        {
+            using var zip = new MemoryStream();
+            var skipped = Account.Library.ExportAll(zip);
+            await Storage.DownloadAsync("Hearthsheet characters.zip", "application/zip", zip.ToArray());
+            if (skipped.Count > 0)
+                await Dialogs.ErrorAsync($"These characters could not be read and are not in the zip:\n\n{string.Join("\n", skipped)}");
+        }
+        catch (JSException ex)
+        {
+            Log.LogError(ex, "Export all failed");
+            await Dialogs.ErrorAsync("The characters could not be exported. Try again.");
+        }
+    }
+
+    // The in-memory log of this session, already redacted (spec 22).
+    private async Task DownloadDiagnosticsAsync()
+    {
+        try
+        {
+            await Storage.DownloadAsync($"Hearthsheet diagnostics {DateTime.Now:yyyy-MM-dd HHmm}.txt", "text/plain",
+                Encoding.UTF8.GetBytes(Logs.Snapshot()));
+        }
+        catch (JSException ex)
+        {
+            Log.LogError(ex, "Downloading diagnostics failed");
+            await Dialogs.ErrorAsync("The diagnostics could not be downloaded. Try again.");
+        }
+    }
+
+    public void Dispose()
+    {
+        // Account.Save stays pointed at this view model: a lock release or sign-out after unmounting still saves through it.
+        _shell.PropertyChanged -= OnChanged;
+        _shell.Characters.CollectionChanged -= OnChanged;
+    }
+}

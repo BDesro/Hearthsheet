@@ -39,6 +39,9 @@ public sealed class TabLock
     /// <summary>Raised when <see cref="IsReadOnly"/> changes from the JS side (released to, or stolen by, another tab).</summary>
     public event Action? Changed;
 
+    /// <summary>The page was hidden (tab closed or switched away) while this tab holds the lock: save now, synchronously.</summary>
+    public event Action? PageHidden;
+
     /// <summary>Takes the lock if no other tab holds it.</summary>
     public async Task<bool> AcquireAsync()
     {
@@ -56,6 +59,21 @@ public sealed class TabLock
 
     [JSInvokable("ReleaseRequested")]
     public Task OnReleaseRequested() => LetGo(release: true);
+
+    // Synchronous, so the save has handed its write to IndexedDB before a closing page stops.
+    [JSInvokable("PageHidden")]
+    public void OnPageHidden()
+    {
+        if (IsReadOnly) return;
+        try
+        {
+            PageHidden?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Saving when the page was hidden failed");
+        }
+    }
 
     [JSInvokable]
     public Task LockLost()

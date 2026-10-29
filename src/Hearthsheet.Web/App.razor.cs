@@ -10,13 +10,6 @@ namespace Hearthsheet.Web;
 
 public partial class App
 {
-#if DEBUG
-    // TEMPORARY Task 8 dev page, removed in Task 11.
-    private static readonly Type? DevPage = typeof(Dev.DevStorage);
-#else
-    private static readonly Type? DevPage = null;
-#endif
-
     private TabLock? _lock;
     private BrowserStorage? _storage;
     private SupabaseAuth? _auth;
@@ -30,10 +23,9 @@ public partial class App
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private ILoggerFactory Loggers { get; set; } = null!;
     [Inject] private SupabaseHttp Http { get; set; } = null!;
+    [Inject] private WebDialogs Dialogs { get; set; } = null!;
 
     private ILogger Log => Loggers.CreateLogger<App>();
-
-    private Dictionary<string, object?> DevParameters => new() { ["Account"] = _account };
 
     // Gate order (spec goal 3): 1 self-check → 2 tab lock → 3 load hearthsheet-app → 4 auth.Restore() →
     // 5 WebStartup.Choose → 6 OpenAccountAsync → 7 per-account CloudSync (Task 11: ShellViewModel) → 8 shell.
@@ -46,6 +38,7 @@ public partial class App
             var tabLock = await TabLock.CreateAsync(JS, Loggers.CreateLogger<TabLock>());
             tabLock.Changed += () => InvokeAsync(StateHasChanged);
             tabLock.ReleaseRequested += DropStorageAsync;
+            tabLock.PageHidden += () => _account?.Save(); // the journal starts writing at once
             _lock = tabLock;
             if (await tabLock.AcquireAsync()) await OpenStorageAsync();
         }
@@ -92,6 +85,22 @@ public partial class App
     {
         var (storage, auth) = (_storage!, _auth!);
         var userId = auth.UserId!;
+
+        // Closing a journal whose head write failed would drop edits that exist only in memory: stay on the old
+        // account (signed out, so its store and the session agree) until "Try again" has saved them.
+        if (_account is { } current && current.UserId != userId)
+        {
+            await current.SaveAndFlushAsync();
+            if (current.Journal.Failed)
+            {
+                await auth.SignOutAsync(CancellationToken.None);
+                _ = Dialogs.ErrorAsync($"Not saved on this device — try again first.\n\nSome changes to {current.Email ?? "the open account"}'s " +
+                    "characters couldn't be saved in this browser, so Hearthsheet stayed on that account. Use \"Try again\" " +
+                    "in the status bar, then sign in again.");
+                return;
+            }
+        }
+
         storage.WriteLastAccount(new LastAccount(userId, auth.Email));
         try
         {
@@ -222,7 +231,8 @@ public partial class App
         finally
         {
             account.Close();
-            storage.ClearLastAccount();
+            // A tab that lost the lock meanwhile must not clear what the tab now holding it relies on.
+            if (!_lock!.IsReadOnly) storage.ClearLastAccount();
             _busy = null;
         }
     }

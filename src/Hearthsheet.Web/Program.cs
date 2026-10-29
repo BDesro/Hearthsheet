@@ -28,6 +28,7 @@ builder.RootComponents.Add(typeof(App), "#app", ParameterView.FromDictionary(new
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddSingleton(log);
+builder.Services.AddSingleton<WebDialogs>();
 // The browser's own fetch handler (spec 3): SocketsHttpHandler and redirect settings aren't supported there.
 var sync = builder.Configuration.GetSection("Sync").Get<SupabaseOptions>() ?? new SupabaseOptions();
 builder.Services.AddSingleton(new SupabaseHttp(sync, new HttpClientHandler(), AccountSession.AppVersion));

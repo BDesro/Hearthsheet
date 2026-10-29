@@ -1,0 +1,81 @@
+@* The character list and its commands. Opening, creating, deleting and importing go through the shared ShellViewModel. *@
+@using System.Text
+@using Hearthsheet.Core.Serialization
+@using Hearthsheet.Presentation
+@using Hearthsheet.Web.Storage
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+@using Microsoft.JSInterop
+@inject WebDialogs Dialogs
+@inject ILogger<CharacterList> Log
+
+<div class="toolbar" role="toolbar" aria-label="Character commands">
+    <button type="button" @onclick="Shell.CreateAsync">New</button>
+    <label class="file-button">
+        Import
+        <InputFile accept="@PortableCharacterFile.FileExtension" OnChange="ImportAsync" />
+    </label>
+    <button type="button" @onclick="Shell.Duplicate" disabled="@(Shell.Current is null)">Duplicate</button>
+    <button type="button" @onclick="ExportAsync" disabled="@(Shell.Current is null)">Export</button>
+    <button type="button" @onclick="Shell.DeleteSelectedAsync" disabled="@(Shell.SelectedSummary is null)">Delete</button>
+</div>
+
+@if (Shell.Characters.Count == 0)
+{
+    <p>No characters yet.</p>
+}
+<ul class="character-list">
+    @foreach (var summary in Shell.Characters)
+    {
+        var open = summary.Id == Shell.SelectedSummary?.Id;
+        <li>
+            <button type="button" class="@(open ? "open" : null)" aria-current="@(open ? "true" : null)"
+                    @onclick="() => Shell.SelectedSummary = summary">
+                <span class="name">@summary.Name</span>
+                <span class="description">@summary.Description</span>
+            </button>
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public ShellViewModel Shell { get; set; } = null!;
+    [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
+    [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
+
+    // The size cap is applied while reading; the text then goes through the same Core import pipeline as the desktop.
+    private async Task ImportAsync(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        string text;
+        try
+        {
+            await using var stream = file.OpenReadStream(PortableCharacterFile.MaxFileBytes);
+            using var reader = new StreamReader(stream);
+            text = await reader.ReadToEndAsync();
+        }
+        catch (IOException ex)
+        {
+            Log.LogWarning(ex, "Import failed");
+            await Dialogs.ErrorAsync($"The file could not be read:\n\n{ex.Message}");
+            return;
+        }
+        await Shell.ImportAsync(() => Account.Library.Import(text, file.Name), file.Name);
+    }
+
+    private async Task ExportAsync()
+    {
+        if (Shell.Current is not { } current) return;
+        var name = current.Title + PortableCharacterFile.FileExtension;
+        try
+        {
+            await Storage.DownloadAsync(name, "application/json", Encoding.UTF8.GetBytes(Account.Library.ExportText(current.Character)));
+            current.Play.Record($"Exported to {name}.");
+        }
+        catch (JSException ex)
+        {
+            Log.LogError(ex, "Export failed");
+            await Dialogs.ErrorAsync("The character could not be exported. Try again.");
+        }
+    }
+}

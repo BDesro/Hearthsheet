@@ -1,0 +1,82 @@
+@* Same fields and checks as the desktop's New character dialog. Shown inside Modal. *@
+@using Hearthsheet.Core.Content
+@using Hearthsheet.Presentation
+
+<form class="new-character" @onsubmit="Create">
+    <h2 id="dialog-title">Create a character</h2>
+    <p class="hint">Built-in classes pre-fill hit die, saving throws, average HP and spell slots. Everything can be changed later.</p>
+
+    <label for="new-name">Character name</label>
+    <input id="new-name" autofocus @ref="_nameInput" @bind="_name" @bind:event="oninput" />
+
+    <div class="field-row">
+        <div>
+            <label for="new-class">Class</label>
+            <input id="new-class" list="new-classes" @bind="_class" @bind:event="oninput" />
+        </div>
+        <div>
+            <label for="new-level">Level</label>
+            <input id="new-level" class="short" inputmode="numeric" @ref="_levelInput" @bind="_level" @bind:event="oninput" />
+        </div>
+    </div>
+    <div class="field-row">
+        <div>
+            <label for="new-species">Species</label>
+            <input id="new-species" list="new-species-list" @bind="_species" @bind:event="oninput" />
+        </div>
+        <div>
+            <label for="new-background">Background</label>
+            <input id="new-background" @bind="_background" @bind:event="oninput" />
+        </div>
+    </div>
+    <label for="new-player">Player name (optional)</label>
+    <input id="new-player" @bind="_player" @bind:event="oninput" />
+
+    <datalist id="new-classes">
+        @foreach (var name in Lookups.ClassNames)
+        {
+            <option value="@name" />
+        }
+    </datalist>
+    <datalist id="new-species-list">
+        @foreach (var name in Lookups.Species)
+        {
+            <option value="@name" />
+        }
+    </datalist>
+
+    @if (_error is not null)
+    {
+        <p role="alert" class="error">@_error</p>
+    }
+    <div class="dialog-buttons">
+        <button type="button" @onclick="() => Done.InvokeAsync(null)">Cancel</button>
+        <button type="submit">Create</button>
+    </div>
+</form>
+
+@code {
+    private string _name = "", _class = "", _level = "1", _species = "", _background = "", _player = "";
+    private string? _error;
+    private ElementReference _nameInput, _levelInput;
+
+    /// <summary>The options, or null when cancelled.</summary>
+    [Parameter] public EventCallback<NewCharacterOptions?> Done { get; set; }
+
+    private async Task Create()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "Give the character a name.";
+            await _nameInput.FocusAsync();
+            return;
+        }
+        if (!int.TryParse(_level, out var level) || level is < 1 or > 20)
+        {
+            _error = "Level must be a whole number from 1 to 20.";
+            await _levelInput.FocusAsync();
+            return;
+        }
+        await Done.InvokeAsync(new NewCharacterOptions(_name, _class, level, _species, _background, _player));
+    }
+}

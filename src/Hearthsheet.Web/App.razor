@@ -11,6 +11,7 @@ else
         <div class="preview-banner" role="note">Preview – not the final Hearthsheet. Don't rely on it for real characters.</div>
     }
     <h1>Hearthsheet</h1>
+    <Modal />
     @if (_error is not null)
     {
         <p role="alert">@_error</p>
@@ -36,10 +37,6 @@ else
     }
     else
     {
-        <header class="account" aria-label="Account">
-            <span>@(_account.Email ?? "Signed in")</span>
-            <button type="button" @onclick="SignOutAsync" disabled="@(_askSignOut is not null)">Sign out</button>
-        </header>
         @if (_askSignOut is { } unsynced)
         {
             <SignOutDialog Unsynced="unsynced" Busy="_signOutBusy" Error="@_signOutError" Chosen="OnSignOutChosenAsync" />
@@ -51,10 +48,7 @@ else
                 <p role="status" class="signed-out">Signed out – sign in to resume sync</p>
                 <SignIn Auth="_auth" Email="@_account.Email" SignedIn="OnSignedInAsync" />
             }
-            @if (DevPage is not null)
-            {
-                <DynamicComponent @key="_account" Type="DevPage" Parameters="DevParameters" />
-            }
+            <Shell @key="_account" Account="_account" Storage="_storage" SignOut="SignOutAsync" />
         }
     }
 }

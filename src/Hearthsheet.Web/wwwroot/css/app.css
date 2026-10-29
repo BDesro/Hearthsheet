@@ -3,7 +3,7 @@ body { margin: 0; font-family: system-ui, sans-serif; }
 .preview-banner { background: #fde68a; color: #1f1f1f; padding: 0.5rem 1rem; text-align: center; }
 #blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 0.6rem 1rem; background: #fde68a; color: #1f1f1f; }
 .other-tab { background: #dbeafe; color: #1f1f1f; padding: 0.75rem 1rem; }
-h1, .sign-in, .dialog, .account, .signed-out { margin-left: 1rem; margin-right: 1rem; }
+h1, .sign-in, section.dialog, .signed-out { margin-left: 1rem; margin-right: 1rem; }
 .sign-in { max-width: 22rem; }
 .sign-in form label { display: block; margin-top: 0.75rem; }
 .sign-in form input:not([type=checkbox]) { display: block; width: 100%; box-sizing: border-box; padding: 0.4rem; }
@@ -11,6 +11,45 @@ h1, .sign-in, .dialog, .account, .signed-out { margin-left: 1rem; margin-right: 
 .sign-in-links { display: flex; gap: 1rem; flex-wrap: wrap; }
 button.link { background: none; border: none; padding: 0; color: LinkText; text-decoration: underline; cursor: pointer; }
 .error { font-weight: bold; }
-.account { display: flex; gap: 1rem; align-items: center; }
 .dialog { border: 1px solid #9ca3af; padding: 1rem; max-width: 30rem; }
 .dialog-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+*, *::before, *::after { box-sizing: border-box; }
+button, input { font: inherit; }
+:focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
+.dialog-message { white-space: pre-line; overflow-wrap: anywhere; }
+dialog.dialog { width: min(30rem, calc(100vw - 2rem)); }
+dialog.dialog label { display: block; margin-top: 0.75rem; }
+dialog.dialog input { width: 100%; padding: 0.4rem; }
+dialog.dialog .dialog-buttons { margin-top: 1rem; justify-content: flex-end; }
+.hint { font-size: 0.9rem; }
+.field-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.field-row > div { flex: 1 1 10rem; }
+
+/* Shell: account menu on top, list beside the character, status bar below; stacked on narrow screens. */
+.shell {
+    display: grid; gap: 1rem; padding: 0 1rem 1rem;
+    grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr);
+    grid-template-areas: "account account" "sidebar main" "status status";
+}
+@media (max-width: 40rem) {
+    .shell { grid-template-columns: minmax(0, 1fr); grid-template-areas: "account" "sidebar" "main" "status"; }
+}
+.account-menu { grid-area: account; justify-self: end; position: relative; }
+.account-menu summary { cursor: pointer; padding: 0.3rem 0.5rem; overflow-wrap: anywhere; }
+.account-menu .menu { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem; border: 1px solid #9ca3af; }
+.sidebar { grid-area: sidebar; min-width: 0; }
+.main { grid-area: main; min-width: 0; }
+.status-bar { grid-area: status; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: center; border-top: 1px solid #9ca3af; padding-top: 0.5rem; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+/* The file input stays focusable and operable; the label is what shows. */
+.file-button { position: relative; display: inline-block; padding: 1px 6px; border: 1px solid ButtonBorder; border-radius: 2px; background: ButtonFace; color: ButtonText; cursor: pointer; }
+.file-button input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.file-button:focus-within { outline: 3px solid Highlight; outline-offset: 2px; }
+
+.character-list { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+.character-list button { display: block; width: 100%; text-align: left; padding: 0.4rem 0.5rem; border: 0; border-left: 4px solid transparent; background: none; color: inherit; cursor: pointer; }
+.character-list button.open { border-left-color: currentColor; font-weight: bold; } /* marked by the bar and weight, not colour */
+.character-list .name, .character-list .description { display: block; overflow-wrap: anywhere; }
+.character-list .description { font-size: 0.85rem; font-weight: normal; }
+.character input { width: min(100%, 24rem); padding: 0.4rem; display: block; }
