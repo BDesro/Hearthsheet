@@ -14,14 +14,14 @@
     {
         <span role="alert" class="error">
             Not saved on this device
-            <button type="button" aria-label="Try saving characters again" @onclick="Account.Journal.RetryAsync">Try again</button>
+            <button type="button" aria-label="Try again: save characters" @onclick="Account.Journal.RetryAsync">Try again</button>
         </span>
     }
     @if (Secrets.Failed)
     {
         <span role="alert" class="error">
             Sign-in not saved on this device
-            <button type="button" aria-label="Try saving sign-in again" @onclick="Secrets.RetryAsync">Try again</button>
+            <button type="button" aria-label="Try again: save sign-in" @onclick="Secrets.RetryAsync">Try again</button>
         </span>
     }
 </footer>

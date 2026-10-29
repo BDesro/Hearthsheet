@@ -86,19 +86,30 @@ public partial class App
         var (storage, auth) = (_storage!, _auth!);
         var userId = auth.UserId!;
 
-        // Closing a journal whose head write failed would drop edits that exist only in memory: stay on the old
-        // account (signed out, so its store and the session agree) until "Try again" has saved them.
+        // Another account: close the old store first. Closing a journal whose head write failed would drop edits that
+        // exist only in memory, so then stay on the old account (signed out, so its store and the session agree) until
+        // "Try again" has saved them. _busy hides the shell, so nothing is edited between the flush and the close.
         if (_account is { } current && current.UserId != userId)
         {
+            _busy = "Opening your characters…";
             await current.SaveAndFlushAsync();
+            if (_storage != storage || _lock!.IsReadOnly)
+            {
+                _busy = null; // the lock went meanwhile: DropStorageAsync has already saved and closed it
+                return;
+            }
+            // No await between this check and Close().
             if (current.Journal.Failed)
             {
+                _busy = null;
                 await auth.SignOutAsync(CancellationToken.None);
                 _ = Dialogs.ErrorAsync($"Not saved on this device — try again first.\n\nSome changes to {current.Email ?? "the open account"}'s " +
                     "characters couldn't be saved in this browser, so Hearthsheet stayed on that account. Use \"Try again\" " +
                     "in the status bar, then sign in again.");
                 return;
             }
+            _account = null;
+            current.Close();
         }
 
         storage.WriteLastAccount(new LastAccount(userId, auth.Email));
@@ -120,12 +131,6 @@ public partial class App
         _busy = "Opening your characters…";
         try
         {
-            if (_account is { } old)
-            {
-                _account = null;
-                await old.SaveAndFlushAsync();
-                old.Close();
-            }
             var account = await AccountSession.OpenAsync(userId, auth.Email, storage, Http, auth, Loggers);
             if (_storage != storage || _lock!.IsReadOnly) account.Close(); // dropped while loading
             else _account = account;

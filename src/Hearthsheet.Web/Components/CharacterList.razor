@@ -54,10 +54,12 @@
             using var reader = new StreamReader(stream);
             text = await reader.ReadToEndAsync();
         }
-        catch (IOException ex)
+        catch (Exception ex) when (ex is IOException or JSException)
         {
             Log.LogWarning(ex, "Import failed");
-            await Dialogs.ErrorAsync($"The file could not be read:\n\n{ex.Message}");
+            // A JSException's message carries a JS stack trace; the size-limit IOException's is worth showing.
+            var reason = ex is IOException ? $":\n\n{ex.Message}" : ". Try again, or choose another file.";
+            await Dialogs.ErrorAsync($"The file could not be read{reason}");
             return;
         }
         await Shell.ImportAsync(() => Account.Library.Import(text, file.Name), file.Name);
