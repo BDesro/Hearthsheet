@@ -1,9 +1,5 @@
-Easier installing
-- New installer: download Hearthsheet-Setup.exe, double-click it, and you're done. The download link is on the Hearthsheet GitHub page and always gets the newest version.
-- Windows shows "Windows protected your PC" once, because Hearthsheet isn't signed by a registered publisher. Click More info, then Run anyway.
-- Nothing else to install: Hearthsheet now includes the .NET runtime it needs. That makes this update a bigger download than usual (about 70 MB).
-- Hearthsheet now appears in Settings > Apps, where you can uninstall it. Uninstalling asks whether to also delete your characters, settings and backups, and keeps them unless you say yes.
-- Installed with Install.cmd before? This update installs as usual. To get the Settings > Apps entry, run Hearthsheet-Setup.exe once; it upgrades your copy in place and keeps your characters.
+Back up everything at once
+- New: File > Export all characters saves every character into one .zip file. Each one inside is a normal .dndchar file you can import again. If a character can't be read, the rest are still exported and Hearthsheet tells you which one was skipped.
 
-Safer upgrades
-- Before Hearthsheet converts your characters to a newer format, it saves a backup of them in the backups folder. If it can't save that backup, it leaves your characters untouched.
+Fewer sync conflicts
+- Opening a character and switching away without changing anything no longer saves it again. Before, just looking at a character could upload it and cause a conflict copy on another computer.
