@@ -15,9 +15,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- The web's dialog queue has no Blazor dependencies; linked so it is tested without referencing the web project. -->
+  <!-- The web's dialog queue and sync triggers have no Blazor dependencies; linked so they are tested without referencing the web project. -->
   <ItemGroup>
     <Compile Include="..\..\src\Hearthsheet.Web\WebDialogs.cs" Link="Web\WebDialogs.cs" />
+    <Compile Include="..\..\src\Hearthsheet.Web\WebSync.cs" Link="Web\WebSync.cs" />
   </ItemGroup>
 
   <ItemGroup>

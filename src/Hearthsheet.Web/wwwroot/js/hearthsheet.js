@@ -46,6 +46,20 @@ function pageHidden() {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pageHidden(); });
 window.addEventListener('pagehide', pageHidden);
 
+// ---- Sync triggers (spec decision 10): back online, and visibility (the 5-minute timer syncs only while visible).
+// Hidden also goes through pageHidden above: save, flush, then a pass. A tab without the lock never syncs. ----
+
+let pageWatcher = null; // the .NET Shell
+window.addEventListener('online', () => { if (held) pageWatcher?.invokeMethodAsync('Online'); });
+document.addEventListener('visibilitychange', () => pageWatcher?.invokeMethodAsync('Visible', document.visibilityState === 'visible'));
+
+export function watchPage(dotnetRef) {
+    pageWatcher = dotnetRef;
+    return document.visibilityState === 'visible';
+}
+
+export function unwatchPage() { pageWatcher = null; }
+
 export function lockAcquire(dotnetRef) {
     owner = dotnetRef;
     return request({ ifAvailable: true });

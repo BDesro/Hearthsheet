@@ -38,7 +38,11 @@ public partial class App
             var tabLock = await TabLock.CreateAsync(JS, Loggers.CreateLogger<TabLock>());
             tabLock.Changed += () => InvokeAsync(StateHasChanged);
             tabLock.ReleaseRequested += DropStorageAsync;
-            tabLock.PageHidden += () => _account?.Save(); // the journal starts writing at once
+            tabLock.PageHidden += () =>
+            {
+                _account?.Save(); // the journal starts writing at once
+                _ = _account?.WebSync?.PageHiddenAsync(); // then flush and sync, not awaited
+            };
             _lock = tabLock;
             if (await tabLock.AcquireAsync()) await OpenStorageAsync();
         }
@@ -125,6 +129,7 @@ public partial class App
         if (_account is { } open && open.UserId == userId)
         {
             open.Email = auth.Email ?? open.Email;
+            _ = open.WebSync?.RunAsync(); // signed back in: resume sync on the same store
             return;
         }
 
@@ -248,6 +253,7 @@ public partial class App
     {
         var (storage, account) = (_storage, _account);
         (_storage, _auth, _account, _askSignOut) = (null, null, null, null);
+        account?.WebSync?.Dispose(); // no pass may start without the lock
         if (storage is null) return;
         try
         {

@@ -10,6 +10,7 @@
 @inject WebDialogs Dialogs
 @inject ILoggerFactory Loggers
 @inject MemoryLogProvider Logs
+@inject IJSRuntime JS
 
 <div class="shell">
     <details class="account-menu">
@@ -33,15 +34,22 @@
             <p>No character open. Choose New or Import to start.</p>
         }
     </main>
-    <StatusBar Shell="_shell" Account="Account" Secrets="Storage.Secrets.Journal" />
+    <StatusBar Shell="_shell" Account="Account" Sync="_sync" Secrets="Storage.Secrets.Journal" />
 </div>
 
 @code {
     private ShellViewModel _shell = null!;
+    private WebSync _sync = null!;
+    private IJSObjectReference? _js;
+    private DotNetObjectReference<Shell>? _ref;
+    private bool _disposed;
 
     [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
     [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
     [Parameter] public EventCallback SignOut { get; set; }
+
+    /// <summary>A pass finished; the app re-renders (a pass can end the session: "Signed out – sign in to resume sync").</summary>
+    [Parameter] public EventCallback SyncChanged { get; set; }
 
     private ILogger Log => Loggers.CreateLogger<Shell>();
 
@@ -57,7 +65,27 @@
         _shell.Characters.CollectionChanged += OnChanged;
         _shell.Start();
         if (reopen is { } id && _shell.Characters.FirstOrDefault(c => c.Id == id) is { } summary) _shell.SelectedSummary = summary;
+
+        _sync = new WebSync(Account.Sync, _shell, Account.Auth, Account.Journal, Loggers.CreateLogger<WebSync>(),
+            action => _ = InvokeAsync(action), TimeProvider.System);
+        _sync.Changed += OnSyncChanged;
+        Account.WebSync = _sync;
+        _ = _sync.RunAsync();
     }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        if (_disposed) return;
+        (_js, _ref) = (js, DotNetObjectReference.Create(this));
+        _sync.IsVisible = await _js.InvokeAsync<bool>("watchPage", _ref);
+    }
+
+    [JSInvokable] public void Online() => _sync.Online();
+    [JSInvokable] public void Visible(bool visible) => _sync.IsVisible = visible;
+
+    private void OnSyncChanged() => _ = InvokeAsync(SyncChanged.InvokeAsync);
 
     private void OnChanged(object? sender, EventArgs e) => InvokeAsync(StateHasChanged);
 
@@ -99,5 +127,10 @@
         // Account.Save stays pointed at this view model: a lock release or sign-out after unmounting still saves through it.
         _shell.PropertyChanged -= OnChanged;
         _shell.Characters.CollectionChanged -= OnChanged;
+        _disposed = true;
+        _sync.Changed -= OnSyncChanged;
+        _sync.Dispose();
+        if (_js is not null) _ = _js.InvokeVoidAsync("unwatchPage").AsTask();
+        _ref?.Dispose();
     }
 }

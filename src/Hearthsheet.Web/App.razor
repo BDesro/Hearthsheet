@@ -48,7 +48,7 @@ else
                 <p role="status" class="signed-out">Signed out – sign in to resume sync</p>
                 <SignIn Auth="_auth" Email="@_account.Email" SignedIn="OnSignedInAsync" />
             }
-            <Shell @key="_account" Account="_account" Storage="_storage" SignOut="SignOutAsync" />
+            <Shell @key="_account" Account="_account" Storage="_storage" SignOut="SignOutAsync" SyncChanged="StateHasChanged" />
         }
     }
 }

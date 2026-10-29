@@ -15,9 +15,9 @@ namespace Hearthsheet.Web;
 public sealed class AccountSession
 {
     private AccountSession(string userId, string? email, MemoryCharacterStore store, IndexedDbJournal journal,
-        CloudSync sync, CharacterLibrary library)
+        SupabaseAuth auth, CloudSync sync, CharacterLibrary library)
     {
-        (UserId, Email, Store, Journal, Sync, Library) = (userId, email, store, journal, sync, library);
+        (UserId, Email, Store, Journal, Auth, Sync, Library) = (userId, email, store, journal, auth, sync, library);
     }
 
     public string UserId { get; }
@@ -25,6 +25,7 @@ public sealed class AccountSession
     public MemoryCharacterStore Store { get; }
     /// <summary>The store's journal; its <c>Failed</c> is "Not saved on this device".</summary>
     public IndexedDbJournal Journal { get; }
+    public SupabaseAuth Auth { get; }
     public CloudSync Sync { get; }
     public CharacterLibrary Library { get; }
 
@@ -34,13 +35,16 @@ public sealed class AccountSession
     /// <summary>The character open in the UI, for <see cref="CloudSync.RunAsync"/>. Task 11 sets it from the shell.</summary>
     public Func<Guid?> OpenCharacter { get; set; } = () => null;
 
+    /// <summary>When passes run; set by the shell while it is shown (Task 12).</summary>
+    public WebSync? WebSync { get; set; }
+
     public static async Task<AccountSession> OpenAsync(string userId, string? email, BrowserStorage storage,
         SupabaseHttp http, SupabaseAuth auth, ILoggerFactory loggers)
     {
         var store = await storage.OpenAccountAsync(userId);
         var sync = new CloudSync(store, store, new SupabaseCharacterStore(http, auth), auth, loggers.CreateLogger<CloudSync>());
         var library = new CharacterLibrary(store, new PortableCharacterFile(), AppVersion, loggers.CreateLogger<CharacterLibrary>());
-        return new AccountSession(userId, email, store, storage.AccountJournal!, sync, library);
+        return new AccountSession(userId, email, store, storage.AccountJournal!, auth, sync, library);
     }
 
     /// <summary>The app version written into exports.</summary>

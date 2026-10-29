@@ -5,7 +5,10 @@
 
 <footer class="status-bar" aria-label="Status">
     <span role="status">@Shell.SaveStatus</span>
-    @* Task 12: the sync status text goes here. *@
+    @if (Sync.Status is { Length: > 0 } status)
+    {
+        <span role="status">@status</span>
+    }
     @if (SyncStatus.Unsynced(Account.Store.UnsyncedCount) is { Length: > 0 } unsynced)
     {
         <span>@unsynced</span>
@@ -29,6 +32,7 @@
 @code {
     [Parameter, EditorRequired] public ShellViewModel Shell { get; set; } = null!;
     [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
+    [Parameter, EditorRequired] public WebSync Sync { get; set; } = null!;
 
     /// <summary>The sign-in secrets' journal (<see cref="BrowserSecretStore.Journal"/>).</summary>
     [Parameter, EditorRequired] public IndexedDbJournal Secrets { get; set; } = null!;
