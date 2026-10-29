@@ -15,23 +15,46 @@ else
     {
         <p role="alert">@_error</p>
     }
-    else if (_lock is null)
+    @if (_lock is null)
     {
-        <p>Loading…</p>
-    }
-    else
-    {
-        @if (_lock.IsReadOnly)
-        {
-            <OtherTab Lock="_lock" TookOver="OpenStorageAsync" />
-        }
-        else if (_storage is null)
+        @if (_error is null)
         {
             <p>Loading…</p>
         }
-        else if (DevPage is not null)
+    }
+    else if (_lock.IsReadOnly)
+    {
+        <OtherTab Lock="_lock" TookOver="OpenStorageAsync" />
+    }
+    else if (_busy is not null || _storage is null || _auth is null)
+    {
+        <p role="status">@(_busy ?? "Loading…")</p>
+    }
+    else if (_account is null)
+    {
+        <SignIn Auth="_auth" SignedIn="OnSignedInAsync" />
+    }
+    else
+    {
+        <header class="account" aria-label="Account">
+            <span>@(_account.Email ?? "Signed in")</span>
+            <button type="button" @onclick="SignOutAsync" disabled="@(_askSignOut is not null)">Sign out</button>
+        </header>
+        @if (_askSignOut is { } unsynced)
         {
-            <DynamicComponent @key="_storage" Type="DevPage" Parameters="DevParameters" />
+            <SignOutDialog Unsynced="unsynced" Busy="_signOutBusy" Error="@_signOutError" Chosen="OnSignOutChosenAsync" />
+        }
+        else
+        {
+            @if (!_auth.IsSignedIn)
+            {
+                <p role="status" class="signed-out">Signed out – sign in to resume sync</p>
+                <SignIn Auth="_auth" Email="@_account.Email" SignedIn="OnSignedInAsync" />
+            }
+            @if (DevPage is not null)
+            {
+                <DynamicComponent @key="_account" Type="DevPage" Parameters="DevParameters" />
+            }
         }
     }
 }

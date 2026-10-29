@@ -4,6 +4,8 @@ using Hearthsheet.Core.Application;
 using Hearthsheet.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 var log = new MemoryLogProvider(Console.WriteLine);
@@ -26,6 +28,9 @@ builder.RootComponents.Add(typeof(App), "#app", ParameterView.FromDictionary(new
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddSingleton(log);
+// The browser's own fetch handler (spec 3): SocketsHttpHandler and redirect settings aren't supported there.
+var sync = builder.Configuration.GetSection("Sync").Get<SupabaseOptions>() ?? new SupabaseOptions();
+builder.Services.AddSingleton(new SupabaseHttp(sync, new HttpClientHandler(), AccountSession.AppVersion));
 builder.Logging.AddProvider(log);
 
 await builder.Build().RunAsync();

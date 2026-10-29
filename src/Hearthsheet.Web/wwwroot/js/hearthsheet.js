@@ -143,3 +143,14 @@ export function local(key) { return localStorage.getItem(key); }
 export function setLocal(key, value) { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); }
 export function session(key) { return sessionStorage.getItem(key); }
 export function setSession(key, value) { value === null ? sessionStorage.removeItem(key) : sessionStorage.setItem(key, value); }
+
+// ---- Downloads ----
+
+export function download(name, mime, bytes) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+}

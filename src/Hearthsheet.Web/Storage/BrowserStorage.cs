@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Hearthsheet.Core.Storage;
+using Hearthsheet.Presentation;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
@@ -13,6 +14,7 @@ namespace Hearthsheet.Web.Storage;
 public sealed class BrowserStorage
 {
     private const string LastAccountKey = "hearthsheet.lastAccount";
+    private const string PersistedKey = "hearthsheet.persisted";
     private readonly IJSInProcessObjectReference _js;
     private readonly ILoggerFactory _loggers;
 
@@ -81,11 +83,15 @@ public sealed class BrowserStorage
         AccountJournal?.Close();
     }
 
-    /// <summary>Asks the browser not to evict this site's storage (spec 8).</summary>
-    public async Task<bool> PersistAsync() => await _js.InvokeAsync<bool>("persist");
+    /// <summary>Asks the browser not to evict this site's storage (spec 8), once per browser: after the first sign-in.</summary>
+    public async Task PersistOnceAsync()
+    {
+        if (_js.Invoke<string?>("local", PersistedKey) is not null) return;
+        await _js.InvokeAsync<bool>("persist");
+        _js.InvokeVoid("setLocal", PersistedKey, "1");
+    }
 
-    // ponytail: two strings until Task 10 moves LastAccount into Presentation.
-    public (string UserId, string? Email)? ReadLastAccount()
+    public LastAccount? ReadLastAccount()
     {
         var raw = _js.Invoke<string?>("local", LastAccountKey);
         if (raw is null) return null;
@@ -93,17 +99,20 @@ public sealed class BrowserStorage
         {
             var node = JsonNode.Parse(raw);
             var userId = node?["userId"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(userId)) return (userId, node?["email"]?.GetValue<string>());
+            if (Guid.TryParse(userId, out _)) return new LastAccount(userId, node?["email"]?.GetValue<string>());
         }
         catch (Exception ex) when (ex is JsonException or InvalidOperationException) { }
         _loggers.CreateLogger<BrowserStorage>().LogWarning("Ignored an unreadable {Key} in localStorage", LastAccountKey);
         return null;
     }
 
-    public void WriteLastAccount(string userId, string? email) =>
-        _js.InvokeVoid("setLocal", LastAccountKey, new JsonObject { ["userId"] = userId, ["email"] = email }.ToJsonString());
+    public void WriteLastAccount(LastAccount account) =>
+        _js.InvokeVoid("setLocal", LastAccountKey, new JsonObject { ["userId"] = account.UserId, ["email"] = account.Email }.ToJsonString());
 
     public void ClearLastAccount() => _js.InvokeVoid("setLocal", LastAccountKey, null);
+
+    /// <summary>Hands the bytes to the browser as a file download.</summary>
+    public Task DownloadAsync(string name, string mime, byte[] bytes) => _js.InvokeVoidAsync("download", name, mime, bytes).AsTask();
 
     /// <summary>The user id becomes part of a database name, so only a GUID (Supabase's user id) is accepted.</summary>
     private static string AccountDb(string userId) =>

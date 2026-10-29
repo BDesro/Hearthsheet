@@ -1,4 +1,16 @@
+:root { color-scheme: light dark; }
 body { margin: 0; font-family: system-ui, sans-serif; }
 .preview-banner { background: #fde68a; color: #1f1f1f; padding: 0.5rem 1rem; text-align: center; }
 #blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 0.6rem 1rem; background: #fde68a; color: #1f1f1f; }
 .other-tab { background: #dbeafe; color: #1f1f1f; padding: 0.75rem 1rem; }
+h1, .sign-in, .dialog, .account, .signed-out { margin-left: 1rem; margin-right: 1rem; }
+.sign-in { max-width: 22rem; }
+.sign-in form label { display: block; margin-top: 0.75rem; }
+.sign-in form input:not([type=checkbox]) { display: block; width: 100%; box-sizing: border-box; padding: 0.4rem; }
+.sign-in form button[type=submit] { margin-top: 1rem; }
+.sign-in-links { display: flex; gap: 1rem; flex-wrap: wrap; }
+button.link { background: none; border: none; padding: 0; color: LinkText; text-decoration: underline; cursor: pointer; }
+.error { font-weight: bold; }
+.account { display: flex; gap: 1rem; align-items: center; }
+.dialog { border: 1px solid #9ca3af; padding: 1rem; max-width: 30rem; }
+.dialog-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
