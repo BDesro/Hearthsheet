@@ -1,0 +1,35 @@
+@* Asked when signing out would lose changes that couldn't be synced (spec 7a). Shown in place of the shell, so nothing
+   behind it can be edited while it is open. *@
+<section class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="sign-out-title" aria-describedby="sign-out-text">
+    <h2 id="sign-out-title">Sign out?</h2>
+    <p id="sign-out-text">
+        @(Unsynced == 1 ? "1 change hasn't" : $"{Unsynced} changes haven't") synced to the cloud. Signing out removes
+        @(Unsynced == 1 ? "it" : "them") from this browser.
+    </p>
+    @if (Error is not null)
+    {
+        <p role="alert" class="error">@Error</p>
+    }
+    <div class="dialog-buttons">
+        <button type="button" @ref="_stay" @onclick="() => Chosen.InvokeAsync(SignOutChoice.Stay)" disabled="@Busy">Stay signed in</button>
+        <button type="button" @onclick="() => Chosen.InvokeAsync(SignOutChoice.Export)" disabled="@Busy">Export them, then sign out</button>
+        <button type="button" @onclick="() => Chosen.InvokeAsync(SignOutChoice.Anyway)" disabled="@Busy">Sign out anyway</button>
+    </div>
+</section>
+
+@code {
+    private ElementReference _stay;
+
+    [Parameter, EditorRequired] public int Unsynced { get; set; }
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public EventCallback<SignOutChoice> Chosen { get; set; }
+
+    // The safe choice gets focus, so Enter never signs out by accident.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await _stay.FocusAsync();
+    }
+
+    public enum SignOutChoice { Stay, Export, Anyway }
+}

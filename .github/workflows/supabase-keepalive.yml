@@ -1,6 +1,7 @@
 name: Supabase keep-alive
 
-# Free Supabase projects pause after about a week without activity. One small daily query prevents that.
+# Free Supabase projects pause after about a week without activity. One small daily query per project prevents that:
+# production (SUPABASE_URL) and the test project Hearthsheet-Test (SUPABASE_TEST_URL). Each is skipped while unset.
 on:
   schedule:
     - cron: "23 7 * * *"
@@ -10,13 +11,21 @@ permissions: {}
 
 jobs:
   ping:
-    if: vars.SUPABASE_URL != ''
+    if: vars.SUPABASE_URL != '' || vars.SUPABASE_TEST_URL != ''
     runs-on: ubuntu-latest
     steps:
       - name: Query the characters table
+        if: vars.SUPABASE_URL != ''
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
         # Row-level security returns [] for the anonymous key, but the request still reaches the database.
+        run: |
+          curl --fail --silent --show-error --max-time 30 "$SUPABASE_URL/rest/v1/characters?select=id&limit=1" -H "apikey: $SUPABASE_ANON_KEY"
+      - name: Query the test project's characters table
+        if: vars.SUPABASE_TEST_URL != ''
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_TEST_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_TEST_ANON_KEY }}
         run: |
           curl --fail --silent --show-error --max-time 30 "$SUPABASE_URL/rest/v1/characters?select=id&limit=1" -H "apikey: $SUPABASE_ANON_KEY"

@@ -1,18 +1,16 @@
-using System.ComponentModel;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Security;
 
-namespace Hearthsheet.Infrastructure.Sync;
+namespace Hearthsheet.Cloud;
 
 /// <summary>
 /// The signed-in Supabase Auth session. The access token lives only in memory. The refresh token (plus user id
 /// and email, so an offline start knows the account) is kept in the OS secret store when "Stay signed in" is
 /// chosen, and rewritten on every refresh because Supabase rotates it.
 /// </summary>
-public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimeProvider? time = null) : ICloudSession
+public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimeProvider? time = null, ISecretStore? sessionSecrets = null) : ICloudSession
 {
     /// <summary>Secret-store key holding the remembered session.</summary>
     public const string SecretKey = "supabase-session";
@@ -33,19 +31,21 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
     public bool IsSignedIn => _refreshToken is not null;
 
     /// <summary>Loads a remembered session without the network. The first token request refreshes it.</summary>
-    public bool Restore()
+    public bool Restore() => TryRestore(secrets, remember: true) || (sessionSecrets is not null && TryRestore(sessionSecrets, remember: false));
+
+    private bool TryRestore(ISecretStore store, bool remember)
     {
         SavedSession? saved;
         try
         {
-            saved = secrets.Read(SecretKey) is { } json ? JsonSerializer.Deserialize<SavedSession>(json) : null;
+            saved = store.Read(SecretKey) is { } json ? JsonSerializer.Deserialize<SavedSession>(json) : null;
         }
-        catch (Exception ex) when (ex is JsonException or Win32Exception)
+        catch (Exception ex) when (ex is JsonException or SecretStoreException)
         {
             saved = null;
         }
         if (saved is not { RefreshToken.Length: > 0, UserId.Length: > 0 }) return false;
-        (_refreshToken, UserId, Email, _remember, _accessToken) = (saved.RefreshToken, saved.UserId, saved.Email, true, null);
+        (_refreshToken, UserId, Email, _remember, _accessToken) = (saved.RefreshToken, saved.UserId, saved.Email, remember, null);
         return true;
     }
 
@@ -189,14 +189,15 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
 
     private void Persist()
     {
+        // "Stay signed in" goes to the durable store; otherwise to the per-tab store (web), if any.
+        var (keep, drop) = _remember ? (secrets, sessionSecrets) : (sessionSecrets, secrets);
         try
         {
-            if (_remember && _refreshToken is not null && UserId is not null)
-                secrets.Write(SecretKey, JsonSerializer.Serialize(new SavedSession(_refreshToken, UserId, Email)));
-            else
-                secrets.Delete(SecretKey);
+            if (_refreshToken is not null && UserId is not null && keep is not null)
+                keep.Write(SecretKey, JsonSerializer.Serialize(new SavedSession(_refreshToken, UserId, Email)));
+            drop?.Delete(SecretKey);
         }
-        catch (Win32Exception)
+        catch (SecretStoreException)
         {
             // Failing to remember only means signing in again next launch.
         }
@@ -205,12 +206,15 @@ public sealed class SupabaseAuth(SupabaseHttp http, ISecretStore secrets, TimePr
     private void Forget()
     {
         (_accessToken, _refreshToken, UserId, Email, _remember) = (null, null, null, null, false);
-        try
+        foreach (var store in new[] { secrets, sessionSecrets })
         {
-            secrets.Delete(SecretKey);
-        }
-        catch (Win32Exception)
-        {
+            try
+            {
+                store?.Delete(SecretKey);
+            }
+            catch (SecretStoreException)
+            {
+            }
         }
     }
 

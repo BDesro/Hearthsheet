@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Hearthsheet.Core.Sync;
 
-namespace Hearthsheet.Infrastructure.Sync;
+namespace Hearthsheet.Cloud;
 
 /// <summary>Supabase project settings.</summary>
 public sealed class SupabaseOptions
@@ -60,12 +60,13 @@ public sealed class SupabaseHttp
         if (!options.IsConfigured)
             throw new ArgumentException("Sync:Url must be an https URL and Sync:AnonKey must be set.", nameof(options));
         _apiKey = options.AnonKey;
-        _http = new HttpClient(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false })
+        _http = new HttpClient(handler ?? new HttpClientHandler { AllowAutoRedirect = false })
         {
             BaseAddress = new Uri(options.Url.TrimEnd('/') + "/"),
             Timeout = TimeSpan.FromSeconds(20),
         };
-        _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Hearthsheet", userAgentVersion));
+        if (!OperatingSystem.IsBrowser()) // browsers forbid it and it would add CORS preflight noise
+            _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Hearthsheet", userAgentVersion));
     }
 
     /// <param name="method">HTTP method.</param>

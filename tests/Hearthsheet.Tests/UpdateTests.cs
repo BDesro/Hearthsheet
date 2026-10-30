@@ -3,6 +3,7 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using Hearthsheet.Infrastructure.Logging;
+using Hearthsheet.Cloud;
 using Hearthsheet.Infrastructure.Security;
 using Hearthsheet.Infrastructure.Updates;
 using Hearthsheet.Updater;
@@ -330,6 +331,13 @@ internal sealed class FakeSecrets : Dictionary<string, string>, ISecretStore
     public string? Read(string key) => TryGetValue(key, out var v) ? v : null;
     public void Write(string key, string secret) => this[key] = secret;
     public void Delete(string key) => Remove(key);
+}
+
+internal sealed class ThrowingSecrets : ISecretStore
+{
+    public string? Read(string key) => throw new SecretStoreException("unavailable");
+    public void Write(string key, string secret) => throw new SecretStoreException("unavailable");
+    public void Delete(string key) => throw new SecretStoreException("unavailable");
 }
 
 internal sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler

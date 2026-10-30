@@ -1,9 +1,9 @@
 using System.Windows.Input;
 using System.Windows.Threading;
-using Hearthsheet.App.Mvvm;
+using Hearthsheet.Presentation;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Sync;
-using Hearthsheet.Infrastructure.Sync;
+using Hearthsheet.Cloud;
 using Microsoft.Extensions.Logging;
 
 namespace Hearthsheet.App.ViewModels;
@@ -19,15 +19,15 @@ public sealed class SyncViewModel : Observable
     private static readonly TimeSpan FinalSyncLimit = TimeSpan.FromSeconds(5);
 
     private readonly CloudServices? _cloud;
-    private readonly MainViewModel _main;
+    private readonly ShellViewModel _shell;
     private readonly Dialogs _dialogs;
     private readonly ILogger _log;
     private readonly DispatcherTimer _timer = new();
 
-    public SyncViewModel(CloudServices? cloud, MainViewModel main, Dialogs dialogs, ILogger log)
+    public SyncViewModel(CloudServices? cloud, ShellViewModel shell, Dialogs dialogs, ILogger log)
     {
         _cloud = cloud;
-        _main = main;
+        _shell = shell;
         _dialogs = dialogs;
         _log = log;
         _timer.Interval = TimeSpan.FromMinutes(5);
@@ -69,9 +69,9 @@ public sealed class SyncViewModel : Observable
         try
         {
             // The open character's unsaved edits go out with this pass; an unedited one must not be marked dirty.
-            if (!final && _main.Current?.Session.IsDirty == true) _main.Save();
+            if (!final && _shell.Current?.Session.IsDirty == true) _shell.Save();
             var sync = _cloud.Sync;
-            var result = await Task.Run(() => sync.RunAsync(() => _main.OpenCharacterId, waitIfBusy: final, limit.Token), limit.Token);
+            var result = await Task.Run(() => sync.RunAsync(() => _shell.OpenCharacterId, waitIfBusy: final, limit.Token), limit.Token);
             await ApplyAsync(result);
         }
         catch (OperationCanceledException)
@@ -93,36 +93,15 @@ public sealed class SyncViewModel : Observable
 
     private async Task ApplyAsync(SyncResult result)
     {
-        switch (result.Outcome)
+        if (result.Outcome == SyncOutcome.AccountMismatch)
         {
-            case SyncOutcome.Synced:
-                _main.ApplySyncResult(result);
-                Status = $"Synced {DateTime.Now:HH:mm}" + Details(result);
-                break;
-            case SyncOutcome.Offline:
-                Status = "Offline";
-                break;
-            case SyncOutcome.Unavailable:
-                Status = "Cloud unavailable";
-                break;
-            case SyncOutcome.SignedOut:
-                Status = "Signed out – sign in to resume sync";
-                OnAccountChanged();
-                break;
-            case SyncOutcome.NotSignedIn:
-                Status = "Not signed in";
-                break;
-            case SyncOutcome.AccountMismatch:
-                Status = await ConfirmAccountLinkAsync() ? "Ready to sync" : "Not signed in";
-                break;
-            case SyncOutcome.Busy:
-                break;
+            Status = await ConfirmAccountLinkAsync() ? "Ready to sync" : "Not signed in";
+            return;
         }
+        if (result.Outcome == SyncOutcome.Synced) _shell.ApplySyncResult(result);
+        Status = SyncStatus.For(result, DateTimeOffset.Now) ?? Status;
+        if (result.Outcome == SyncOutcome.SignedOut) OnAccountChanged();
     }
-
-    private static string Details(SyncResult result) =>
-        (result.ConflictCopies > 0 ? $" · {result.ConflictCopies} conflict {(result.ConflictCopies == 1 ? "copy" : "copies")} kept" : "")
-        + (result.Warnings.Count > 0 ? $" · {result.Warnings.Count} not synced (see log)" : "");
 
     private async Task SignInAsync()
     {
@@ -153,7 +132,7 @@ public sealed class SyncViewModel : Observable
         if (linked is null || linked == userId) return true;
 
         var upload = _dialogs.AccountSwitch();
-        if (upload is null || !_main.WithCharacterClosed(() => _cloud.Sync.Relink(userId, upload.Value)))
+        if (upload is null || !_shell.WithCharacterClosed(() => _cloud.Sync.Relink(userId, upload.Value)))
         {
             await SignOutAsync();
             return false;

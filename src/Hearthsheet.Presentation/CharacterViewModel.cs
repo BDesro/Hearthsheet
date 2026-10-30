@@ -1,15 +1,13 @@
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Hearthsheet.App.Mvvm;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 using Microsoft.Extensions.Logging;
 
-namespace Hearthsheet.App.ViewModels;
+namespace Hearthsheet.Presentation;
 
 /// <summary>
 /// The one view model for an open character, shared by the Sheet, Details and Play views. Stored values
@@ -19,15 +17,17 @@ namespace Hearthsheet.App.ViewModels;
 public sealed class CharacterViewModel : Observable, IDisposable
 {
     private readonly CharacterSession _session;
-    private readonly Dialogs _dialogs;
+    private readonly IDialogs _dialogs;
     private readonly ILogger _log;
+    private readonly Action<Action> _postToUi;
     private bool _refreshQueued;
 
-    public CharacterViewModel(CharacterSession session, RestService rest, Dialogs dialogs, ILogger log)
+    public CharacterViewModel(CharacterSession session, RestService rest, IDialogs dialogs, ILogger log, Action<Action> postToUi)
     {
         _session = session;
         _dialogs = dialogs;
         _log = log;
+        _postToUi = postToUi;
         var c = session.Character;
 
         Abilities = [.. AbilityInfo.All.Select(a => new AbilityRow(c, a))];
@@ -70,9 +70,9 @@ public sealed class CharacterViewModel : Observable, IDisposable
             _ => null,
         })?.Add(new Modifier { Target = StatTargets.ArmorClass, Value = 1 }));
         RemoveEntry = new RelayCommand(RemoveEntryWithConfirmation, p => p is not null);
-        ApplyClassDefaults = new RelayCommand(() =>
+        ApplyClassDefaults = new RelayCommand(async () =>
         {
-            if (!_dialogs.Confirm("Apply class defaults to every class entry? This fills blank hit dice, caster types and spellcasting abilities from the " +
+            if (!await _dialogs.ConfirmAsync("Apply class defaults to every class entry? This fills blank hit dice, caster types and spellcasting abilities from the " +
                                   "built-in classes, takes saving throws from the first class, sets average maximum HP, refills hit dice and recomputes spell slots.", "Apply class defaults"))
                 return;
             CharacterFactory.ApplyClassDefaults(c);
@@ -173,21 +173,21 @@ public sealed class CharacterViewModel : Observable, IDisposable
     public ICommand MoveClassDown { get; }
 
     /// <param name="className">The class the dialog starts on; null starts blank, for adding a new class.</param>
-    private void DoLevelUp(string? className)
+    private async Task DoLevelUp(string? className)
     {
-        if (_dialogs.LevelUp(Character, className) is not { } choice) return;
+        if (await _dialogs.LevelUpAsync(Character, className) is not { } choice) return;
         var (name, options) = choice;
         var report = CharacterFactory.LevelUp(Character, name, options);
         if (!report.Completed)
         {
-            _dialogs.Info(string.Join(Environment.NewLine, report.NeedsAttention));
+            await _dialogs.InfoAsync(string.Join(Environment.NewLine, report.NeedsAttention));
             return;
         }
         var lines = report.Changes.ToList();
         var check = report.Warnings.Concat(report.NeedsAttention).ToList();
         if (check.Count > 0) lines.Add("Check: " + string.Join(" ", check));
         var text = string.Join(Environment.NewLine, lines);
-        _dialogs.Info(text);
+        await _dialogs.InfoAsync(text);
         _log.LogInformation("Level up {Class}: {Report}", name, text);
         Play.Record(text);
     }
@@ -204,7 +204,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
     {
         if (_refreshQueued) return;
         _refreshQueued = true;
-        Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.DataBind, Refresh);
+        _postToUi(Refresh);
     }
 
     private void Refresh()
@@ -246,7 +246,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
         }
     }
 
-    private void RemoveEntryWithConfirmation(object? entry)
+    private async Task RemoveEntryWithConfirmation(object? entry)
     {
         var c = Character;
         (IList? list, string name) = entry switch
@@ -270,7 +270,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
         var model = entry switch { AttackRow r => r.Model, WeaponRow r => r.Model, _ => entry };
         // Confirm only when there's something to lose; blank placeholder entries go without asking.
         if (!string.IsNullOrWhiteSpace(name) && !name.StartsWith("New ", StringComparison.Ordinal)
-            && !_dialogs.Confirm($"Remove “{name}”?"))
+            && !await _dialogs.ConfirmAsync($"Remove “{name}”?"))
             return;
         list.Remove(model);
         if (model is Weapon weapon)

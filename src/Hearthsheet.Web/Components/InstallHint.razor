@@ -1,0 +1,49 @@
+@* Spec 8: an installed app keeps its storage (Safari deletes a site's data after 7 days unused unless it's in the Dock).
+   Shown in a browser tab until dismissed; the dismissal is remembered in this browser. *@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+
+@if (_show)
+{
+    <aside class="install-hint" aria-label="Install Hearthsheet">
+        <p>
+            Install Hearthsheet so this browser keeps your characters and it opens offline: use the install icon in the
+            address bar, or in Safari choose File → Add to Dock (on iPhone or iPad: Share → Add to Home Screen).
+        </p>
+        <button type="button" aria-label="Dismiss: install Hearthsheet hint" @onclick="DismissAsync">Dismiss</button>
+    </aside>
+}
+
+@code {
+    private const string DismissedKey = "hearthsheet.installHintDismissed";
+    private bool _show;
+    private IJSObjectReference? _js;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        try
+        {
+            _show = !await _js.InvokeAsync<bool>("isStandalone") && await _js.InvokeAsync<string?>("local", DismissedKey) is null;
+        }
+        catch (JSException)
+        {
+            return; // localStorage refused: a hint isn't worth an error
+        }
+        if (_show) StateHasChanged();
+    }
+
+    private async Task DismissAsync()
+    {
+        _show = false;
+        try
+        {
+            await _js!.InvokeVoidAsync("setLocal", DismissedKey, "1");
+        }
+        catch (JSException)
+        {
+            // Not remembered: it shows again next time.
+        }
+    }
+}

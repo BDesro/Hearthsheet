@@ -1,6 +1,8 @@
 using System.Runtime.CompilerServices;
 using Hearthsheet.Core.Domain;
+using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Serialization;
+using Hearthsheet.Core.Storage;
 using Hearthsheet.Core.Sync;
 using Hearthsheet.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +13,49 @@ internal sealed class ManualTime : TimeProvider
 {
     public DateTimeOffset Now { get; set; } = new(2026, 9, 29, 12, 0, 0, TimeSpan.Zero);
     public override DateTimeOffset GetUtcNow() => Now;
+
+    private readonly List<ManualTimer> _timers = [];
+
+    /// <summary>Timers fire only from <see cref="Advance"/>, on the calling thread.</summary>
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        var timer = new ManualTimer(this, callback, state);
+        timer.Change(dueTime, period);
+        _timers.Add(timer);
+        return timer;
+    }
+
+    public void Advance(TimeSpan by)
+    {
+        Now += by;
+        foreach (var timer in _timers.ToList()) timer.FireIfDue();
+    }
+
+    private sealed class ManualTimer(ManualTime time, TimerCallback callback, object? state) : ITimer
+    {
+        private DateTimeOffset? _due;
+        private TimeSpan _period = Timeout.InfiniteTimeSpan;
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            (_due, _period) = (dueTime == Timeout.InfiniteTimeSpan ? null : time.Now + dueTime, period);
+            return true;
+        }
+
+        public void FireIfDue()
+        {
+            if (_due is not { } due || due > time.Now) return;
+            _due = _period == Timeout.InfiniteTimeSpan ? null : due + _period;
+            callback(state);
+        }
+
+        public void Dispose() => _due = null;
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
 }
 
 /// <summary>In-memory stand-in for one account's cloud table. Every write moves the shared clock by a second.</summary>
@@ -108,11 +153,11 @@ internal sealed class FakeSession : ICloudSession
     public void InvalidateAccessToken() => Invalidations++;
 }
 
-/// <summary>One installation: its own database, sharing the fake cloud and session.</summary>
-internal sealed class Machine(TempDir dir, string name, FakeCloud cloud, FakeSession session, ManualTime time)
+/// <summary>One installation: its own local store, sharing the fake cloud and session.</summary>
+internal class Machine<TStore>(TStore repo, FakeCloud cloud, FakeSession session, ManualTime time)
+    where TStore : ICharacterRepository, ISyncLocalStore
 {
-    public SqliteCharacterRepository Repo { get; } =
-        new(dir.File(name + ".db"), NullLogger<SqliteCharacterRepository>.Instance);
+    public TStore Repo { get; } = repo;
     public CloudSync Sync => field ??= new CloudSync(Repo, Repo, cloud, session, NullLogger<CloudSync>.Instance, time);
     public Guid? OpenId { get; set; }
 
@@ -136,6 +181,14 @@ internal sealed class Machine(TempDir dir, string name, FakeCloud cloud, FakeSes
     public string? NameOf(Guid id) => Repo.Load(id)?.Identity.Name;
 }
 
+/// <summary>A desktop installation: its own SQLite database.</summary>
+internal sealed class Machine(TempDir dir, string name, FakeCloud cloud, FakeSession session, ManualTime time)
+    : Machine<SqliteCharacterRepository>(new(dir.File(name + ".db"), NullLogger<SqliteCharacterRepository>.Instance), cloud, session, time);
+
+/// <summary>A browser: an in-memory store over a journal.</summary>
+internal sealed class WebMachine(DictionaryJournal journal, FakeCloud cloud, FakeSession session, ManualTime time)
+    : Machine<MemoryCharacterStore>(journal.Open(time), cloud, session, time);
+
 public class CloudSyncTests : IDisposable
 {
     private readonly TempDir _dir = new();
@@ -153,6 +206,56 @@ public class CloudSyncTests : IDisposable
     }
 
     public void Dispose() => _dir.Dispose();
+
+    // ---- Desktop and web stores ----
+
+    [Fact]
+    public async Task DesktopAndWebSeeEachOthersEdits()
+    {
+        var web = new WebMachine(new DictionaryJournal(), _cloud, _session, _time);
+        var fromDesktop = _a.Add("Desktop");
+        var fromWeb = web.Add("Web");
+        for (var i = 0; i < 2; i++)
+        {
+            await _a.SyncAsync();
+            await web.SyncAsync();
+        }
+        _a.Rename(fromWeb.Id, "Web, edited on desktop");
+        web.Rename(fromDesktop.Id, "Desktop, edited on web");
+        for (var i = 0; i < 2; i++)
+        {
+            await _a.SyncAsync();
+            await web.SyncAsync();
+        }
+
+        foreach (var repo in new[] { (ICharacterRepository)_a.Repo, web.Repo })
+            Assert.Equal(["Desktop, edited on web", "Web, edited on desktop"], repo.List().Select(s => s.Name));
+        Assert.Empty(_a.Repo.GetDirty());
+        Assert.Equal(0, web.Repo.UnsyncedCount);
+    }
+
+    [Fact]
+    public async Task WebStoresArePerAccount()
+    {
+        var browser = new Dictionary<string, string>();
+        var cloud2 = new FakeCloud(_time);
+        var session1 = new FakeSession { UserId = "user-1" };
+        var session2 = new FakeSession { UserId = "user-2" };
+        var user1 = new WebMachine(new DictionaryJournal(browser, "user-1/"), _cloud, session1, _time);
+        var synced = user1.Add("Synced");
+        await user1.SyncAsync();
+        var unsynced = user1.Add("Unsynced");
+
+        var user2 = new WebMachine(new DictionaryJournal(browser, "user-2/"), cloud2, session2, _time);
+        await user2.SyncAsync();
+
+        Assert.Empty(cloud2.Rows);
+        Assert.False(_cloud.Rows.ContainsKey(unsynced.Id));
+        Assert.Empty(user2.Repo.List());
+        Assert.Equal(2, user1.Repo.List().Count);
+        Assert.True(_cloud.Rows.ContainsKey(synced.Id));
+        Assert.All(browser.Keys, k => Assert.True(k.StartsWith("user-1/") || k.StartsWith("user-2/")));
+    }
 
     private async Task<Character> SyncedToBoth(string name = "Arannis")
     {

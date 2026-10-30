@@ -1,0 +1,58 @@
+@* The one host for WebDialogs: shows the request at the head of the queue in a native modal <dialog> (the page behind
+   is inert, Escape closes it as a cancel), and returns focus to the trigger once the queue is empty. *@
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject WebDialogs Dialogs
+@inject IJSRuntime JS
+
+@if (Dialogs.Current is { } request)
+{
+    <dialog @key="request" @ref="_element" class="dialog" aria-labelledby="dialog-title"
+            aria-describedby="@(request.Kind == DialogKind.NewCharacter ? null : "dialog-text")"
+            role="@(request.Kind is DialogKind.Error or DialogKind.Confirm ? "alertdialog" : null)"
+            @onclose="() => Dialogs.Complete(request, null)">
+        @if (request.Kind == DialogKind.NewCharacter)
+        {
+            <NewCharacterDialog Done="answer => Dialogs.Complete(request, answer)" />
+        }
+        else
+        {
+            <h2 id="dialog-title">@request.Title</h2>
+            <p id="dialog-text" class="dialog-message">@request.Message</p>
+            <div class="dialog-buttons">
+                @if (request.Kind == DialogKind.Confirm)
+                {
+                    @* The safe choice gets focus, so Enter never confirms by accident. *@
+                    <button type="button" autofocus @onclick="() => Dialogs.Complete(request, false)">Cancel</button>
+                    <button type="button" @onclick="() => Dialogs.Complete(request, true)">@request.Title</button>
+                }
+                else
+                {
+                    <button type="button" autofocus @onclick="() => Dialogs.Complete(request, null)">OK</button>
+                }
+            </div>
+        }
+    </dialog>
+}
+
+@code {
+    private ElementReference _element;
+    private DialogRequest? _shown;
+    private IJSObjectReference? _js;
+
+    protected override void OnInitialized() => Dialogs.Changed += OnChanged;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var current = Dialogs.Current;
+        if (current == _shown) return;
+        _shown = current;
+        _js ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        if (current is not null) await _js.InvokeVoidAsync("dialogShow", _element);
+        else await _js.InvokeVoidAsync("dialogsDone");
+    }
+
+    public void Dispose() => Dialogs.Changed -= OnChanged;
+}

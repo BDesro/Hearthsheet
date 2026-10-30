@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 
-namespace Hearthsheet.App.ViewModels;
+namespace Hearthsheet.Presentation;
 
 // Row view models pair a stored domain entry (bound two-way via Model/Score) with its derived values.
 // They hold no state of their own; Refresh() just tells bindings to re-read.

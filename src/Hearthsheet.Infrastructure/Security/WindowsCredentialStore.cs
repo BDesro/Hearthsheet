@@ -2,16 +2,9 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
+using Hearthsheet.Cloud;
 
 namespace Hearthsheet.Infrastructure.Security;
-
-/// <summary>OS-protected secret storage. Values never touch config files or logs.</summary>
-public interface ISecretStore
-{
-    string? Read(string key);
-    void Write(string key, string secret);
-    void Delete(string key);
-}
 
 /// <summary>
 /// Windows Credential Manager (generic credentials, per-user, DPAPI-encrypted by the OS). Visible and
@@ -32,7 +25,7 @@ public sealed class WindowsCredentialStore : ISecretStore
         {
             var error = Marshal.GetLastWin32Error();
             if (error == ErrorNotFound) return null;
-            throw new Win32Exception(error, "Could not read the stored credential.");
+            throw new SecretStoreException("Could not read the stored credential.", new Win32Exception(error));
         }
         try
         {
@@ -63,7 +56,7 @@ public sealed class WindowsCredentialStore : ISecretStore
                 UserName = Environment.UserName,
             };
             if (!CredWrite(ref credential, 0))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not store the credential.");
+                throw new SecretStoreException("Could not store the credential.", new Win32Exception(Marshal.GetLastWin32Error()));
         }
         finally
         {
@@ -79,7 +72,7 @@ public sealed class WindowsCredentialStore : ISecretStore
         if (!CredDelete(TargetPrefix + key, CredTypeGeneric, 0))
         {
             var error = Marshal.GetLastWin32Error();
-            if (error != ErrorNotFound) throw new Win32Exception(error, "Could not delete the stored credential.");
+            if (error != ErrorNotFound) throw new SecretStoreException("Could not delete the stored credential.", new Win32Exception(error));
         }
     }
 

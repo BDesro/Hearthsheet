@@ -1,11 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using Hearthsheet.App.Mvvm;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
 using Microsoft.Extensions.Logging;
 
-namespace Hearthsheet.App.ViewModels;
+namespace Hearthsheet.Presentation;
 
 /// <summary>
 /// Gameplay dashboard actions. Each command calls a domain operation (Character.TakeDamage,
@@ -16,10 +15,10 @@ public sealed class PlayViewModel : Observable
     private const int MaxLogEntries = 200;
     private readonly CharacterViewModel _owner;
     private readonly RestService _rest;
-    private readonly Dialogs _dialogs;
+    private readonly IDialogs _dialogs;
     private readonly ILogger _log;
 
-    public PlayViewModel(CharacterViewModel owner, RestService rest, Dialogs dialogs, ILogger log)
+    public PlayViewModel(CharacterViewModel owner, RestService rest, IDialogs dialogs, ILogger log)
     {
         _owner = owner;
         _rest = rest;
@@ -169,23 +168,23 @@ public sealed class PlayViewModel : Observable
         while (ActivityLog.Count > MaxLogEntries) ActivityLog.RemoveAt(ActivityLog.Count - 1);
     }
 
-    private void QuickAdd(string title, IReadOnlyList<object>? kinds, Func<Character, QuickAddResult, string> add,
+    private async Task QuickAdd(string title, IReadOnlyList<object>? kinds, Func<Character, QuickAddResult, string> add,
         object? defaultKind = null, bool withDescription = true)
     {
-        var result = _dialogs.QuickAdd(title, kinds, defaultKind, withDescription);
+        var result = await _dialogs.QuickAddAsync(title, kinds, defaultKind, withDescription);
         if (result is null) return;
         Act(title, c => add(c, result));
     }
 
-    private void DoShortRest()
+    private async Task DoShortRest()
     {
-        if (!_dialogs.ShortRest(this, Character)) return;
+        if (!await _dialogs.ShortRestAsync(this, Character)) return;
         Act("Short Rest", c => Describe(_rest.Rest(c, RestKind.Short)));
     }
 
-    private void DoLongRest()
+    private async Task DoLongRest()
     {
-        if (!_dialogs.Confirm("Take a long rest? HP, hit dice, spell slots and long-rest resources will be restored.", "Long Rest"))
+        if (!await _dialogs.ConfirmAsync("Take a long rest? HP, hit dice, spell slots and long-rest resources will be restored.", "Long Rest"))
             return;
         Act("Long Rest", c => Describe(_rest.Rest(c, RestKind.Long)));
     }

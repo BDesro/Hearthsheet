@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hearthsheet.Core\Hearthsheet.Core.csproj" />
+    <ProjectReference Include="..\Hearthsheet.Cloud\Hearthsheet.Cloud.csproj" />
   </ItemGroup>
 
   <ItemGroup>

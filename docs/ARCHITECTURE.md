@@ -35,19 +35,22 @@ src/
     Serialization/         JSON format, schema version check, portable .dndchar files
     Content/               SRD 5.1 facts: class table, spell-slot progressions, CharacterFactory
     Sync/                  Cloud sync algorithm and cloud contracts
+  Hearthsheet.Presentation    UI-neutral view models: CharacterViewModel, PlayViewModel, rows, RelayCommand, Lookups, IDialogs
+  Hearthsheet.Cloud           Supabase auth, character store and HTTP client; the secret-store contract. No platform code
   Hearthsheet.Infrastructure  Windows / I/O concerns
     Persistence/           SqliteCharacterRepository
     Logging/               ILoggerProvider writing rolling daily files, secret redaction
     Security/              Windows Credential Manager secret store
     Updates/               GitHub release source, UpdateService
-    Sync/                  Supabase auth, character store, HTTP client
     AppPaths.cs            Per-user data locations, daily database backup
   Hearthsheet.Updater         Tiny console exe that swaps the install folder after the app exits
-  Hearthsheet.App             WPF presentation: views, view models, dialogs, composition root
+  Hearthsheet.App             WPF: views, main/sync/update view models, dialogs, converters, composition root
+  Hearthsheet.Web             Blazor WebAssembly PWA (preview): index.html/_headers (strict CSP, no inline script/style), startup
+                              ChangeTrackingSelfCheck, MemoryLogProvider (Cloud) for Download diagnostics
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
 
-Dependencies point inward: App → Infrastructure → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable.
+Dependencies point inward: App → Presentation, Infrastructure → Cloud → Core, Web → Presentation and Cloud, and Presentation → Core. Core has no reference to WPF, SQLite or the network, so all rules are unit-testable. Cloud and Presentation have no WPF, SQLite or Windows code, so a web app can share them.
 
 ## 3. Domain model: one source of truth
 
@@ -94,12 +97,12 @@ Modifiers are active on features, on effects, and on items and wondrous items th
             │ PropertyChanged / CollectionChanged
             ▼
    ChangeTracker ─► CharacterSession.Changed ─┬─► CharacterViewModel.Refresh()  (derived values → all views)
-                                              └─► MainViewModel autosave timer  (dirty flag, save after 2 s idle)
+                                              └─► ShellViewModel autosave timer (dirty flag, save after 2 s idle)
 ```
 
 - The domain classes themselves raise change notifications, so every view binds straight to the same objects. No view has its own copy of character state.
 - `ChangeTracker` walks the object graph by reflection, subscribing to nested objects and to items as they are added or removed. The domain doesn't need parent pointers.
-- `CharacterViewModel` is shared by all three views. It adds only derived values and thin "row" view models (for example `SkillRow` = the stored `SkillEntry` + its computed total). Refreshes are coalesced per dispatcher pass, so a long rest that touches dozens of values refreshes once.
+- `CharacterViewModel` is shared by all three views. It adds only derived values and thin "row" view models (for example `SkillRow` = the stored `SkillEntry` + its computed total). Refreshes are coalesced: the first change posts one refresh through the UI's post action (the WPF dispatcher on the desktop), so a long rest that touches dozens of values refreshes once. It lives in `Hearthsheet.Presentation` and asks its questions through `IDialogs`, so any UI can host it.
 - Dashboard actions are `PlayViewModel` commands that call domain methods or `RestService`, then log the result. They never manipulate controls.
 
 ## 5. Rests
@@ -174,6 +177,7 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 - User data lives outside the install folder, so replacing the folder wholesale is safe.
 - **First install** is `Hearthsheet-Setup.exe` (`packaging/Hearthsheet.iss`, built by `scripts/publish.ps1` with Inno Setup 6), always at `releases/latest/download/Hearthsheet-Setup.exe`. It's per-user (`%LOCALAPPDATA%\Programs\Hearthsheet`, no admin), installs the same self-contained files as the zip, offers a desktop shortcut (ticked by default), clears the folder first so it upgrades an old zip install cleanly, and registers in *Settings → Apps* under a fixed `AppId`. Running it again over an install just reinstalls in place.
 - The uninstaller lives in `Programs\Hearthsheet Uninstall`, outside the folder the updater replaces. Because in-app updates bypass Inno, the app writes its own version to the Apps entry's `DisplayVersion` at startup (`InstallRegistration`, only when the entry exists), and the uninstaller removes the install folder and `Hearthsheet.backup` wholesale. Uninstalling asks whether to also delete `%LOCALAPPDATA%\Hearthsheet` and the saved cloud sign-in (default: keep). A custom `Application:DataDirectory` is never deleted.
+- **The web app** is published and deployed to Cloudflare Pages by the same release (`deploy-web` job, see [WEB.md](WEB.md)). Its service worker caches the hash-checked asset list for offline use; a new deploy installs in the background and the app shows "A new version is ready – reload". The reload saves and flushes first and never happens by itself.
 - **Limitation.** The checksum file comes from the same release, so it protects against corruption and truncation, not against a compromised GitHub account. The next step is signing packages (Authenticode, or a minisign/ECDSA signature checked against a public key embedded in the app). `VerifyStagedPackage` is where that check belongs.
 
 ## 10. Logging, diagnostics and configuration

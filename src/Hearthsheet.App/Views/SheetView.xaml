@@ -1,7 +1,7 @@
 <UserControl x:Class="Hearthsheet.App.Views.SheetView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:Hearthsheet.App.ViewModels"
+             xmlns:vm="clr-namespace:Hearthsheet.Presentation;assembly=Hearthsheet.Presentation"
              xmlns:mvvm="clr-namespace:Hearthsheet.App.Mvvm"
              xmlns:domain="clr-namespace:Hearthsheet.Core.Domain;assembly=Hearthsheet.Core"
              PreviewMouseWheel="OnPreviewMouseWheel">
@@ -747,7 +747,7 @@
                             <Border Grid.Column="1" Style="{StaticResource SheetBox}" Visibility="{Binding IsMultiCaster, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
                                 <UniformGrid Columns="4">
                                     <HeaderedContentControl Header="Spellcasting Ability" Style="{StaticResource SheetField}">
-                                        <ComboBox ItemsSource="{x:Static mvvm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                        <ComboBox ItemsSource="{x:Static vm:Lookups.OptionalAbilities}" DisplayMemberPath="Label" SelectedValuePath="Value"
                                                   SelectedValue="{Binding SpellcastingEntry.SpellcastingAbility}" BorderThickness="0" Background="Transparent"
                                                   AutomationProperties.Name="Spellcasting ability" />
                                     </HeaderedContentControl>

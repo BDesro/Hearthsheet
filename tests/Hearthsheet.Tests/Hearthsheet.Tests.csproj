@@ -15,8 +15,16 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- The web's dialog queue and sync triggers have no Blazor dependencies; linked so they are tested without referencing the web project. -->
+  <ItemGroup>
+    <Compile Include="..\..\src\Hearthsheet.Web\WebDialogs.cs" Link="Web\WebDialogs.cs" />
+    <Compile Include="..\..\src\Hearthsheet.Web\WebSync.cs" Link="Web\WebSync.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hearthsheet.Core\Hearthsheet.Core.csproj" />
+    <ProjectReference Include="..\..\src\Hearthsheet.Cloud\Hearthsheet.Cloud.csproj" />
+    <ProjectReference Include="..\..\src\Hearthsheet.Presentation\Hearthsheet.Presentation.csproj" />
     <ProjectReference Include="..\..\src\Hearthsheet.Infrastructure\Hearthsheet.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Hearthsheet.Updater\Hearthsheet.Updater.csproj" />
   </ItemGroup>
