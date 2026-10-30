@@ -27,7 +27,7 @@
     <main class="main">
         @if (_shell.Current is { } current)
         {
-            <CharacterPlaceholder @key="current" Character="current.Character" />
+            <PlayView @key="current" Vm="current" />
         }
         else
         {

@@ -27,7 +27,7 @@ public sealed class WebSyncTests : IDisposable
         _other = new Machine(_dir, "other", _cloud, _session, _time);
         _here = new Machine(_dir, "here", _cloud, _session, _time);
         var library = new CharacterLibrary(_here.Repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
-        _shell = new ShellViewModel(_here.Repo, library, RestService.CreateDefault(), new WebDialogs(NullLogger<WebDialogs>.Instance), NullLoggerFactory.Instance,
+        _shell = new ShellViewModel(_here.Repo, library, RestService.CreateDefault(), new WebDialogs(), NullLoggerFactory.Instance,
             _ => { }, _time, _here.Sync);
         _sync = new WebSync(_here.Sync, _shell, _session, "user-1", new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
             NullLogger.Instance, a => a(), _time);
@@ -93,7 +93,7 @@ public sealed class WebSyncTests : IDisposable
     {
         var web = new WebMachine(new DictionaryJournal(), _cloud, _session, _time);
         var library = new CharacterLibrary(web.Repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
-        var shell = new ShellViewModel(web.Repo, library, RestService.CreateDefault(), new WebDialogs(NullLogger<WebDialogs>.Instance), NullLoggerFactory.Instance,
+        var shell = new ShellViewModel(web.Repo, library, RestService.CreateDefault(), new WebDialogs(), NullLoggerFactory.Instance,
             _ => { }, _time, web.Sync);
         using var sync = new WebSync(web.Sync, shell, _session, "user-1", new OrderedJournal(_ => Task.CompletedTask, NullLogger.Instance),
             NullLogger.Instance, a => a(), _time);

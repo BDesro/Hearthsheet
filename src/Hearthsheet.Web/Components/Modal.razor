@@ -8,12 +8,24 @@
 @if (Dialogs.Current is { } request)
 {
     <dialog @key="request" @ref="_element" class="dialog" aria-labelledby="dialog-title"
-            aria-describedby="@(request.Kind == DialogKind.NewCharacter ? null : "dialog-text")"
+            aria-describedby="@(request.Kind is DialogKind.Confirm or DialogKind.Info or DialogKind.Error ? "dialog-text" : null)"
             role="@(request.Kind is DialogKind.Error or DialogKind.Confirm ? "alertdialog" : null)"
             @onclose="() => Dialogs.Complete(request, null)">
         @if (request.Kind == DialogKind.NewCharacter)
         {
             <NewCharacterDialog Done="answer => Dialogs.Complete(request, answer)" />
+        }
+        else if (request.Data is QuickAddRequest quickAdd)
+        {
+            <QuickAddDialog Title="@request.Title" Request="quickAdd" Done="answer => Dialogs.Complete(request, answer)" />
+        }
+        else if (request.Data is ShortRestRequest shortRest)
+        {
+            <ShortRestDialog Request="shortRest" Done="finish => Dialogs.Complete(request, finish)" />
+        }
+        else if (request.Data is LevelUpRequest levelUp)
+        {
+            <LevelUpDialog Request="levelUp" Done="answer => Dialogs.Complete(request, answer)" />
         }
         else
         {

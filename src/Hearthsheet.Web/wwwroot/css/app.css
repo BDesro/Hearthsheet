@@ -14,12 +14,12 @@ button.link { background: none; border: none; padding: 0; color: LinkText; text-
 .dialog { border: 1px solid #9ca3af; padding: 1rem; max-width: 30rem; }
 .dialog-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 *, *::before, *::after { box-sizing: border-box; }
-button, input { font: inherit; }
+button, input, select, textarea { font: inherit; }
 :focus-visible { outline: 3px solid Highlight; outline-offset: 2px; }
 .dialog-message { white-space: pre-line; overflow-wrap: anywhere; }
 dialog.dialog { width: min(30rem, calc(100vw - 2rem)); }
 dialog.dialog label { display: block; margin-top: 0.75rem; }
-dialog.dialog input { width: 100%; padding: 0.4rem; }
+dialog.dialog :is(input:not([type=radio], [type=checkbox], .amount), select, textarea) { width: 100%; padding: 0.4rem; }
 dialog.dialog .dialog-buttons { margin-top: 1rem; justify-content: flex-end; }
 .hint { font-size: 0.9rem; }
 .field-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
@@ -52,9 +52,57 @@ dialog.dialog .dialog-buttons { margin-top: 1rem; justify-content: flex-end; }
 .character-list button.open { border-left-color: currentColor; font-weight: bold; } /* marked by the bar and weight, not colour */
 .character-list .name, .character-list .description { display: block; overflow-wrap: anywhere; }
 .character-list .description { font-size: 0.85rem; font-weight: normal; }
-.character input { width: min(100%, 24rem); padding: 0.4rem; display: block; }
 
 .update-banner, .install-hint { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 0.5rem 1rem; }
 .update-banner { background: #dbeafe; color: #1f1f1f; font-weight: bold; }
 .install-hint { border-bottom: 1px solid #9ca3af; }
 .install-hint p { margin: 0; flex: 1 1 20rem; }
+
+/* Play view: three columns of cards, fewer as the window narrows. */
+.play { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); align-items: start; }
+.play-header { grid-column: 1 / -1; }
+.play-header h2, .play-header p { margin: 0; overflow-wrap: anywhere; }
+.play-column { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.card { border: 1px solid #9ca3af; border-radius: 6px; padding: 0.75rem; }
+.card h3 { margin: 0 0 0.5rem; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.card h4 { margin: 0.75rem 0 0.25rem; font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.card p { margin: 0 0 0.5rem; }
+.muted, .row-name small { opacity: 0.8; }
+.hp { font-size: 1.5rem; }
+.hp-current { font-size: 2.5rem; font-weight: 600; }
+.temp { font-size: 1rem; font-weight: 600; border: 1px solid currentColor; border-radius: 1rem; padding: 0.1rem 0.5rem; margin-left: 0.5rem; }
+.vital { text-transform: uppercase; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+.chips button { min-width: 2.75rem; }
+input.amount { width: 4.5rem; padding: 0.3rem; text-align: center; }
+.death-saves { border: 2px dashed currentColor; border-radius: 6px; padding: 0.5rem; margin-top: 0.5rem; }
+.stats { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin: 0 0 0.75rem; }
+.stats div { display: flex; flex-direction: column-reverse; }
+.stats dt { font-size: 0.75rem; }
+.stats dd { margin: 0; font-size: 1.4rem; font-weight: 600; }
+.pill { border-radius: 1rem; padding: 0.2rem 0.75rem; }
+.pill[aria-pressed=true] { font-weight: bold; border: 2px solid currentColor; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.4rem; }
+button.wide { width: 100%; }
+button.accent { font-weight: bold; }
+button.icon { border: 0; background: none; color: inherit; cursor: pointer; padding: 0.1rem 0.4rem; }
+.rows { list-style: none; padding: 0; margin: 0; }
+.row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.row-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.row-name small { display: block; }
+.count { font-size: 1.1rem; }
+.slots { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin-bottom: 0.3rem; }
+.slot-label { width: 4rem; }
+/* A slot pip: filled while available, hollow once expended (shape, not just colour). */
+.pip { width: 1.4rem; height: 1.4rem; padding: 0; border-radius: 50%; border: 2px solid currentColor; background: currentColor; cursor: pointer; }
+.pip.expended { background: transparent; }
+.pip:hover { border-width: 3px; }
+.exhaustion { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+.exhaustion strong { min-width: 1.5rem; text-align: center; font-size: 1.1rem; }
+.log { list-style: none; padding: 0; margin: 0; max-height: 16rem; overflow-y: auto; font-size: 0.85rem; }
+.log li { margin-bottom: 0.25rem; }
+fieldset.plain { border: 0; padding: 0; margin: 0.75rem 0 0; }
+fieldset.plain legend { font-weight: 600; padding: 0; }
+dialog.dialog label.inline { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0.25rem 0; }
+.warning { font-weight: bold; }
