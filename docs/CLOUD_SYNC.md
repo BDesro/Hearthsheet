@@ -75,15 +75,20 @@ constant in `public.hook_before_user_created`; changing it takes a new migration
 
 ## Manual test script
 
-Use two data folders on one PC as two "installations":
+Use two data folders on one PC as two "installations", pointed at `Hearthsheet-Test` so no test touches real characters.
+The app takes no command-line settings; it reads `%LOCALAPPDATA%\Hearthsheet\appsettings.user.json` once at startup.
+Create it with:
 
-```powershell
-dotnet run --project src/Hearthsheet.App -- --Application:DataDirectory=$env:TEMP\hs-a
+```json
+{
+  "Application": { "DataDirectory": "C:\\Users\\<you>\\AppData\\Local\\Temp\\hs-a" },
+  "Sync": { "Url": "https://rmsddsevwefnpqopjbol.supabase.co", "AnonKey": "<Hearthsheet-Test publishable key>" }
+}
 ```
 
-```powershell
-dotnet run --project src/Hearthsheet.App -- --Application:DataDirectory=$env:TEMP\hs-b
-```
+The test key is the one in `src/Hearthsheet.Web/wwwroot/appsettings.json`. Start A with
+`dotnet run --project src/Hearthsheet.App`, then change `hs-a` to `hs-b` and start B the same way. Delete the file when
+you're done, or the installed app keeps using the scratch folder and the test project.
 
 Both installations share one Windows Credential Manager entry (`Hearthsheet/supabase-session`), so for steps 6–8 close the other installation first.
 
