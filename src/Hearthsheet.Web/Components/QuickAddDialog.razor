@@ -1,0 +1,63 @@
+@* Same fields and check as the desktop's Quick add dialog. Shown inside Modal. *@
+@using Hearthsheet.Presentation
+
+<form @onsubmit="Add">
+    <h2 id="dialog-title">@Title</h2>
+
+    <label for="quick-name">Name</label>
+    <input id="quick-name" autofocus @ref="_nameInput" @bind="_name" @bind:event="oninput" />
+
+    @if (Request.Kinds is { } kinds)
+    {
+        <label for="quick-kind">Type</label>
+        <select id="quick-kind" @bind="_kind">
+            @for (var i = 0; i < kinds.Count; i++)
+            {
+                <option value="@i">@Lookups.Display(kinds[i])</option>
+            }
+        </select>
+    }
+    @if (Request.WithDescription)
+    {
+        <label for="quick-description">Description (optional)</label>
+        <textarea id="quick-description" rows="4" @bind="_description" @bind:event="oninput"></textarea>
+    }
+
+    @if (_error)
+    {
+        <p role="alert" class="error">Enter a name.</p>
+    }
+    <div class="dialog-buttons">
+        <button type="button" @onclick="() => Done.InvokeAsync(null)">Cancel</button>
+        <button type="submit">Add</button>
+    </div>
+</form>
+
+@code {
+    private string _name = "", _description = "";
+    private int _kind;
+    private bool _error;
+    private ElementReference _nameInput;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public QuickAddRequest Request { get; set; } = null!;
+
+    /// <summary>The entry, or null when cancelled.</summary>
+    [Parameter] public EventCallback<QuickAddResult?> Done { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Request.Kinds is { } kinds) _kind = Math.Max(0, kinds.ToList().IndexOf(Request.DefaultKind ?? kinds.FirstOrDefault()!));
+    }
+
+    private async Task Add()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = true;
+            await _nameInput.FocusAsync();
+            return;
+        }
+        await Done.InvokeAsync(new QuickAddResult(_name.Trim(), Request.Kinds?[_kind], _description));
+    }
+}

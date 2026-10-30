@@ -1,0 +1,87 @@
+@* Same steps as the desktop's Short rest dialog: spend hit dice (typed or rolled), then finish. Shown inside Modal. *@
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Core.Rules
+
+<form @onsubmit="SpendTyped">
+    <h2 id="dialog-title">Short rest</h2>
+    <p class="hint">Spend hit dice to heal: each die heals its roll plus your Constitution modifier. Enter your physical roll,
+        or let the app roll. Finishing the rest then recovers short-rest resources.</p>
+
+    <div class="card">
+        <p class="hp"><strong>HP @C.Combat.CurrentHp / @CharacterRules.MaxHitPoints(C)</strong></p>
+        <p class="muted">@DiceText</p>
+    </div>
+
+    @if (Pools.Count > 1)
+    {
+        <label for="rest-pool">Hit die</label>
+        <select id="rest-pool" @bind="_pool">
+            @for (var i = 0; i < Pools.Count; i++)
+            {
+                <option value="@i">d@(Pools[i].Size) (@Pools[i].Remaining left)</option>
+            }
+        </select>
+    }
+    <label for="rest-roll">Roll</label>
+    <div class="chips">
+        <input id="rest-roll" class="amount" inputmode="numeric" autofocus disabled="@(!CanSpend)"
+               @ref="_rollInput" @bind="_roll" @bind:event="oninput" />
+        <button type="submit" disabled="@(!CanSpend)">Spend hit die</button>
+        <button type="button" disabled="@(!CanSpend)" @onclick="Roll"><span aria-hidden="true">🎲 </span>Roll for me</button>
+    </div>
+    <p role="status">@_feedback</p>
+
+    <div class="dialog-buttons">
+        <button type="button" title="Hit dice already spent stay spent" @onclick="() => Done.InvokeAsync(false)">Cancel</button>
+        <button type="button" class="accent" @ref="_finish" @onclick="() => Done.InvokeAsync(true)">Finish short rest</button>
+    </div>
+</form>
+
+@code {
+    private int _pool;
+    private string _roll = "", _feedback = "";
+    private ElementReference _rollInput, _finish;
+
+    [Parameter, EditorRequired] public ShortRestRequest Request { get; set; } = null!;
+
+    /// <summary>True to finish the rest.</summary>
+    [Parameter] public EventCallback<bool> Done { get; set; }
+
+    private Character C => Request.Character;
+    private IReadOnlyList<HitDicePool> Pools => CharacterRules.HitDicePools(C);
+    private HitDicePool Pool => Pools[Math.Clamp(_pool, 0, Pools.Count - 1)];
+    private bool CanSpend => Pool.Remaining > 0 && !CharacterRules.IsDead(C);
+
+    // One pool keeps the original wording.
+    private string DiceText => Pools is [var only]
+        ? $"Hit dice remaining: {only.Remaining} of {only.Total} (d{only.Size})"
+        : "Hit dice remaining: " + string.Join(", ", Pools.Select(p => $"{p.Remaining} of {p.Total} d{p.Size}"));
+
+    // First the largest die with any left.
+    protected override void OnInitialized() => _pool = Math.Max(0, Pools.ToList().FindIndex(p => p.Remaining > 0));
+
+    private async Task SpendTyped()
+    {
+        var size = Pool.Size;
+        if (!CanSpend) return;
+        if (!int.TryParse(_roll, out var roll) || roll < 1 || roll > size)
+        {
+            _feedback = $"Enter a roll from 1 to {size}.";
+            await _rollInput.FocusAsync();
+            return;
+        }
+        await Spend(size, roll);
+    }
+
+    private Task Roll() => Spend(Pool.Size, Random.Shared.Next(1, Pool.Size + 1));
+
+    private async Task Spend(int size, int roll)
+    {
+        var before = C.Combat.CurrentHp;
+        Request.Play.SpendHitDie(size, roll);
+        _feedback = $"Rolled {roll} on d{size}: healed {C.Combat.CurrentHp - before}.";
+        _roll = "";
+        // The roll box and buttons turn off once no dice are left; keep keyboard focus in the dialog.
+        if (!CanSpend) await _finish.FocusAsync();
+    }
+}

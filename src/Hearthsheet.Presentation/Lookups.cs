@@ -29,4 +29,23 @@ public static class Lookups
     public static int[] SpellLevels { get; } = [.. Enumerable.Range(0, 10)];
     public static string[] SpellSchools { get; } =
         ["Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"];
+
+    /// <summary>Display text for an enum value (and "—" for none), the same in every UI.</summary>
+    public static string Display(object? value) => value switch
+    {
+        null => "—",
+        Skill s => s.DisplayName(),
+        Ability a => a.ToString(),
+        RecoveryTiming.ShortRest => "Short or long rest",
+        RecoveryTiming.LongRest => "Long rest",
+        RecoveryTiming.Manual => "Manual",
+        EffectExpiry.ShortRest => "Ends on any rest",
+        EffectExpiry.LongRest => "Ends on long rest",
+        EffectExpiry.Manual => "Until removed",
+        ProficiencyLevel.Half => "Half proficiency",
+        _ => SplitWords(value.ToString() ?? ""),
+    };
+
+    private static string SplitWords(string s) =>
+        string.Concat(s.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));
 }

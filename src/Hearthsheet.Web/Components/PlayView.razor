@@ -1,0 +1,301 @@
+@* The session dashboard, card for card the desktop's PlayView. Every button runs a PlayViewModel or CharacterViewModel
+   command; nothing here changes the character except through them (and the two direct toggles the desktop binds too:
+   conditions and an item's Equipped). *@
+@using System.Collections.Specialized
+@using System.ComponentModel
+@using System.Windows.Input
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@implements IDisposable
+
+<section class="play" aria-labelledby="character-title">
+    <header class="play-header">
+        <h2 id="character-title">@Vm.Title</h2>
+        <p>@Vm.Summary</p>
+    </header>
+
+    <div class="play-column">
+        <section class="card">
+            <div class="card-head">
+                <h3>Hit points</h3>
+                @if (Vm.VitalStatus.Length > 0)
+                {
+                    <strong class="vital">@Vm.VitalStatus</strong>
+                }
+            </div>
+            <p class="hp" aria-live="polite">
+                <span class="hp-current" aria-label="Current hit points">@C.Combat.CurrentHp</span>
+                <span class="hp-max">/ @Vm.MaxHitPoints</span>
+                @if (C.Combat.TemporaryHp > 0)
+                {
+                    <span class="temp">+@C.Combat.TemporaryHp temp</span>
+                }
+            </p>
+            <div class="chips">
+                <button type="button" title="Take 5 damage (temp HP first)" aria-label="Take 5 damage" disabled="@Off(P.Damage, "5")" @onclick='() => P.Damage.Execute("5")'>−5</button>
+                <button type="button" title="Take 1 damage" aria-label="Take 1 damage" disabled="@Off(P.Damage, "1")" @onclick='() => P.Damage.Execute("1")'>−1</button>
+                <button type="button" aria-label="Heal 1" disabled="@Off(P.Heal, "1")" @onclick='() => P.Heal.Execute("1")'>+1</button>
+                <button type="button" aria-label="Heal 5" disabled="@Off(P.Heal, "5")" @onclick='() => P.Heal.Execute("5")'>+5</button>
+            </div>
+            <div class="chips">
+                <input type="number" class="amount" min="0" max="9999" aria-label="Amount" @bind="P.HpInput" @bind:event="oninput" />
+                <button type="button" disabled="@Off(P.Damage)" @onclick="() => P.Damage.Execute(null)">Damage</button>
+                <button type="button" disabled="@Off(P.Heal)" @onclick="() => P.Heal.Execute(null)">Heal</button>
+                <button type="button" @onclick="() => P.SetHp.Execute(null)">Set HP</button>
+                <button type="button" title="Grant temporary HP (doesn't stack: keeps the higher value)" disabled="@Off(P.AddTempHp)" @onclick="() => P.AddTempHp.Execute(null)">Temp HP</button>
+            </div>
+            @if (Vm.IsDying)
+            {
+                <div class="death-saves">
+                    <p><strong>Death saves — @C.Combat.DeathSaveSuccesses successes, @C.Combat.DeathSaveFailures failures</strong></p>
+                    <div class="chips">
+                        <button type="button" @onclick="() => P.DeathSave.Execute(DeathSaveResult.Success)">Success</button>
+                        <button type="button" @onclick="() => P.DeathSave.Execute(DeathSaveResult.Failure)">Failure</button>
+                        <button type="button" @onclick="() => P.DeathSave.Execute(DeathSaveResult.CriticalSuccess)">Natural 20</button>
+                        <button type="button" @onclick="() => P.DeathSave.Execute(DeathSaveResult.CriticalFailure)">Natural 1</button>
+                    </div>
+                </div>
+            }
+        </section>
+
+        <section class="card">
+            <h3>At a glance</h3>
+            <dl class="stats">
+                <div><dt>Armor class</dt><dd>@Vm.ArmorClass</dd></div>
+                <div><dt>Initiative</dt><dd>@CharacterRules.FormatModifier(Vm.Initiative)</dd></div>
+                <div><dt>Speed</dt><dd>@Vm.Speed</dd></div>
+                <div><dt>Passive Perc.</dt><dd>@Vm.PassivePerception</dd></div>
+                <div><dt>Proficiency</dt><dd>@CharacterRules.FormatModifier(Vm.ProficiencyBonus)</dd></div>
+            </dl>
+            <button type="button" class="pill" aria-pressed="@Pressed(C.Identity.Inspiration)" @onclick="() => P.ToggleInspiration.Execute(null)">
+                <span aria-hidden="true">@(C.Identity.Inspiration ? "★" : "☆")</span> Inspiration
+            </button>
+        </section>
+
+        <section class="card">
+            <h3>Rest</h3>
+            <p class="muted">Hit dice: <strong>@Vm.HitDiceText</strong></p>
+            <div class="pair">
+                <button type="button" title="Spend hit dice, then recover short-rest resources" @onclick="() => P.ShortRest.Execute(null)">Short Rest…</button>
+                <button type="button" class="accent" @onclick="() => P.LongRest.Execute(null)">Long Rest</button>
+            </div>
+            <button type="button" class="wide" title="Add a level in a class you have or a new one (multiclass)" disabled="@Off(Vm.LevelUp)" @onclick="() => Vm.LevelUp.Execute(null)">Level up…</button>
+        </section>
+
+        <section class="card">
+            <h3>Quick add</h3>
+            <div class="pair">
+                <button type="button" @onclick="() => P.QuickAddItem.Execute(null)">+ Item</button>
+                <button type="button" @onclick="() => P.QuickAddFeature.Execute(null)">+ Feature</button>
+                <button type="button" @onclick='() => P.QuickAddFeature.Execute("Trait")'>+ Trait</button>
+                <button type="button" @onclick="() => P.QuickAddProficiency.Execute(null)">+ Proficiency</button>
+                <button type="button" @onclick="() => P.QuickAddSpell.Execute(null)">+ Spell</button>
+                <button type="button" @onclick="() => P.QuickAddEffect.Execute(null)">+ Effect</button>
+                <button type="button" @onclick="() => P.QuickAddResource.Execute(null)">+ Resource</button>
+            </div>
+            <p class="hint">Full editing (weights, modifiers, spell details) is in the Details view.</p>
+        </section>
+    </div>
+
+    <div class="play-column">
+        <section class="card">
+            <h3>Resources</h3>
+            @if (C.Resources.Count == 0)
+            {
+                <p class="hint">No tracked resources yet. Add one with Quick add → Resource.</p>
+            }
+            <ul class="rows">
+                @foreach (var r in C.Resources)
+                {
+                    <li @key="r" class="row">
+                        <span class="row-name"><strong>@r.Name</strong><small>@Lookups.Display(r.Recovery)</small></span>
+                        <span class="count"><strong>@r.Current</strong> / @r.Maximum</span>
+                        <button type="button" aria-label="Use @r.Name" @onclick="() => P.UseResource.Execute(r)">Use</button>
+                        <button type="button" aria-label="Restore one @r.Name" @onclick="() => P.RestoreResource.Execute(r)">+</button>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        @if (Vm.HasSpellcasting)
+        {
+            <section class="card">
+                <h3>Spell slots</h3>
+                <p class="muted">Save DC <strong>@Vm.SpellSaveDc</strong> · Attack <strong>@Vm.SpellAttackBonus</strong></p>
+                @foreach (var level in Vm.SpellLevels.Where(l => l.Slot?.Maximum > 0))
+                {
+                    <div class="slots">
+                        <span class="slot-label">Level @level.Level</span>
+                        @foreach (var pip in level.Pips)
+                        {
+                            <button type="button" class="pip @(pip.IsExpended ? "expended" : "")" title="Click to expend or restore a slot"
+                                    aria-label="Level @pip.Level spell slot, @(pip.IsExpended ? "expended" : "available")"
+                                    @onclick="() => P.ToggleSlot.Execute(pip)"></button>
+                        }
+                    </div>
+                }
+                @if (C.Spellcasting.PactSlots.Maximum > 0)
+                {
+                    <div class="slots">
+                        <span class="slot-label" title="Pact slots, level @C.Spellcasting.PactSlots.Level">Pact @C.Spellcasting.PactSlots.Level</span>
+                        @foreach (var pip in Vm.PactPips)
+                        {
+                            <button type="button" class="pip @(pip.IsExpended ? "expended" : "")" title="Click to expend or restore a pact slot"
+                                    aria-label="Level @pip.Level pact slot, @(pip.IsExpended ? "expended" : "available")"
+                                    @onclick="() => P.TogglePactSlot.Execute(pip)"></button>
+                        }
+                    </div>
+                }
+                @if (C.Spellcasting.Concentration.Length > 0)
+                {
+                    <div class="row">
+                        <span class="row-name"><span class="muted">Concentrating on</span> <strong>@C.Spellcasting.Concentration</strong></span>
+                        <button type="button" @onclick="() => P.DropConcentration.Execute(null)">Drop</button>
+                    </div>
+                }
+            </section>
+
+            <section class="card">
+                <h3>Prepared spells &amp; cantrips</h3>
+                <p class="hint">Mark spells as prepared in the sheet or Details view to see them here.</p>
+                <ul class="rows">
+                    @foreach (var s in P.PreparedSpells)
+                    {
+                        <li @key="s" class="row">
+                            <span class="row-name"><span class="muted">[@s.Level]</span> @s.Name</span>
+                            @if (Vm.IsMultiCaster && CharacterRules.SpellSaveDc(C, s) is { } dc)
+                            {
+                                <span class="muted">DC @dc</span>
+                            }
+                            @if (s.Ritual)
+                            {
+                                <button type="button" aria-label="Cast @s.Name as a ritual" @onclick="() => P.CastRitual.Execute(s)">Ritual</button>
+                            }
+                            <button type="button" aria-label="Cast @s.Name" @onclick="() => P.CastSpell.Execute(s)">Cast</button>
+                        </li>
+                    }
+                </ul>
+            </section>
+        }
+    </div>
+
+    <div class="play-column">
+        <section class="card">
+            <h3>Conditions</h3>
+            <div class="chips">
+                @foreach (var t in Vm.Conditions)
+                {
+                    <button type="button" class="pill" aria-pressed="@Pressed(t.IsActive)" @onclick="() => t.IsActive = !t.IsActive">
+                        @if (t.IsActive)
+                        {
+                            <span aria-hidden="true">✓ </span>
+                        }
+                        @t.Name
+                    </button>
+                }
+            </div>
+            <div class="exhaustion">
+                <span>Exhaustion</span>
+                <button type="button" aria-label="Reduce exhaustion" @onclick='() => P.ChangeExhaustion.Execute("-1")'>−</button>
+                <strong>@C.ExhaustionLevel</strong>
+                <button type="button" aria-label="Increase exhaustion" @onclick='() => P.ChangeExhaustion.Execute("1")'>+</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h3>Active effects</h3>
+                <button type="button" @onclick="() => P.QuickAddEffect.Execute(null)">+ Effect</button>
+            </div>
+            @if (C.Effects.Count == 0)
+            {
+                <p class="hint">None. Effects like Bless or a potion can add modifiers and end on a rest.</p>
+            }
+            <ul class="rows">
+                @foreach (var e in C.Effects)
+                {
+                    <li @key="e" class="row">
+                        <span class="row-name"><strong>@e.Name</strong><small>@Lookups.Display(e.Expiry)</small></span>
+                        <button type="button" class="icon" title="End effect" aria-label="End @e.Name" @onclick="() => P.RemoveEffect.Execute(e)">✕</button>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        <section class="card">
+            <div class="card-head">
+                <h3>Inventory</h3>
+                <button type="button" @onclick="() => P.QuickAddItem.Execute(null)">+ Item</button>
+            </div>
+            @if (C.Items.Count == 0)
+            {
+                <p class="hint">Nothing carried.</p>
+            }
+            @Items(C.Items)
+            @if (C.WondrousItems.Count > 0)
+            {
+                <h4>Wondrous items</h4>
+                @Items(C.WondrousItems)
+            }
+        </section>
+
+        <section class="card">
+            <h3 id="log-title">Session log</h3>
+            @if (P.ActivityLog.Count == 0)
+            {
+                <p class="hint">Actions you take here are listed for this session.</p>
+            }
+            else
+            {
+                @* Focusable so the scrolling list can be read with the keyboard. *@
+                <ul class="log" tabindex="0" aria-labelledby="log-title">
+                    @foreach (var line in P.ActivityLog)
+                    {
+                        <li>@line</li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public CharacterViewModel Vm { get; set; } = null!;
+
+    private Character C => Vm.Character;
+    private PlayViewModel P => Vm.Play;
+
+    private RenderFragment Items(IEnumerable<Item> items) =>
+        @<ul class="rows">
+            @foreach (var item in items)
+            {
+                <li @key="item" class="row">
+                    <span class="row-name"><span class="muted">@(item.Quantity)×</span> @item.Name</span>
+                    <input type="checkbox" title="Equipped" aria-label="@item.Name equipped" @bind="item.Equipped" />
+                    <button type="button" class="icon" title="Remove item" aria-label="Remove @item.Name" @onclick="() => Vm.RemoveEntry.Execute(item)">✕</button>
+                </li>
+            }
+        </ul>;
+
+    private static bool Off(ICommand command, object? parameter = null) => !command.CanExecute(parameter);
+
+    private static string Pressed(bool on) => on ? "true" : "false";
+
+    protected override void OnInitialized()
+    {
+        // Refresh() raises one PropertyChanged per burst of model changes; the log also changes on its own ("no uses left").
+        Vm.PropertyChanged += OnChanged;
+        P.ActivityLog.CollectionChanged += OnLogChanged;
+    }
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    private void OnLogChanged(object? sender, NotifyCollectionChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Vm.PropertyChanged -= OnChanged;
+        P.ActivityLog.CollectionChanged -= OnLogChanged;
+    }
+}
