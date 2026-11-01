@@ -30,7 +30,7 @@
     <main class="main">
         @if (_shell.Current is { } current)
         {
-            @* The desktop's view tabs, with the character's name at the right; the Sheet view comes next. *@
+            @* The desktop's view tabs, with the character's name at the right. *@
             <div class="view-bar">
                 <div class="view-tabs" role="group" aria-label="View">
                     @foreach (var view in Views)
@@ -40,7 +40,11 @@
                 </div>
                 <CharacterTitle @key="current" Vm="current" />
             </div>
-            @if (_view == "Details")
+            @if (_view == SheetTab)
+            {
+                <SheetView @key="current" Vm="current" />
+            }
+            else if (_view == "Details")
             {
                 <DetailsView @key="current" Vm="current" />
             }
@@ -62,8 +66,10 @@
 </div>
 
 @code {
-    private static readonly string[] Views = ["Details", "Play"];
+    private const string SheetTab = "Character Sheet";
+    private static readonly string[] Views = [SheetTab, "Details", "Play"];
     private string _view = "Play";
+    private bool _print; // Ctrl+P: print once the sheet has rendered
     private ShellViewModel _shell = null!;
     private WebSync _sync = null!;
     private IJSObjectReference? _js;
@@ -103,6 +109,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_print)
+        {
+            _print = false;
+            await JS.InvokeVoidAsync("print");
+        }
         if (!firstRender) return;
         var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
         if (_disposed) return;
@@ -112,6 +123,16 @@
 
     [JSInvokable] public void Online() => _sync.Online();
     [JSInvokable] public void Visible(bool visible) => _sync.IsVisible = visible;
+
+    // Ctrl/Cmd+P prints the sheet, from any view (spec 22).
+    [JSInvokable]
+    public void Print()
+    {
+        if (_shell.Current is null) return;
+        _view = SheetTab;
+        _print = true;
+        StateHasChanged();
+    }
 
     private void OnSyncChanged() => _ = InvokeAsync(SyncChanged.InvokeAsync);
 

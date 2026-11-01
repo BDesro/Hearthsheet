@@ -1,0 +1,439 @@
+@* The traditional 5e sheet as three letter-size pages (816×1056 CSS px, the desktop's DIP layout 1:1), every value live
+   on the shared character. Add and remove buttons show on hover only and never print. Mirrors SheetView.xaml. *@
+@using System.ComponentModel
+@using System.Windows.Input
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject IJSRuntime JS
+
+<section class="sheet" aria-labelledby="character-title">
+    <div class="sheet-toolbar">
+        <nav class="sheet-goto" aria-label="Sheet pages">
+            <span class="muted">Go to</span>
+            <a href="#sheet-main">Main</a>
+            <a href="#sheet-backstory">Backstory</a>
+            <a href="#sheet-spells">Spells</a>
+        </nav>
+        <button type="button" title="Print the sheet (Ctrl+P)" @onclick="PrintAsync">🖶 Print…</button>
+    </div>
+
+    <div class="sheet-scroll">
+        @* ═════════════ PAGE 1 — MAIN ═════════════ *@
+        <div class="sheet-page" id="sheet-main">
+            <div class="sheet-head">
+                <div class="box shade name-box">
+                    <input class="si big" aria-label="Character name" @bind="C.Identity.Name" />
+                    <span class="label left">Character Name</span>
+                </div>
+                @if (!Vm.IsMulticlass)
+                {
+                    <div class="box fields four">
+                        @Field("Class", @<input class="si" aria-label="Class" @bind="Vm.FirstClass.Name" />)
+                        @Field("Level", @<input class="si" type="number" aria-label="Level" @bind="Vm.FirstClass.Level" />)
+                        @Field("Subclass", @<input class="si" aria-label="Subclass" @bind="Vm.FirstClass.Subclass" />)
+                        @IdentityFields
+                    </div>
+                }
+                else
+                {
+                    @* Two or more classes: one calculated box replaces Class / Level / Subclass (edited in Details). *@
+                    <div class="box fields four">
+                        <div class="box shade span2 class-summary">@Field(Vm.ClassLevelHeader, @<span>@Vm.ClassSummary</span>)</div>
+                        @IdentityFields
+                    </div>
+                }
+            </div>
+
+            <div class="page1">
+                @* Column 1: abilities, inspiration, proficiency, saves, skills, passive perception, proficiencies *@
+                <div class="col1">
+                    <div class="box shade abilities">
+                        @foreach (var a in Vm.Abilities)
+                        {
+                            <div class="box ability" @key="a">
+                                <span class="label">@a.Name</span>
+                                <span class="big">@Mod(a.Modifier)</span>
+                                <input class="sn score" type="number" aria-label="@a.Name score" @bind="a.Score" />
+                                @if (a.IsModifiedByEffects)
+                                {
+                                    <span class="effective">effective @a.EffectiveScore</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="col1-right">
+                        <div class="box inline">
+                            <input type="checkbox" class="dot" aria-label="Inspiration" @bind="C.Identity.Inspiration" />
+                            <span class="label left">Inspiration</span>
+                        </div>
+                        <div class="box inline">
+                            <span class="mid">@Mod(Vm.ProficiencyBonus)</span>
+                            <span class="label left">Proficiency Bonus</span>
+                        </div>
+                        <div class="box">
+                            @foreach (var s in Vm.Saves)
+                            {
+                                <div class="check-line" @key="s">
+                                    <input type="checkbox" class="dot" aria-label="@s.Name save proficiency" @bind="s.Model.Proficient" />
+                                    <span class="mod">@Mod(s.Modifier)</span>
+                                    <span>@s.Name</span>
+                                </div>
+                            }
+                            <span class="label">Saving Throws</span>
+                        </div>
+                        <div class="box skills">
+                            @foreach (var s in Vm.Skills)
+                            {
+                                var level = s.Model.Proficiency;
+                                <div class="check-line" @key="s">
+                                    @* Cycles None → Proficient → Expertise (half proficiency is set in Details). The fill and ring show the level, not colour. *@
+                                    <button type="button" class="dot skill-dot @level.ToString().ToLowerInvariant()"
+                                            title="Click to cycle: not proficient → proficient → expertise"
+                                            aria-label="@s.Name proficiency: @Lookups.Display(level)" @onclick="() => Vm.CycleSkillProficiency.Execute(s)"></button>
+                                    <span class="mod">@Mod(s.Modifier)</span>
+                                    <span>@s.Name <small class="faint">(@s.AbilityAbbreviation)</small></span>
+                                </div>
+                            }
+                            <span class="label">Skills</span>
+                        </div>
+                    </div>
+                    <div class="box inline span-all">
+                        <span class="mid">@Vm.PassivePerception</span>
+                        <span class="label left">Passive Wisdom (Perception)</span>
+                    </div>
+                    <div class="box list-box span-all">
+                        @Add("Add proficiency or language", () => Vm.AddProficiency.Execute(ProficiencyCategory.Language))
+                        <div class="list">
+                            @foreach (var p in C.Proficiencies)
+                            {
+                                <div class="sheet-row proficiency" @key="p">
+                                    <span class="faint">@p.Category</span>
+                                    <input class="si" aria-label="Proficiency" @bind="p.Name" />
+                                    @Remove(p, Named(p.Name, "proficiency"))
+                                </div>
+                            }
+                        </div>
+                        <span class="label">Other Proficiencies &amp; Languages</span>
+                    </div>
+                </div>
+
+                @* Column 2: AC/initiative/speed, HP, hit dice, death saves, attacks, equipment *@
+                <div class="col2">
+                    <div class="box shade">
+                        <div class="three">
+                            <div class="box stat">
+                                <span class="big">@Vm.ArmorClass</span>
+                                <span class="label">Armor Class</span>
+                                <span class="base">base <input class="sn" type="number" aria-label="Base armor class" @bind="C.Combat.ArmorClass" /></span>
+                            </div>
+                            <div class="box stat">
+                                <span class="big">@Mod(Vm.Initiative)</span>
+                                <span class="label">Initiative</span>
+                                <span class="base">bonus <input class="sn" type="number" aria-label="Initiative bonus" @bind="C.Combat.InitiativeBonus" /></span>
+                            </div>
+                            <div class="box stat">
+                                <span class="big">@Vm.Speed</span>
+                                <span class="label">Speed</span>
+                                <span class="base">base <input class="sn wide" type="number" aria-label="Base speed" @bind="C.Combat.Speed" /></span>
+                            </div>
+                        </div>
+                        <div class="box">
+                            <span class="faint small">Hit Point Maximum <input class="sn wide" type="number" aria-label="Hit point maximum" @bind="C.Combat.MaxHp" /></span>
+                            @if (Vm.MaxHpModified)
+                            {
+                                <span class="effective">(effective @Vm.MaxHitPoints)</span>
+                            }
+                            <input class="sn hp" type="number" aria-label="Current hit points" @bind="C.Combat.CurrentHp" />
+                            <span class="label">Current Hit Points</span>
+                        </div>
+                        <div class="box">
+                            <input class="sn temp" type="number" aria-label="Temporary hit points" @bind="C.Combat.TemporaryHp" />
+                            <span class="label">Temporary Hit Points</span>
+                        </div>
+                        <div class="two">
+                            @if (!Vm.IsMulticlass)
+                            {
+                                <div class="box">
+                                    <span class="faint small">Total @Vm.HitDiceTotal@($"d{Vm.FirstClass.HitDie}")</span>
+                                    <input class="sn dice" type="number" aria-label="Hit dice remaining" @bind="Vm.FirstClass.HitDiceRemaining" />
+                                    <span class="label">Hit Dice</span>
+                                </div>
+                            }
+                            else
+                            {
+                                @* Several classes: read-only pools, spent and recovered in Play. *@
+                                <div class="box shade">
+                                    <span class="faint small">@Vm.HitDiceTotalText</span>
+                                    <span class="dice-text" aria-label="Hit dice remaining">@Vm.HitDiceRemainingText</span>
+                                    <span class="label">Hit Dice</span>
+                                </div>
+                            }
+                            <div class="box">
+                                @Pips("Successes", C.Combat.DeathSaveSuccesses)
+                                @Pips("Failures", C.Combat.DeathSaveFailures)
+                                <span class="label">Death Saves @Vm.VitalStatus</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="box list-box attacks">
+                        <div class="attack-line head">
+                            <span class="label left">Name</span>
+                            <span class="label">Atk Bonus</span>
+                            <span class="label left">Damage/Type</span>
+                            @Add("Add attack", () => Vm.AddAttack.Execute(null))
+                        </div>
+                        @foreach (var a in Vm.Attacks)
+                        {
+                            <div class="sheet-row attack-line" @key="a">
+                                <input class="si cell" aria-label="Attack name" @bind="a.Name" />
+                                <span class="cell center">@Mod(a.AttackBonus)</span>
+                                <input class="si cell" aria-label="Damage" title="@a.DamageRoll" readonly="@a.IsWeaponAttack" @bind="a.DamageRoll" />
+                                @Remove(a, Named(a.Name, "attack"))
+                            </div>
+                        }
+                        <span class="label end">Attacks &amp; Spellcasting</span>
+                    </div>
+
+                    <div class="box list-box equipment">
+                        <div class="equipment-body">
+                            <div class="coins">
+                                @Coin("CP", "Copper pieces", C.Currency.Copper, v => C.Currency.Copper = v)
+                                @Coin("SP", "Silver pieces", C.Currency.Silver, v => C.Currency.Silver = v)
+                                @Coin("EP", "Electrum pieces", C.Currency.Electrum, v => C.Currency.Electrum = v)
+                                @Coin("GP", "Gold pieces", C.Currency.Gold, v => C.Currency.Gold = v)
+                                @Coin("PP", "Platinum pieces", C.Currency.Platinum, v => C.Currency.Platinum = v)
+                            </div>
+                            <div class="list">
+                                @Add("Add item", () => Vm.AddItem.Execute(null))
+                                @* Wondrous items are listed with the rest of the gear; they're only separated in Details for configuring. *@
+                                @foreach (var item in C.Items.Concat(C.WondrousItems))
+                                {
+                                    var name = Named(item.Name, "item");
+                                    <div class="sheet-row item" @key="item">
+                                        <input class="sn" type="number" aria-label="@name quantity" @bind="item.Quantity" />
+                                        <input class="si" aria-label="Item name" @bind="item.Name" />
+                                        @Remove(item, name)
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <span class="label">Equipment · @Vm.CarriedWeightText</span>
+                    </div>
+                </div>
+
+                @* Column 3: personality and features *@
+                <div class="col3">
+                    <div class="box shade">
+                        @Area("Personality Traits", "Personality traits", C.Biography.PersonalityTraits, v => C.Biography.PersonalityTraits = v, "tall")
+                        @Area("Ideals", "Ideals", C.Biography.Ideals, v => C.Biography.Ideals = v)
+                        @Area("Bonds", "Bonds", C.Biography.Bonds, v => C.Biography.Bonds = v)
+                        @Area("Flaws", "Flaws", C.Biography.Flaws, v => C.Biography.Flaws = v)
+                    </div>
+                    <div class="box list-box">
+                        @Add("Add feature or trait", () => Vm.AddFeature.Execute(null))
+                        <div class="list">
+                            @foreach (var f in C.Features)
+                            {
+                                <div class="sheet-row feature" @key="f">
+                                    <div>
+                                        <input class="si strong" aria-label="Feature name" @bind="f.Name" />
+                                        <textarea class="sa grow" aria-label="@Named(f.Name, "Feature") description" @bind="f.Description"></textarea>
+                                    </div>
+                                    @Remove(f, Named(f.Name, "feature"))
+                                </div>
+                            }
+                        </div>
+                        <span class="label">Features &amp; Traits</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ═════════════ PAGE 2 — BACKSTORY ═════════════ *@
+        <div class="sheet-page" id="sheet-backstory">
+            <div class="sheet-head">
+                <div class="box shade name-box">
+                    <span class="big-text">@Vm.Title</span>
+                    <span class="label left">Character Name</span>
+                </div>
+                <div class="box fields three-cols">
+                    @Field("Age", @<input class="si" aria-label="Age" @bind="C.Biography.Age" />)
+                    @Field("Height", @<input class="si" aria-label="Height" @bind="C.Biography.Height" />)
+                    @Field("Weight", @<input class="si" aria-label="Weight" @bind="C.Biography.Weight" />)
+                    @Field("Eyes", @<input class="si" aria-label="Eyes" @bind="C.Biography.Eyes" />)
+                    @Field("Skin", @<input class="si" aria-label="Skin" @bind="C.Biography.Skin" />)
+                    @Field("Hair", @<input class="si" aria-label="Hair" @bind="C.Biography.Hair" />)
+                </div>
+            </div>
+            <div class="page2">
+                @Area("Character Appearance", "Appearance", C.Biography.Appearance, v => C.Biography.Appearance = v, "fill")
+                @Area("Allies & Organizations", "Allies and organizations", C.Biography.Allies, v => C.Biography.Allies = v, "fill")
+                @Area("Character Backstory", "Backstory", C.Biography.Backstory, v => C.Biography.Backstory = v, "fill")
+                <div class="page2-stack">
+                    @Area("Notes", "Notes", C.Biography.Notes, v => C.Biography.Notes = v, "fill")
+                    @Area("Treasure", "Treasure", C.Biography.Treasure, v => C.Biography.Treasure = v, "fill")
+                </div>
+            </div>
+        </div>
+
+        @* ═════════════ PAGE 3 — SPELLS ═════════════ *@
+        <div class="sheet-page" id="sheet-spells">
+            <div class="sheet-head">
+                <div class="box shade name-box">
+                    @* The label is ignored with several casters (the strip's caster lines carry the detail). *@
+                    @if (!Vm.IsMultiCaster)
+                    {
+                        <input class="si big" aria-label="Spellcasting class" @bind="C.Spellcasting.SpellcastingClass" />
+                    }
+                    <span class="label left">Spellcasting Class</span>
+                    @if (C.Spellcasting.PactSlots.Maximum > 0)
+                    {
+                        <div class="pact">
+                            <span class="label left">Pact Magic · level @C.Spellcasting.PactSlots.Level</span>
+                            <span class="pips" role="img" aria-label="Pact slots: @C.Spellcasting.PactSlots.Available of @C.Spellcasting.PactSlots.Maximum left">
+                                @foreach (var pip in Vm.PactPips)
+                                {
+                                    <span class="dot @(pip.IsExpended ? "" : "on")"></span>
+                                }
+                            </span>
+                        </div>
+                    }
+                </div>
+                @if (!Vm.IsMultiCaster)
+                {
+                    <div class="box fields four">
+                        @Field("Spellcasting Ability",
+                            @<select aria-label="Spellcasting ability" value="@(Vm.SpellcastingEntry.SpellcastingAbility?.ToString() ?? "")"
+                                     @onchange="e => Vm.SpellcastingEntry.SpellcastingAbility = Enum.TryParse<Ability>(e.Value as string, out var a) ? a : null">
+                                @foreach (var option in Lookups.OptionalAbilities)
+                                {
+                                    <option value="@(option.Value?.ToString() ?? "")">@option.Label</option>
+                                }
+                            </select>)
+                        @Field("Spell Save DC", @<span class="mid center">@Vm.SpellSaveDc</span>)
+                        @Field("Spell Attack Bonus", @<span class="mid center">@Vm.SpellAttackBonus</span>)
+                        @Concentration
+                    </div>
+                }
+                else
+                {
+                    @* Several casters: one read-only line each replaces the ability, DC and attack cells. *@
+                    <div class="box fields casters">
+                        <div class="box shade">
+                            @Field("Ability · Save DC · Attack Bonus", @<div>@foreach (var line in Vm.CasterLines)
+                            {
+                                <div>@line</div>
+                            }</div>)
+                        </div>
+                        @Concentration
+                    </div>
+                }
+            </div>
+            <div class="page3">
+                @for (var col = 0; col < 3; col++)
+                {
+                    <div>
+                        @foreach (var row in Vm.SpellLevels.Skip(col * 3).Take(col == 2 ? 4 : 3))
+                        {
+                            @SpellLevel(row)
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public CharacterViewModel Vm { get; set; } = null!;
+
+    private Character C => Vm.Character;
+
+    private RenderFragment IdentityFields =>
+        @<text>
+            <div class="field"><input class="si" aria-label="Background" @bind="C.Identity.Background" /><span class="label left">Background</span></div>
+            <div class="field"><input class="si" aria-label="Species" @bind="C.Identity.Species" /><span class="label left">Species</span></div>
+            <div class="field"><input class="si" aria-label="Alignment" @bind="C.Identity.Alignment" /><span class="label left">Alignment</span></div>
+            <div class="field"><input class="si" type="number" aria-label="Experience points" @bind="C.Identity.Experience" /><span class="label left">Experience Points</span></div>
+            <div class="field"><input class="si" aria-label="Player name" @bind="C.Identity.PlayerName" /><span class="label left">Player Name</span></div>
+        </text>;
+
+    private RenderFragment Concentration =>
+        Field("Concentrating On", @<input class="si" aria-label="Concentrating on" @bind="C.Spellcasting.Concentration" />);
+
+    /// <summary>A value over a rule with its small-caps label beneath, as the desktop's SheetField.</summary>
+    private static RenderFragment Field(string label, RenderFragment value) =>
+        @<div class="field">@value<span class="label left">@label</span></div>;
+
+    private RenderFragment Area(string label, string name, string value, Action<string> set, string? size = null) =>
+        @<div class="box area @size">
+            <textarea class="sa" aria-label="@name" value="@value" @onchange="e => set(Convert.ToString(e.Value) ?? string.Empty)"></textarea>
+            <span class="label">@label</span>
+        </div>;
+
+    private RenderFragment Coin(string label, string name, int value, Action<int> set) =>
+        @<div class="coin">
+            <span class="label">@label</span>
+            <input class="sn" type="number" aria-label="@name" value="@value"
+                   @onchange="e => { if (int.TryParse(Convert.ToString(e.Value), out var v)) set(v); }" />
+        </div>;
+
+    /// <summary>Read-only death-save bubbles; the count is in the label, the filled bubbles only repeat it.</summary>
+    private static RenderFragment Pips(string label, int count) =>
+        @<div class="death-line" role="img" aria-label="@label: @count of 3">
+            <span>@label</span>
+            @for (var i = 1; i <= 3; i++)
+            {
+                <span class="dot @(count >= i ? "on" : "")"></span>
+            }
+        </div>;
+
+    private RenderFragment SpellLevel(SpellLevelRow row) =>
+        @<div class="box spell-level" @key="row">
+            <div class="spell-head">
+                <span class="level-badge">@row.Level</span>
+                <strong>@row.Title</strong>
+                @if (row.Slot is { } slot)
+                {
+                    <span class="faint small">Slots</span>
+                    <input class="sn" type="number" aria-label="Level @row.Level slots total" @bind="slot.Maximum" />
+                    <span class="faint small">used</span>
+                    <input class="sn" type="number" aria-label="Level @row.Level slots expended" @bind="slot.Expended" />
+                }
+                @Add(row.Level == 0 ? "Add cantrip" : $"Add level {row.Level} spell",() => Vm.AddSpell.Execute(row.Level))
+            </div>
+            @foreach (var s in row.Spells)
+            {
+                <div class="sheet-row spell" @key="s">
+                    <input type="checkbox" class="dot" title="Prepared" aria-label="@Named(s.Name, "Spell") prepared" @bind="s.Prepared" />
+                    <input class="si" aria-label="Spell name" @bind="s.Name" />
+                    @Remove(s, Named(s.Name, "spell"))
+                </div>
+            }
+        </div>;
+
+    private RenderFragment Add(string label, Action add) =>
+        @<button type="button" class="sheet-add" title="@label" aria-label="@label" @onclick="add">+</button>;
+
+    private RenderFragment Remove(object entry, string name) =>
+        @<button type="button" class="sheet-remove" title="Remove" aria-label="Remove @name" disabled="@Off(Vm.RemoveEntry, entry)"
+                 @onclick="() => Vm.RemoveEntry.Execute(entry)">✕</button>;
+
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("print");
+
+    private static string Named(string name, string fallback) => string.IsNullOrWhiteSpace(name) ? fallback : name;
+
+    private static string Mod(int value) => CharacterRules.FormatModifier(value);
+
+    private static bool Off(ICommand command, object? parameter = null) => !command.CanExecute(parameter);
+
+    protected override void OnInitialized() => Vm.PropertyChanged += OnChanged;
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Vm.PropertyChanged -= OnChanged;
+}
