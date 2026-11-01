@@ -106,3 +106,52 @@ fieldset.plain { border: 0; padding: 0; margin: 0.75rem 0 0; }
 fieldset.plain legend { font-weight: 600; padding: 0; }
 dialog.dialog label.inline { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0.25rem 0; }
 .warning { font-weight: bold; }
+
+.view-switch { display: flex; gap: 0.25rem; margin-bottom: 0.75rem; }
+.view-switch button[aria-pressed=true] { font-weight: bold; border: 2px solid currentColor; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Details view: section list beside the page, above it on narrow screens. The current section is marked by a bar and weight. */
+.details { display: grid; gap: 1rem; grid-template-columns: 12rem minmax(0, 1fr); align-items: start; }
+@media (max-width: 60rem) { .details { grid-template-columns: minmax(0, 1fr); } }
+.details .play-header { grid-column: 1 / -1; }
+.details-nav { display: flex; flex-direction: column; }
+@media (max-width: 60rem) { .details-nav { flex-direction: row; flex-wrap: wrap; gap: 0.25rem; } }
+.details-nav button { text-align: left; padding: 0.4rem 0.5rem; border: 0; border-left: 4px solid transparent; background: none; color: inherit; cursor: pointer; }
+.details-nav button[aria-current=true] { border-left-color: currentColor; font-weight: bold; }
+.details-page { min-width: 0; }
+.details-page > h3 { margin: 0 0 0.25rem; }
+.details-page h4 { margin: 1.25rem 0 0.4rem; }
+.details-page .card-head { align-items: center; }
+.details-page .toolbar { margin-bottom: 0.5rem; }
+.fields { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: end; margin-bottom: 0.75rem; }
+.fields label, .notes label, .detail-panel label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.9rem; }
+.fields label.inline { flex-direction: row; align-items: center; gap: 0.4rem; }
+.notes { display: flex; flex-direction: column; gap: 0.75rem; max-width: 56rem; }
+textarea { width: 100%; padding: 0.4rem; resize: vertical; }
+input.num { width: 5rem; }
+input.dice { width: 7rem; }
+.table-scroll { overflow-x: auto; margin-bottom: 0.5rem; position: relative; } /* keeps visually-hidden headers inside the scroll box */
+table.grid { border-collapse: collapse; }
+table.grid th, table.grid td { padding: 0.2rem 0.3rem; text-align: left; vertical-align: middle; }
+table.grid thead th { font-size: 0.8rem; border-bottom: 1px solid #9ca3af; white-space: nowrap; }
+table.grid tbody tr + tr { border-top: 1px solid rgba(156, 163, 175, 0.4); }
+table.grid tr.selected { outline: 2px solid currentColor; outline-offset: -2px; }
+table.grid .value { font-weight: 600; }
+table.grid .nowrap { white-space: nowrap; }
+.wide-cell { min-width: 12rem; }
+.wide-cell input:not([type=checkbox]) { width: 100%; }
+.detail-panel { border-left: 4px solid currentColor; padding: 0.25rem 0 0.25rem 0.75rem; margin: 0.5rem 0 1rem; display: flex; flex-direction: column; gap: 0.5rem; max-width: 56rem; }
+.detail-panel h4 { margin: 0; }
+.slot-cards { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.slot-cards fieldset.card { display: flex; gap: 0.5rem; margin: 0; }
+.slot-cards legend { font-weight: 600; }
+.slot-cards label { display: flex; align-items: center; gap: 0.3rem; }
+.slot-cards input.num { width: 3.5rem; }
+.token-picker { display: flex; align-items: flex-start; gap: 0.25rem; }
+.token-picker > input { flex: 1; min-width: 8rem; }
+.token-picker summary { cursor: pointer; padding: 0.15rem 0.4rem; border: 1px solid #9ca3af; border-radius: 3px; list-style: none; }
+.token-picker summary::-webkit-details-marker { display: none; }
+.token-choices { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.4rem 0.5rem; margin-top: 0.25rem; border: 1px solid #9ca3af; max-height: 16rem; overflow-y: auto; }
+.token-choices .chips { margin: 0.4rem 0 0; flex-wrap: nowrap; }
+.token-choices .chips input { width: 7rem; }

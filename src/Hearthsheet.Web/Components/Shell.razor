@@ -27,7 +27,21 @@
     <main class="main">
         @if (_shell.Current is { } current)
         {
-            <PlayView @key="current" Vm="current" />
+            @* The desktop's view tabs; the Sheet view comes next. *@
+            <div class="view-switch" role="group" aria-label="View">
+                @foreach (var view in Views)
+                {
+                    <button type="button" aria-pressed="@(view == _view ? "true" : "false")" @onclick="() => _view = view">@view</button>
+                }
+            </div>
+            @if (_view == "Details")
+            {
+                <DetailsView @key="current" Vm="current" />
+            }
+            else
+            {
+                <PlayView @key="current" Vm="current" />
+            }
         }
         else
         {
@@ -38,6 +52,8 @@
 </div>
 
 @code {
+    private static readonly string[] Views = ["Details", "Play"];
+    private string _view = "Play";
     private ShellViewModel _shell = null!;
     private WebSync _sync = null!;
     private IJSObjectReference? _js;
