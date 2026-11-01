@@ -5,6 +5,8 @@ updates:
     target-branch: dev
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       microsoft-extensions:
         patterns: ["Microsoft.*", "System.*"]
@@ -13,3 +15,5 @@ updates:
     target-branch: dev
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
