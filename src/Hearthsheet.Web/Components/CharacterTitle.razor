@@ -1,0 +1,19 @@
+@* The open character's name and summary, at the right of the view tabs as on the desktop. The views label themselves by it. *@
+@using System.ComponentModel
+@using Hearthsheet.Presentation
+@implements IDisposable
+
+<div class="character-title">
+    <h2 id="character-title">@Vm.Title</h2>
+    <p>@Vm.Summary</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CharacterViewModel Vm { get; set; } = null!;
+
+    protected override void OnInitialized() => Vm.PropertyChanged += OnChanged;
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Vm.PropertyChanged -= OnChanged;
+}
