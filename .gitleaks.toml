@@ -1,0 +1,7 @@
+# Gitleaks config for the security-scan workflow (and local runs, which pick this file up automatically).
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Supabase publishable keys ship in both apps by design; row-level security is the gatekeeper"
+regexes = ['''sb_publishable_[A-Za-z0-9_-]+''']
