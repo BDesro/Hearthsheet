@@ -20,7 +20,7 @@
                 }
             </div>
             <p class="hp" aria-live="polite">
-                <span class="hp-current" aria-label="Current hit points">@C.Combat.CurrentHp</span>
+                <span class="visually-hidden">Hit points </span><span class="hp-current">@C.Combat.CurrentHp</span>
                 <span class="hp-max">/ @Vm.MaxHitPoints</span>
                 @if (C.Combat.TemporaryHp > 0)
                 {
