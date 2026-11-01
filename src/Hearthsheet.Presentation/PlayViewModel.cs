@@ -124,7 +124,7 @@ public sealed class PlayViewModel : Observable
     public int HpInput { get; set => Set(ref field, Math.Clamp(value, 0, 9999)); } = 5;
 
     public IEnumerable<Spell> PreparedSpells => Character.Spellcasting.Spells
-        .Where(s => s.Prepared || s.Level == 0).OrderBy(s => s.Level).ThenBy(s => s.Name);
+        .Where(s => s.Prepared || s.Level == 0).OrderBy(s => s.Level).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase);
 
     public ICommand Damage { get; }
     public ICommand Heal { get; }
