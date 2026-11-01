@@ -3,7 +3,7 @@
     <!-- Printed-sheet look: black ink on white, rounded boxes, small-caps labels under values. -->
     <SolidColorBrush x:Key="SheetInk" Color="#111111" />
     <SolidColorBrush x:Key="SheetLine" Color="#2A2A2A" />
-    <SolidColorBrush x:Key="SheetFaint" Color="#8C8C8C" />
+    <SolidColorBrush x:Key="SheetFaint" Color="#696969" /> <!-- 4.5:1 or more on white and on SheetShade -->
     <SolidColorBrush x:Key="SheetShade" Color="#F1EFEA" />
 
     <Style x:Key="SheetPage" TargetType="Border">

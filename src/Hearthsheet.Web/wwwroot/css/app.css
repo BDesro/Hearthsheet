@@ -187,9 +187,10 @@ fieldset.plain legend { font-weight: 600; padding: 0; }
 .slot-label { width: 4.5rem; }
 /* A slot pip: filled while available, hollow once expended (shape, not just colour). */
 .pip { width: 18px; height: 18px; min-height: 0; padding: 0; border-radius: 50%; border: 2px solid var(--accent); background: var(--accent); }
-.pip.expended { background: transparent; border-color: var(--line-strong); }
+.pip.expended { background: transparent; border-color: var(--ink-muted); } /* the ring keeps 3:1 so an expended slot stays visible */
 .pip:hover:not(:disabled) { border-width: 3px; background: var(--accent); border-color: var(--accent); }
-.pip.expended:hover:not(:disabled) { background: transparent; border-color: var(--line-strong); }
+.pip.expended:hover:not(:disabled) { background: transparent; border-color: var(--ink-muted); }
+@media (pointer: coarse) { .pip { width: 24px; height: 24px; } } /* WCAG 2.5.8 target size on touch screens */
 .exhaustion { display: flex; align-items: center; gap: 0.5rem; margin-top: 6px; }
 .exhaustion strong { min-width: 1.5rem; text-align: center; font-size: 15px; }
 .log { list-style: none; padding: 0; margin: 0; max-height: 16rem; overflow-y: auto; font-size: 12px; }
@@ -261,7 +262,7 @@ table.grid .nowrap { white-space: nowrap; }
 
 /* Character sheet (src/Hearthsheet.App/Themes/SheetStyles.xaml): three letter-size pages of black ink on white, rounded
    boxes, small-caps labels under values. 816×1056 CSS px is the desktop's DIP layout and prints 1:1. */
-.sheet { --sheet-ink: #111111; --sheet-line: #2A2A2A; --sheet-faint: #8C8C8C; --sheet-shade: #F1EFEA; }
+.sheet { --sheet-ink: #111111; --sheet-line: #2A2A2A; --sheet-faint: #696969; --sheet-shade: #F1EFEA; } /* faint: 4.5:1 on white and shade */
 .sheet-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .sheet-goto { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .sheet-goto a { color: var(--accent); }
