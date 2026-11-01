@@ -85,8 +85,8 @@ public sealed class BrowserStorage
 
     /// <summary>
     /// Asks the browser not to evict this site's storage (spec 8). In a tab only once per browser, since Firefox
-    /// prompts; installed, at every start until it is granted, since Chromium decides silently and grants it to an
-    /// installed app. Never throws: a refusal only leaves eviction possible.
+    /// prompts; installed, at every start until it is granted, since Chromium decides silently from signals such as
+    /// installation and engagement and may grant it later. Never throws: a refusal only leaves eviction possible.
     /// </summary>
     public async Task RequestPersistenceAsync()
     {

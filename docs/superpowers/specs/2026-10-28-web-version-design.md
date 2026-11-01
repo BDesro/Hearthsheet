@@ -176,7 +176,7 @@ avoids signing, installers and per-platform updaters entirely.
       - If anything is unsynced, the app first tries to sync. If that fails (offline), it says how many changes would be
         lost and offers "Stay signed in", "Export them, then sign out" or "Sign out anyway".
 8. **Durability.**
-   - On first sign-in the app calls `navigator.storage.persist()`; installed, it asks again at each start until granted.
+   - On first sign-in the app calls `navigator.storage.persist()`; installed, it asks again at each start until granted (Chromium may still refuse; it weighs installation, engagement and bookmarks).
    - Safari deletes storage for sites not used for 7 days unless they're installed to the Dock, so the app encourages
      installing.
    - The cloud copy is the real safety net. The app shows a visible "N changes not yet synced" indicator whenever
