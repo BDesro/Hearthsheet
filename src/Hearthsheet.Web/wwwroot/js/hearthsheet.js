@@ -85,6 +85,13 @@ let watcherId = 0;      // which Shell registered (each call gets a new JS wrapp
 window.addEventListener('online', () => { if (held) pageWatcher?.invokeMethodAsync('Online'); });
 document.addEventListener('visibilitychange', () => pageWatcher?.invokeMethodAsync('Visible', document.visibilityState === 'visible'));
 
+// Ctrl/Cmd+P prints the character sheet rather than whichever view is showing (spec 22).
+document.addEventListener('keydown', e => {
+    if (!pageWatcher || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'p') return;
+    e.preventDefault();
+    pageWatcher.invokeMethodAsync('Print');
+});
+
 export function watchPage(dotnetRef, id) {
     pageWatcher = dotnetRef;
     watcherId = id;

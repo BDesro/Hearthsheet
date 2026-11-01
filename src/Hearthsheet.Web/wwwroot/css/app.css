@@ -258,3 +258,156 @@ table.grid .nowrap { white-space: nowrap; }
     .shell > .sidebar, .shell > .main { overflow-y: auto; }
     .sidebar .character-list { overflow-y: auto; }
 }
+
+/* Character sheet (src/Hearthsheet.App/Themes/SheetStyles.xaml): three letter-size pages of black ink on white, rounded
+   boxes, small-caps labels under values. 816×1056 CSS px is the desktop's DIP layout and prints 1:1. */
+.sheet { --sheet-ink: #111111; --sheet-line: #2A2A2A; --sheet-faint: #8C8C8C; --sheet-shade: #F1EFEA; }
+.sheet-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.sheet-goto { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.sheet-goto a { color: var(--accent); }
+.sheet-scroll { overflow-x: auto; padding: 24px; background: #D9D4CB; }
+.sheet-page {
+    display: flex; flex-direction: column; width: 816px; min-height: 1056px; margin: 0 auto 24px; padding: 26px 28px;
+    background: #FFFFFF; color: var(--sheet-ink); font-size: 12px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18); scroll-margin-top: 48px;
+}
+.sheet-page:last-child { margin-bottom: 0; }
+.sheet .box { border: 1.4px solid var(--sheet-line); border-radius: 7px; padding: 5px 6px; margin: 3px; background: #FFFFFF; min-width: 0; }
+.sheet .box.shade { background: var(--sheet-shade); }
+.sheet .label { display: block; font-size: 8.5px; font-weight: 700; font-variant-caps: all-small-caps; text-align: center; letter-spacing: 0.02em; }
+.sheet .label.left { text-align: left; }
+.sheet .label.end { margin-top: auto; }
+.sheet .big { display: block; font-size: 24px; font-weight: 600; text-align: center; }
+.sheet .mid { font-size: 16px; font-weight: 600; }
+.sheet .center { text-align: center; }
+.sheet .faint { color: var(--sheet-faint); }
+.sheet .small { font-size: 9px; }
+.sheet .effective { display: block; font-size: 8.5px; color: var(--accent); text-align: center; }
+
+/* Borderless in-place editors; the underline shows on hover and focus so the page stays print-clean. */
+.sheet .si, .sheet .sn, .sheet .sa, .sheet select {
+    width: 100%; min-width: 0; min-height: 0; padding: 0 1px; border: 0; border-bottom: 1px solid transparent; border-radius: 0;
+    background: transparent; color: var(--sheet-ink); font-size: 12px;
+}
+.sheet .sn { text-align: center; font-size: 14px; -moz-appearance: textfield; appearance: textfield; }
+.sheet .sn::-webkit-inner-spin-button, .sheet .sn::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.sheet .sa { display: block; resize: none; font-size: 11px; border-bottom: 0; }
+.sheet .sa.grow { field-sizing: content; min-height: 1.4em; font-size: 10px; }
+.sheet :is(.si, .sn, .sa, select):hover { border-bottom-color: var(--sheet-faint); }
+.sheet :is(.si, .sn, .sa, select):focus { outline: none; border-bottom-color: var(--accent); background: #FBF6F4; }
+.sheet .si[readonly] { border-bottom-color: transparent; background: transparent; }
+.sheet .si.big { font-size: 20px; font-weight: 600; }
+.sheet .si.strong { font-size: 11px; font-weight: 700; }
+.sheet .big-text { display: block; font-size: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Bubbles: an empty ring, filled when on; expertise adds an outer ring, half a smaller grey dot. Shape, not colour. */
+.sheet .dot {
+    appearance: none; flex: none; position: relative; width: 12px; height: 12px; min-height: 0; margin: 0; padding: 0;
+    border: 1.2px solid var(--sheet-line); border-radius: 50%; background: transparent; cursor: pointer;
+}
+.sheet span.dot { display: inline-block; cursor: default; }
+.sheet .dot::after { content: ""; position: absolute; inset: 1.5px; border-radius: 50%; }
+.sheet .dot:checked::after, .sheet .dot.on::after, .sheet .dot.proficient::after, .sheet .dot.expertise::after { background: var(--sheet-ink); }
+.sheet .dot.half::after { inset: 2.5px; background: var(--sheet-faint); }
+.sheet .dot.expertise::before { content: ""; position: absolute; inset: -4px; border: 1px solid var(--sheet-line); border-radius: 50%; }
+
+/* Add and remove show on hover or focus only (and never print); touch screens, with no hover, always show them. */
+.sheet-add, .sheet-remove { min-height: 0; width: 18px; height: 18px; padding: 0; border: 0; background: transparent; color: var(--ink-muted); font-weight: 700; line-height: 1; }
+.sheet-remove { width: 16px; height: 16px; font-size: 11px; font-weight: 400; }
+.sheet-add { float: right; align-self: flex-end; }
+.sheet-add:hover, .sheet-remove:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); }
+@media (hover: hover) {
+    .sheet-remove { opacity: 0; }
+    .sheet-row:hover .sheet-remove, .sheet-remove:focus-visible { opacity: 1; }
+}
+
+.sheet-head { display: grid; grid-template-columns: 250px minmax(0, 1fr); align-items: center; margin-bottom: 6px; }
+.sheet .name-box { padding: 8px 10px; }
+.sheet .name-box > :is(input, .big-text) { border-bottom: 1px solid var(--sheet-line); }
+.sheet .fields { display: grid; align-items: end; }
+.sheet .fields.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sheet .fields.three-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sheet .fields.casters { grid-template-columns: 3fr 1fr; }
+.sheet .field { margin: 2px 5px; min-width: 0; }
+.sheet .field > :first-child { display: block; border-bottom: 1px solid var(--sheet-line); }
+.sheet .field .label { margin-top: 1px; }
+.sheet .span2 { grid-column: span 2; padding: 2px 3px; margin: 2px 3px; }
+.sheet .class-summary .field > :first-child { font-size: 11px; }
+
+.page1 { flex: 1; display: grid; grid-template-columns: 248px 264px minmax(0, 1fr); }
+.col1 { display: grid; grid-template-columns: 80px minmax(0, 1fr); grid-template-rows: auto auto 1fr; }
+.col1 .span-all { grid-column: 1 / -1; }
+.col2, .col3 { display: flex; flex-direction: column; min-width: 0; }
+.sheet .abilities { padding: 2px; }
+.sheet .ability { margin: 3px 2px; padding: 3px 2px 4px; text-align: center; }
+.sheet .ability .score { display: block; width: 42px; margin: 0 auto; border: 1px solid var(--sheet-line); border-radius: 9px; font-size: 12px; }
+.sheet .inline { display: flex; align-items: center; gap: 8px; padding: 4px 6px; }
+.sheet .inline .mid { width: 30px; }
+.sheet .check-line { display: flex; align-items: center; gap: 2px; margin: 1px 0; font-size: 11px; }
+.sheet .skills .check-line { margin: 0.5px 0; font-size: 10.5px; }
+.sheet .check-line .mod { width: 26px; text-align: center; }
+.sheet .check-line small { font-size: 9px; }
+.sheet .list-box { display: flex; flex-direction: column; }
+.sheet .list-box > .label:last-child { margin-top: auto; }
+.sheet .list { flex: 1; }
+.sheet-row { display: grid; align-items: center; }
+.sheet-row.proficiency { grid-template-columns: 58px minmax(0, 1fr) 18px; }
+.sheet-row.proficiency .faint { font-size: 9px; }
+.sheet-row :is(.si, .sn) { font-size: 11px; }
+
+.sheet .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sheet .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sheet .stat { padding: 4px 2px; text-align: center; }
+.sheet .base { font-size: 8.5px; color: var(--sheet-faint); }
+.sheet .base .sn { width: 26px; font-size: 10px; }
+.sheet .base .sn.wide, .sheet .faint .sn.wide { width: 40px; }
+.sheet .faint .sn { font-size: 11px; color: var(--sheet-ink); }
+.sheet .sn.hp { font-size: 26px; font-weight: 600; }
+.sheet .sn.dice { font-size: 16px; }
+.sheet .sn.temp { font-size: 18px; }
+.sheet .dice-text { display: block; font-size: 13px; font-weight: 600; text-align: center; }
+.sheet .death-line { display: flex; align-items: center; gap: 2px; margin: 2px 0; font-size: 8.5px; }
+.sheet .death-line > span:first-child { width: 48px; }
+
+.sheet .attacks { min-height: 170px; }
+.sheet .attack-line { display: grid; grid-template-columns: minmax(0, 1fr) 44px 92px 18px; gap: 2px; margin: 1px 0; }
+.sheet .attack-line .cell { background: var(--sheet-shade); border-radius: 2px; font-size: 11px; }
+.sheet .attack-line .label { align-self: end; }
+.sheet .attack-line .sheet-add { float: none; }
+.sheet .equipment { flex: 1; }
+.sheet .equipment-body { flex: 1; display: flex; gap: 6px; }
+.sheet .coins { flex: none; width: 54px; }
+.sheet .coin { margin: 2px 0; padding: 1px 2px; border: 1px solid var(--sheet-line); border-radius: 8px; }
+.sheet .coin .sn { font-size: 11px; }
+.sheet-row.item { grid-template-columns: 28px minmax(0, 1fr) 18px; }
+
+.sheet .area .sa { height: 48px; }
+.sheet .area.tall .sa { height: 64px; }
+.sheet .col3 .list-box { flex: 1; }
+.sheet-row.feature { grid-template-columns: minmax(0, 1fr) 18px; align-items: start; margin-bottom: 5px; }
+
+.page2 { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 1fr 1fr; }
+.page2-stack { display: grid; grid-template-rows: 1fr 1fr; }
+.sheet .area.fill { display: flex; flex-direction: column; }
+.sheet .area.fill .sa { flex: 1; height: auto; }
+
+.sheet .pact { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.sheet .pips { display: inline-flex; gap: 3px; }
+.page3 { flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.sheet .spell-level { margin: 3px 3px 6px; }
+.spell-head { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; font-size: 11px; }
+.spell-head strong { margin: 0 auto 0 4px; font-weight: 600; }
+.spell-head .sn { width: 26px; font-size: 11px; }
+.level-badge { flex: none; width: 34px; padding: 2px; border-radius: 4px; background: var(--sheet-ink); color: #FFFFFF; font-size: 15px; font-weight: 700; text-align: center; }
+.sheet-row.spell { grid-template-columns: 18px minmax(0, 1fr) 18px; }
+
+/* Printing: only the sheet's pages, one per letter sheet with no margins, inputs as plain text. */
+@page { size: letter; margin: 0; }
+@media print {
+    body { background: #FFFFFF; }
+    #app > :not(.shell), .shell > :not(.main), .main > :not(.sheet), .sheet-toolbar, .sheet-add, .sheet-remove { display: none !important; }
+    #app:has(> .shell), #app > .shell, .shell { display: block; height: auto; min-height: 0; }
+    .shell > .main, .sheet-scroll { overflow: visible; padding: 0; background: none; }
+    .sheet-page { width: 816px; height: 1056px; min-height: 0; margin: 0; overflow: hidden; box-shadow: none; break-after: page; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .sheet-page:last-child { break-after: auto; }
+    .sheet select { appearance: none; }
+}
