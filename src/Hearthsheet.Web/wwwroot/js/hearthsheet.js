@@ -203,8 +203,10 @@ export async function idbDelete(dbName) {
 // Test-only: abort the next n idbWrite transactions. Exported for the browser console; app code never calls it.
 export function failNextWrites(n) { failWrites = n; }
 
+// Already granted: true without asking again (Firefox would prompt).
 export async function persist() {
-    return navigator.storage?.persist ? await navigator.storage.persist() : false;
+    if (!navigator.storage?.persist) return false;
+    return await navigator.storage.persisted() || await navigator.storage.persist();
 }
 
 // ---- Synchronous Web Storage (called through IJSInProcessObjectReference) ----
