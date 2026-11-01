@@ -13,26 +13,32 @@
 @inject IJSRuntime JS
 
 <div class="shell">
-    <details class="account-menu">
-        <summary>@(Account.Email ?? "Account")</summary>
-        <div class="menu">
-            <button type="button" @onclick="ExportAllAsync">Export all characters</button>
-            <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
-            <button type="button" @onclick="SignOut">Sign out</button>
-        </div>
-    </details>
+    <header class="app-bar">
+        <h1>Hearthsheet</h1>
+        <details class="account-menu">
+            <summary>@(Account.Email ?? "Account")</summary>
+            <div class="menu">
+                <button type="button" @onclick="ExportAllAsync">Export all characters</button>
+                <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
+                <button type="button" @onclick="SignOut">Sign out</button>
+            </div>
+        </details>
+    </header>
     <nav class="sidebar" aria-label="Characters">
         <CharacterList Shell="_shell" Account="Account" Storage="Storage" />
     </nav>
     <main class="main">
         @if (_shell.Current is { } current)
         {
-            @* The desktop's view tabs; the Sheet view comes next. *@
-            <div class="view-switch" role="group" aria-label="View">
-                @foreach (var view in Views)
-                {
-                    <button type="button" aria-pressed="@(view == _view ? "true" : "false")" @onclick="() => _view = view">@view</button>
-                }
+            @* The desktop's view tabs, with the character's name at the right; the Sheet view comes next. *@
+            <div class="view-bar">
+                <div class="view-tabs" role="group" aria-label="View">
+                    @foreach (var view in Views)
+                    {
+                        <button type="button" aria-pressed="@(view == _view ? "true" : "false")" @onclick="() => _view = view">@view</button>
+                    }
+                </div>
+                <CharacterTitle @key="current" Vm="current" />
             </div>
             @if (_view == "Details")
             {
@@ -45,7 +51,11 @@
         }
         else
         {
-            <p>No character open. Choose New or Import to start.</p>
+            <div class="empty-state">
+                <h2>No character open</h2>
+                <p class="hint">Create a new character to fill in the sheet, or import one exported from Hearthsheet.</p>
+                <button type="button" class="accent" @onclick="_shell.CreateAsync">Create character</button>
+            </div>
         }
     </main>
     <StatusBar Shell="_shell" Account="Account" Sync="_sync" Secrets="Storage.Secrets.Journal" />
