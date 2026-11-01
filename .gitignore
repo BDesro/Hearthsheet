@@ -484,3 +484,5 @@ $RECYCLE.BIN/
 # graphify knowledge graph (local navigation aid)
 graphify-out/
 .wrangler/
+
+.security-audit/
