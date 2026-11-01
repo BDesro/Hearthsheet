@@ -9,7 +9,7 @@ project, for example for a fork, and then replace those two values.
 ## One-time setup
 
 1. **Create the project.** At supabase.com, create a free project and pick the region closest to your players.
-2. **Create the schema.** In the SQL editor, run `supabase/migrations/0001_cloud_sync.sql`, then `0002_guardrails.sql`. If
+2. **Create the schema.** In the SQL editor, run `supabase/migrations/0001_cloud_sync.sql`, then `0002_guardrails.sql` and `0003_storage_caps.sql`. If
    `create extension pg_cron` fails, enable **pg_cron** under Database → Extensions and run `0001` again.
    `0002` adds the guardrails:
    - exact table grants
@@ -17,7 +17,10 @@ project, for example for a fork, and then replace those two values.
    - at most 100 rows per user, deleted ones included (error "Character limit reached (100)…")
    - the sign-up allowlist (`private.signup_allowlist`), seeded with every existing user's email.
 
-   On a project that already has `0001`, run only `0002`.
+   `0003` adds storage caps: name up to 1,000 characters, description up to 2,000, and 10 MB of documents per user
+   (error "Storage limit reached (10 MB)…").
+
+   On a project that already has `0001`, run only the later files it lacks.
 
    **Then enable the sign-up hook:** Authentication → Hooks → **Before User Created** → Postgres, function
    `public.hook_before_user_created`, then Save. Until it is enabled, anyone can sign up. Its rules:
@@ -131,6 +134,7 @@ rollback;
 | Reset email doesn't arrive | Check the spam folder and Resend's Emails log. If the log is empty, recheck the SMTP settings in step 5. |
 | Sign-up fails with "Sign-ups are closed. Ask Beau to add your email." | The allowlist is full. Add the email (see "Letting a friend sign up"). |
 | Upload fails with "Character limit reached (100)" | The account has 100 rows, including deleted characters that haven't been purged yet. Tombstones are purged 90 days after deletion. |
+| Upload fails with "Storage limit reached (10 MB)" | The account's characters add up to more than 10 MB (a typical character is about 17 KB). Delete some, or raise the limit in a new migration. |
 | Reset email contains a link instead of a code | The Reset password template still has the default body. Use the one in step 6. |
 
 ## How a sync pass works
