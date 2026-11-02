@@ -51,6 +51,49 @@ You need a free Cloudflare account (the Resend setup in `CLOUD_SYNC.md` already 
 6. **If the token leaks or expires:** create a new one (step 2), replace the secret (step 4), then delete the old token
    under **API Tokens**.
 
+## Launch gate
+
+The gate (spec, "Audits and launch gate"): parity checklist complete, no open critical or high findings, data-safety
+scenarios pass, Beau signs off.
+
+### Parity checklist (checked 2026-11-01)
+
+Views and dialogs. Every desktop input's accessible name was compared with the web component; all fields are present
+(some with shorter labels, e.g. "Base max HP").
+
+- [x] Character Sheet (three letter-size pages, print), Details (11 sections), Play
+- [x] New character, Level up, Quick add, Short rest, Token picker, modifier editor
+- [x] Account dialog → sign-in page and account menu; Update dialog → update banner (spec 14)
+
+File, View, Account and Help menus:
+
+- [x] New, Duplicate, Import, Export, Export all, Delete: character list and account menu
+- [x] Save: autosave, plus Ctrl/Cmd+S
+- [x] Print and Ctrl/Cmd+P: prints the sheet from any view
+- [x] Sheet / Details / Play: view buttons
+- [x] Zoom in, out, reset: the browser's own zoom (spec 22)
+- [x] Sign in, Sync now, Sign out: account menu; status in the status bar
+- [x] Open log folder → Download diagnostics; Open data folder → Export all (spec 22)
+- [x] Exit: close the tab
+- [ ] Intro video (spec 22 says "kept"): not built. It adds a 784 KB download to first load; Beau to decide.
+
+Keyboard shortcuts with no web equivalent: Ctrl+N (new window) and Ctrl+1–3 (switch browser tab) belong to the
+browser, which doesn't let a page take them. The commands are one click away in the character list and view bar.
+
+### Audit status (2026-11-01)
+
+| Row | Result |
+|---|---|
+| Server config, access control, app security, supply chain | Security gate passed (R2); open: SEC-008 (Beau checks Auth settings), SEC-006 and SEC-007 (info). Advisors rechecked 2026-11-01: only SEC-006 on both projects |
+| Data safety | Pass; SEC-009 accepted until 2027-01-30 |
+| Accessibility | Fixes in #58; screen reader pass on the main flows still to do (Beau) |
+| Performance | Pass. Repeat load (service worker, nothing downloaded): 0.27 s on a fast desktop, 1.6 s at 4× CPU slowdown (mid-range laptop), 2.7 s at 6×. First load: 3.5 MB transferred, 1.0 s on a fast connection, Lighthouse desktop TTI 3.1 s. |
+| Cost | Free plan, no add-ons. Each project 11 MB of 500 MB, 1 and 2 users, no Storage objects. Egress and Cloudflare usage are dashboard-only (Beau). |
+
+Startup is CPU-bound once cached: starting the .NET runtime and instantiating about 8 MB of WebAssembly. The largest
+downloads are `dotnet.native.wasm` (1.2 MB compressed) and `System.Private.CoreLib` (0.6 MB); the 0.5 MB ICU file goes
+with the next release (#57). Nothing further is worth cutting while the repeat load meets the target.
+
 ## Switching from preview to production (at the launch gate)
 
 Do these together in one pull request, never one without the other. The strict Content-Security-Policy only lets the app
