@@ -310,7 +310,7 @@ avoids signing, installers and per-platform updaters entirely.
     | Open logs | **Download diagnostics**: the in-memory log of this session, already redacted, as a text file |
     | Open data folder | Dropped; **Export all characters** covers getting your data out |
     | Database backups and their mention in error messages | Dropped; error messages point to Export all and the cloud copy instead |
-    | Intro video (`Assets/tigrisoft-intro-short.mp4`) | Kept, played once per browser and skippable; muted autoplay rules apply |
+    | Intro video (`Assets/tigrisoft-intro-short.mp4`) | Dropped (Beau, 2026-11-01): it would add 784 KB to first load |
     | Ctrl+P, zoom shortcuts | Ctrl/Cmd+P opens the print view of the sheet; zoom is the browser's own |
     | Update dialog and installer | Replaced by the service-worker "new version ready" prompt (decision 14) |
 

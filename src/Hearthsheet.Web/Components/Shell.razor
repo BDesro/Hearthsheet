@@ -18,6 +18,7 @@
         <details class="account-menu">
             <summary>@(Account.Email ?? "Account")</summary>
             <div class="menu">
+                <button type="button" disabled="@_sync.IsBusy" @onclick="_sync.RunAsync">Sync now</button>
                 <button type="button" @onclick="ExportAllAsync">Export all characters</button>
                 <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
                 <button type="button" @onclick="SignOut">Sign out</button>
@@ -133,6 +134,9 @@
         _print = true;
         StateHasChanged();
     }
+
+    // Ctrl/Cmd+S saves now, as on the desktop, instead of the browser's "Save page as".
+    [JSInvokable] public void Save() => _shell.Save();
 
     private void OnSyncChanged() => _ = InvokeAsync(SyncChanged.InvokeAsync);
 

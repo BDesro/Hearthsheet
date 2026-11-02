@@ -85,11 +85,14 @@ let watcherId = 0;      // which Shell registered (each call gets a new JS wrapp
 window.addEventListener('online', () => { if (held) pageWatcher?.invokeMethodAsync('Online'); });
 document.addEventListener('visibilitychange', () => pageWatcher?.invokeMethodAsync('Visible', document.visibilityState === 'visible'));
 
-// Ctrl/Cmd+P prints the character sheet rather than whichever view is showing (spec 22).
+// Ctrl/Cmd+P prints the character sheet rather than whichever view is showing (spec 22); Ctrl/Cmd+S saves.
+// Ctrl+N and Ctrl+1–3 stay the browser's: Chrome doesn't let a page take them.
 document.addEventListener('keydown', e => {
-    if (!pageWatcher || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'p') return;
+    if (!pageWatcher || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const method = { p: 'Print', s: 'Save' }[e.key.toLowerCase()];
+    if (!method) return;
     e.preventDefault();
-    pageWatcher.invokeMethodAsync('Print');
+    pageWatcher.invokeMethodAsync(method);
 });
 
 export function watchPage(dotnetRef, id) {
