@@ -75,7 +75,7 @@ File, View, Account and Help menus:
 - [x] Sign in, Sync now, Sign out: account menu; status in the status bar
 - [x] Open log folder → Download diagnostics; Open data folder → Export all (spec 22)
 - [x] Exit: close the tab
-- [ ] Intro video (spec 22 says "kept"): not built. It adds a 784 KB download to first load; Beau to decide.
+- [x] Intro video: dropped on the web (spec 22); it would add 784 KB to first load
 
 Keyboard shortcuts with no web equivalent: Ctrl+N (new window) and Ctrl+1–3 (switch browser tab) belong to the
 browser, which doesn't let a page take them. The commands are one click away in the character list and view bar.
