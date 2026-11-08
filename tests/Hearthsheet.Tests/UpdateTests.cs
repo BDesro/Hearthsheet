@@ -43,12 +43,8 @@ public class SemVersionTests
 
 public class UpdateServiceTests : IDisposable
 {
-    private const string Owner = "owner";
-    private const string Repo = "repo";
     private readonly TempDir _dir = new();
     public void Dispose() => _dir.Dispose();
-
-    private static readonly UpdateOptions Options = new() { Owner = Owner, Repository = Repo };
 
     private static string ReleasesJson(params (string tag, bool pre, bool draft)[] releases) =>
         "[" + string.Join(",", releases.Select((r, i) => $$"""
@@ -58,11 +54,8 @@ public class UpdateServiceTests : IDisposable
                {"id":{{i * 10 + 2}},"name":"SHA256SUMS.txt","size":100,"url":"https://api.github.com/repos/owner/repo/releases/assets/{{i * 10 + 2}}"}]}
             """)) + "]";
 
-    private UpdateService Service(StubHandler handler, string current = "1.0.0", UpdateOptions? options = null)
-    {
-        var source = new GitHubReleaseSource(options ?? Options, handler);
-        return new UpdateService(source, options ?? Options, Version.Parse(current), _dir.Path, NullLogger<UpdateService>.Instance);
-    }
+    private UpdateService Service(StubHandler handler, string current = "1.0.0") =>
+        new(new GitHubReleaseSource(handler), Version.Parse(current), _dir.Path, NullLogger<UpdateService>.Instance);
 
     [Fact]
     public async Task Check_FindsNewestStableRelease_IgnoringDraftsAndPreReleases()
@@ -78,13 +71,6 @@ public class UpdateServiceTests : IDisposable
     {
         var handler = new StubHandler(_ => Json(ReleasesJson(("v1.0.0", false, false))));
         Assert.False((await Service(handler).CheckAsync()).IsUpdateAvailable);
-    }
-
-    [Fact]
-    public async Task Check_UnconfiguredSource_Throws()
-    {
-        var handler = new StubHandler(_ => Json("[]"));
-        await Assert.ThrowsAsync<UpdateException>(() => Service(handler, options: new UpdateOptions()).CheckAsync());
     }
 
     [Fact]
