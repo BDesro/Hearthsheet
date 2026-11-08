@@ -167,8 +167,6 @@ export async function idbLoad(dbName) {
     });
 }
 
-let failWrites = 0;
-
 export async function idbWrite(dbName, batch) {
     requireLock();
     // An open connection is used at once, so the transaction exists before this call returns: a page closing right
@@ -184,7 +182,6 @@ export async function idbWrite(dbName, batch) {
         tx.oncomplete = () => resolve();
         tx.onerror = e => reject(e.target.error ?? tx.error ?? new Error('IndexedDB request failed.'));
         tx.onabort = () => reject(tx.error ?? new Error('Write aborted.'));
-        if (failWrites > 0) { failWrites--; tx.abort(); return; }
         tx.commit?.(); // don't wait for the event loop: a closing page may not give it another turn
     });
 }
@@ -202,9 +199,6 @@ export async function idbDelete(dbName) {
         req.onblocked = () => reject(new Error(`Deleting ${dbName} is blocked by another tab.`));
     });
 }
-
-// Test-only: abort the next n idbWrite transactions. Exported for the browser console; app code never calls it.
-export function failNextWrites(n) { failWrites = n; }
 
 // Already granted: true without asking again (Firefox would prompt).
 export async function persist() {

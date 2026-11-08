@@ -13,12 +13,6 @@ namespace Hearthsheet.Core.Storage;
 /// <summary>One persisted record: Json null removes the key.</summary>
 public sealed record StoreRecord(string Key, string? Json);
 
-/// <summary>
-/// Receives each store change as one batch, in order. Must not block and must not throw: an implementation reports
-/// a failed write out of band (for example a <c>Failed</c> flag the UI shows), never by throwing into the store.
-/// </summary>
-public interface IStoreJournal { void Write(IReadOnlyList<StoreRecord> batch); }
-
 /// <summary>A stored character row, the same columns as the desktop's <c>characters</c> table.</summary>
 internal sealed record CharacterRow(
     Guid Id, string Name, string Description, int SchemaVersion, string Data,
@@ -31,7 +25,9 @@ internal sealed record CharacterRow(
 internal sealed partial class StoreJsonContext : JsonSerializerContext;
 
 /// <summary>
-/// Keeps every character in memory and hands each change to an <see cref="IStoreJournal"/> (IndexedDB in the browser).
+/// Keeps every character in memory and hands each change, as one batch in order, to a journal (IndexedDB in the
+/// browser). The journal must not block and must not throw: it reports a failed write out of band (for example a
+/// <c>Failed</c> flag the UI shows), never by throwing into the store.
 /// Each method mirrors one statement or transaction of the desktop's SqliteCharacterRepository and never awaits, so it
 /// is atomic. Keys: <c>c:{id}</c> rows, <c>d:{id}</c> pending deletes (their cloud revision), <c>m:{name}</c> sync meta.
 /// </summary>
@@ -43,12 +39,12 @@ public sealed class MemoryCharacterStore : ICharacterRepository, ISyncLocalStore
     private readonly Dictionary<Guid, CharacterRow> _rows = [];
     private readonly Dictionary<Guid, long> _pendingDeletes = [];
     private readonly Dictionary<string, string> _meta = [];
-    private readonly IStoreJournal _journal;
+    private readonly Action<IReadOnlyList<StoreRecord>> _journal;
     private readonly TimeProvider _time;
     private readonly ILogger _logger;
     private readonly Lock _gate = new();
 
-    public MemoryCharacterStore(IEnumerable<StoreRecord> saved, IStoreJournal journal, ILogger<MemoryCharacterStore> logger, TimeProvider? time = null)
+    public MemoryCharacterStore(IEnumerable<StoreRecord> saved, Action<IReadOnlyList<StoreRecord>> journal, ILogger<MemoryCharacterStore> logger, TimeProvider? time = null)
     {
         _journal = journal;
         _time = time ?? TimeProvider.System;
@@ -117,7 +113,7 @@ public sealed class MemoryCharacterStore : ICharacterRepository, ISyncLocalStore
 
     private void Write(params IReadOnlyList<StoreRecord> batch)
     {
-        if (batch.Count > 0) _journal.Write(batch);
+        if (batch.Count > 0) _journal(batch);
     }
 
     private DateTime Now() => _time.GetUtcNow().UtcDateTime;

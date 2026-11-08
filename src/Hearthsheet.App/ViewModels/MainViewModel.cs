@@ -88,7 +88,7 @@ public sealed class MainViewModel : Observable
     public void OnStarted()
     {
         Shell.Start();
-        if (_s.Settings.Updates.Enabled && _s.Settings.Updates.CheckOnStartup && _s.Settings.Updates.IsConfigured)
+        if (_s.Settings.Updates.Enabled)
             _ = Update.CheckInBackgroundAsync();
         _ = Sync.StartAsync();
     }

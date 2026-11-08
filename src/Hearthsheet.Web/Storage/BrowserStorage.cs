@@ -50,7 +50,7 @@ public sealed class BrowserStorage
         var dbName = AccountDb(userId);
         var records = await _js.InvokeAsync<StoreRecord[]>("idbLoad", dbName);
         var journal = new IndexedDbJournal(_js, dbName, _loggers.CreateLogger<IndexedDbJournal>());
-        var store = new MemoryCharacterStore(records, journal, _loggers.CreateLogger<MemoryCharacterStore>());
+        var store = new MemoryCharacterStore(records, journal.Write,_loggers.CreateLogger<MemoryCharacterStore>());
         AccountJournal = journal;
         return store;
     }

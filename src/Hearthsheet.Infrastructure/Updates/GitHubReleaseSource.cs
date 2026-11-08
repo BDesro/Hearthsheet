@@ -8,12 +8,6 @@ namespace Hearthsheet.Infrastructure.Updates;
 public sealed class UpdateOptions
 {
     public bool Enabled { get; set; } = true;
-    public bool CheckOnStartup { get; set; } = true;
-    /// <summary>GitHub owner/organization that publishes releases.</summary>
-    public string Owner { get; set; } = "";
-    public string Repository { get; set; } = "";
-
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(Owner) && !string.IsNullOrWhiteSpace(Repository);
 }
 
 public sealed record ReleaseAsset(long Id, string Name, long Size, string ApiUrl);
@@ -29,14 +23,14 @@ public sealed class GitHubReleaseSource
 {
     private const string ApiHost = "api.github.com";
     private const int MaxRedirects = 5;
+    /// <summary>The public repository whose releases are the update source.</summary>
+    public const string Repository = "BDesro/Hearthsheet";
 
     private readonly HttpClient _http;
-    private readonly UpdateOptions _options;
 
     /// <param name="handler">Must not auto-follow redirects; redirects are followed manually so every hop is checked against the trusted hosts.</param>
-    public GitHubReleaseSource(UpdateOptions options, HttpMessageHandler? handler = null, string userAgentVersion = "1.0")
+    public GitHubReleaseSource(HttpMessageHandler? handler = null, string userAgentVersion = "1.0")
     {
-        _options = options;
         _http = new HttpClient(handler ?? new SocketsHttpHandler { AllowAutoRedirect = false })
         {
             Timeout = TimeSpan.FromMinutes(10),
@@ -47,8 +41,7 @@ public sealed class GitHubReleaseSource
 
     public async Task<IReadOnlyList<ReleaseInfo>> GetReleasesAsync(CancellationToken ct)
     {
-        if (!_options.IsConfigured) throw new UpdateException("No update source is configured (Updates:Owner / Updates:Repository).");
-        var url = $"https://{ApiHost}/repos/{Uri.EscapeDataString(_options.Owner)}/{Uri.EscapeDataString(_options.Repository)}/releases?per_page=20";
+        var url = $"https://{ApiHost}/repos/{Repository}/releases?per_page=20";
 
         using var response = await SendAsync(url, "application/vnd.github+json", ct);
         if (response.StatusCode == HttpStatusCode.NotFound)

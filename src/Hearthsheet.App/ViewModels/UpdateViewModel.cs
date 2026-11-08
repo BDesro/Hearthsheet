@@ -35,7 +35,7 @@ public sealed class UpdateViewModel : Observable
     }
 
     public string CurrentVersion => _updates.CurrentVersion.ToString();
-    public string Source => _options.IsConfigured ? $"github.com/{_options.Owner}/{_options.Repository}" : "Not configured";
+    public string Source => $"github.com/{GitHubReleaseSource.Repository}";
 
     public ReleaseInfo? Available { get; private set { Set(ref field, value); Raise(nameof(IsUpdateAvailable)); } }
     public bool IsUpdateAvailable => Available is not null;
