@@ -2,8 +2,9 @@
 
 The web version is `src/Hearthsheet.Web`, a Blazor WebAssembly app that installs as a Progressive Web App (PWA). It is
 static files only: Cloudflare Pages hosts them on the free `hearthsheet.pages.dev` address, and the browser talks to
-Supabase directly. Until the launch gate it shows a "Preview" banner and uses the test Supabase project
-(`Hearthsheet-Test`), so don't share the link yet.
+Supabase directly. The published site uses the production Supabase project (`Hearthsheet-DB`), the same as the
+desktop. `dotnet run` uses the Development environment, so `wwwroot/appsettings.Development.json` points it at the test
+project (`Hearthsheet-Test`) and shows the "Preview" banner. A published build run locally (wrangler) uses production.
 
 ## How it is built and deployed
 
@@ -47,7 +48,7 @@ You need a free Cloudflare account (the Resend setup in `CLOUD_SYNC.md` already 
    - **Environment variables** → **Add environment variable**: name `CLOUDFLARE_ACCOUNT_ID`, value the ID from step 3.
    - If either was stored earlier under **Secrets and variables** → **Actions** at repository level, delete it there.
 5. **Check it.** The next release (a `dev` → `main` merge with a new version) runs **deploy-web**. A green run means
-   the site is live. Open `https://hearthsheet.pages.dev` and check that the Preview banner shows.
+   the site is live. Open `https://hearthsheet.pages.dev` and check that it loads and signs in.
 6. **If the token leaks or expires:** create a new one (step 2), replace the secret (step 4), then delete the old token
    under **API Tokens**.
 
@@ -94,17 +95,12 @@ Startup is CPU-bound once cached: starting the .NET runtime and instantiating ab
 downloads are `dotnet.native.wasm` (1.2 MB compressed) and `System.Private.CoreLib` (0.6 MB); the 0.5 MB ICU file goes
 with the next release (#57). Nothing further is worth cutting while the repeat load meets the target.
 
-## Switching from preview to production (at the launch gate)
+## Changing the Supabase project
 
-Do these together in one pull request, never one without the other. The strict Content-Security-Policy only lets the app
-talk to the Supabase URL in `_headers`, and `WebConfigTests` fails the build if the two disagree.
-
-1. In `src/Hearthsheet.Web/wwwroot/appsettings.json`, set `Sync:Url` and `Sync:AnonKey` to the production project's
-   values (the same as `src/Hearthsheet.App/appsettings.json`).
-2. In `src/Hearthsheet.Web/wwwroot/_headers`, change the URL after `connect-src 'self'` to the same production URL.
-3. Run `dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~WebConfigTests"`. It must pass.
-4. Then set `"Preview": false` in `appsettings.json`. The banner goes away.
-5. Bump the version and release as usual. Testing keeps using `Hearthsheet-Test` (see `CLOUD_SYNC.md`).
+`wwwroot/appsettings.json` (`Sync:Url`, `Sync:AnonKey`) and the URL after `connect-src 'self'` in `wwwroot/_headers`
+change together, never one without the other. The strict Content-Security-Policy only lets the app talk to the URL in
+`_headers`, and `WebConfigTests` fails the build if the two disagree. The site switched from the test project to
+production at the launch gate; `appsettings.Development.json` keeps local runs on the test project.
 
 ## Testing two versions locally
 
