@@ -230,7 +230,8 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 - Multiclass characters list one entry per class. Subclass features and extra pact slots (for example Profane Soul) are entered by hand; nothing grants them automatically. With two or more classes the sheet shows a read-only class summary and hit dice (spent and recovered in Play, edited per class in Details); with two or more casters it also shows per-caster DC lines.
 - No bundled spell, feature or item content (see NOTICE.md).
 - A very long spell or feature list grows its sheet page beyond one printed page and is clipped when printing.
-- The update checksum isn't a signature (see §9).- Releases are unsigned, so SmartScreen warns once on the downloaded installer (the README shows *More info → Run anyway*). Packages are self-contained, so about 70 MB.
+- The update checksum isn't a signature (see §9).
+- Releases are unsigned, so SmartScreen warns once on the downloaded installer (the README shows *More info → Run anyway*). Packages are self-contained, so about 70 MB.
 - No undo/redo; autosave plus daily backups are the safety net.
 - Persistence calls are synchronous on the UI thread. They are fine for single-character documents, and could move to async if the store ever becomes remote.
 - Cloud sync runs at startup, every few minutes and on close, not after each save; there are no live updates between devices.
