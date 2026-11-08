@@ -89,7 +89,7 @@ Create it with:
 }
 ```
 
-The test key is the one in `src/Hearthsheet.Web/wwwroot/appsettings.json`. Start A with
+The test key is the one in `src/Hearthsheet.Web/wwwroot/appsettings.Development.json`. Start A with
 `dotnet run --project src/Hearthsheet.App`, then change `hs-a` to `hs-b` and start B the same way. Delete the file when
 you're done, or the installed app keeps using the scratch folder and the test project.
 
