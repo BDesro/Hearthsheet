@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Hearthsheet.Tests;
 
 /// <summary>A browser-storage stand-in: keeps the records in a dictionary (optionally under a key prefix) and every batch.</summary>
-internal sealed class DictionaryJournal(Dictionary<string, string>? data = null, string prefix = "") : IStoreJournal
+internal sealed class DictionaryJournal(Dictionary<string, string>? data = null, string prefix = "")
 {
     public Dictionary<string, string> Data { get; } = data ?? [];
     public List<IReadOnlyList<StoreRecord>> Batches { get; } = [];
@@ -28,7 +28,7 @@ internal sealed class DictionaryJournal(Dictionary<string, string>? data = null,
         .Select(kv => new StoreRecord(kv.Key[prefix.Length..], kv.Value)).ToList();
 
     public MemoryCharacterStore Open(TimeProvider? time = null) =>
-        new(Saved(), this, NullLogger<MemoryCharacterStore>.Instance, time);
+        new(Saved(), Write, NullLogger<MemoryCharacterStore>.Instance, time);
 }
 
 /// <summary>Behaviour every local character store must share, desktop (SQLite) or browser (memory).</summary>

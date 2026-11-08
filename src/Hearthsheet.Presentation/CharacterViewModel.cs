@@ -128,7 +128,7 @@ public sealed class CharacterViewModel : Observable, IDisposable
         get
         {
             var pact = Character.Spellcasting.PactSlots;
-            return [.. Enumerable.Range(0, pact.Maximum).Select(i => new SlotPip(pact.Level, i, i >= pact.Maximum - pact.Expended))];
+            return [.. Enumerable.Range(0, pact.Maximum).Select(i => new SlotPip(pact.Level, i >=pact.Maximum - pact.Expended))];
         }
     }
 

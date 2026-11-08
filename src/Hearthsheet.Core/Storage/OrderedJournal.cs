@@ -7,7 +7,7 @@ namespace Hearthsheet.Core.Storage;
 /// everything after it waits: nothing is dropped or reordered. The failure shows as <see cref="Failed"/>
 /// ("Not saved on this device"), and the next <see cref="Write"/> or <see cref="RetryAsync"/> tries again from the head.
 /// </summary>
-public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogger logger) : IStoreJournal
+public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogger logger)
 {
     private readonly Queue<IReadOnlyList<StoreRecord>> _queue = new();
     private readonly Lock _gate = new();
@@ -21,7 +21,7 @@ public class OrderedJournal(Func<IReadOnlyList<StoreRecord>, Task> write, ILogge
     /// <summary>Raised when <see cref="Failed"/> changes. A throwing handler is logged and never stops the writes.</summary>
     public event EventHandler? StateChanged;
 
-    /// <summary>Enqueues and returns; never throws (see <see cref="IStoreJournal"/>).</summary>
+    /// <summary>Enqueues and returns; never throws (see <see cref="MemoryCharacterStore"/>).</summary>
     public void Write(IReadOnlyList<StoreRecord> batch)
     {
         lock (_gate)

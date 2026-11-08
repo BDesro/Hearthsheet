@@ -67,7 +67,7 @@ public partial class App
         {
             _log.LogWarning(ex, "Could not update the installed version shown in Windows Apps");
         }
-        _log.LogDebug("Update source: {Owner}/{Repo} (enabled {Enabled})", settings.Updates.Owner, settings.Updates.Repository, settings.Updates.Enabled);
+        _log.LogDebug("Updates enabled: {Enabled}", settings.Updates.Enabled);
         if (!string.IsNullOrWhiteSpace(settings.Sync.Url) && !settings.Sync.IsConfigured)
             _log.LogWarning("Cloud sync is disabled: Sync:Url must be an https URL and Sync:AnonKey must be set");
 
@@ -107,8 +107,8 @@ public partial class App
         var library = new CharacterLibrary(repository, new PortableCharacterFile(),
             AppSettings.AppVersion, factory.CreateLogger<CharacterLibrary>());
         var secrets = new WindowsCredentialStore();
-        var releaseSource = new GitHubReleaseSource(settings.Updates, userAgentVersion: AppSettings.AppVersion);
-        var updates = new UpdateService(releaseSource, settings.Updates, Version.Parse(AppSettings.AppVersion),
+        var releaseSource = new GitHubReleaseSource(userAgentVersion: AppSettings.AppVersion);
+        var updates = new UpdateService(releaseSource, Version.Parse(AppSettings.AppVersion),
             paths.Updates, factory.CreateLogger<UpdateService>());
 
         CloudServices? cloud = null;

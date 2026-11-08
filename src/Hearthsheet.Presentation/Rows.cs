@@ -92,10 +92,9 @@ public sealed class WeaponRow(Character c, Weapon weapon) : RowBase
     public string AdditionalDamage => CharacterRules.AdditionalDamage(c, weapon);
 }
 
-public sealed class SlotPip(int level, int index, bool expended)
+public sealed class SlotPip(int level, bool expended)
 {
     public int Level => level;
-    public int Index => index;
     public bool IsExpended => expended;
 }
 
@@ -115,7 +114,7 @@ public sealed class SpellLevelRow : RowBase
 
     public IReadOnlyList<SlotPip> Pips => Slot is null
         ? []
-        : [.. Enumerable.Range(0, Slot.Maximum).Select(i => new SlotPip(Level, i, i >= Slot.Maximum - Slot.Expended))];
+        : [.. Enumerable.Range(0, Slot.Maximum).Select(i => new SlotPip(Level, i >=Slot.Maximum - Slot.Expended))];
 }
 
 public sealed class ConditionToggle(Character c, Condition condition) : RowBase
