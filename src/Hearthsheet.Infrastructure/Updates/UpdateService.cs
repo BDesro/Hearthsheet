@@ -19,7 +19,7 @@ public sealed record StagedUpdate(Version Version, string Directory);
 /// Release contract: each release tag vX.Y.Z carries Hearthsheet-X.Y.Z-win-x64.zip and SHA256SUMS.txt.
 /// </summary>
 public sealed class UpdateService(
-    GitHubReleaseSource source, UpdateOptions options, Version currentVersion, string updatesRoot, ILogger<UpdateService> logger)
+    GitHubReleaseSource source, Version currentVersion, string updatesRoot, ILogger<UpdateService> logger)
 {
     public const string AppExecutable = "Hearthsheet.exe";
     public const string UpdaterExecutable = "Hearthsheet.Updater.exe";
@@ -31,7 +31,7 @@ public sealed class UpdateService(
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken ct = default)
     {
-        logger.LogInformation("Checking for updates ({Owner}/{Repo}, current {Version})", options.Owner, options.Repository, currentVersion);
+        logger.LogInformation("Checking for updates ({Repo}, current {Version})", GitHubReleaseSource.Repository, currentVersion);
         var releases = await source.GetReleasesAsync(ct);
         var latest = releases
             .Where(r => FindPackage(r) is not null)

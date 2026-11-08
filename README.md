@@ -91,8 +91,7 @@ Settings are layered. Later sources override earlier ones, so no binary has to c
 |---|---|---|
 | `Application:DataDirectory` | `%LOCALAPPDATA%\Hearthsheet` | Where the database, logs, backups and update staging live. |
 | `Logging:FileMinimumLevel` | `Information` | Minimum level written to the log file (set `Debug` for verbose logs). |
-| `Updates:Owner` / `Updates:Repository` | *(empty)* | The GitHub repository whose releases are the update source. Update checks are off until these are set. |
-| `Updates:CheckOnStartup` | `true` | Silent check at startup; a status-bar button appears when an update exists. |
+| `Updates:Enabled` | `true` | Checks the BDesro/Hearthsheet GitHub releases silently at startup; a status-bar button appears when an update exists. |
 | `Sync:Url` / `Sync:AnonKey` | *(the project's Supabase instance)* | The Supabase project URL and its public publishable key. When empty, the Account menu and sync are hidden. See [docs/CLOUD_SYNC.md](docs/CLOUD_SYNC.md) to use your own project. |
 
 ## Where things are stored
@@ -113,7 +112,7 @@ Ctrl+N new character · Ctrl+S save · Ctrl+P print sheet · Ctrl+1/2/3 Sheet/De
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): stack choice, layers, domain model, persistence, updates, security, testing, limitations and extension points
 - [docs/CLOUD_SYNC.md](docs/CLOUD_SYNC.md): setting up the optional cloud sync (Supabase, Resend), the manual test script and troubleshooting
-- [docs/WEB.md](docs/WEB.md): how the web version is built and deployed, the one-time Cloudflare setup and the switch from preview to production
+- [docs/WEB.md](docs/WEB.md): how the web version is built and deployed, and the one-time Cloudflare setup
 - [NOTICE.md](NOTICE.md): intellectual-property and licensing notes
 
 ## License

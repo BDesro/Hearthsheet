@@ -12,7 +12,10 @@ else
     }
     <UpdateBanner SaveAll="SaveForUpdateAsync" />
     <InstallHint />
-    <h1>Hearthsheet</h1>
+    @if (!ShowsShell)
+    {
+        <header class="app-bar"><h1>Hearthsheet</h1></header>
+    }
     <Modal />
     @if (_error is not null)
     {
@@ -56,4 +59,8 @@ else
 
 @code {
     [Parameter] public bool SelfCheckPassed { get; set; }
+
+    // The shell has its own top bar (with the account menu); every other screen gets the plain one.
+    private bool ShowsShell => _lock is { IsReadOnly: false } && _busy is null && _storage is not null && _auth is not null
+                               && _account is not null && _askSignOut is null;
 }

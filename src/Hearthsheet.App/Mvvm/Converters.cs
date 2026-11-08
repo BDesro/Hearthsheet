@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Data;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Core.Rules;
+using Hearthsheet.Presentation;
 
 namespace Hearthsheet.App.Mvvm;
 
@@ -76,25 +77,10 @@ public sealed class BindingProxy : Freezable
     protected override Freezable CreateInstanceCore() => new BindingProxy();
 }
 
+/// <summary>Shows an enum the way every UI does (<see cref="Lookups.Display"/>).</summary>
 public sealed class EnumDisplayConverter : IValueConverter
 {
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
-    {
-        null => "—",
-        Skill s => s.DisplayName(),
-        Ability a => a.ToString(),
-        RecoveryTiming.ShortRest => "Short or long rest",
-        RecoveryTiming.LongRest => "Long rest",
-        RecoveryTiming.Manual => "Manual",
-        EffectExpiry.ShortRest => "Ends on any rest",
-        EffectExpiry.LongRest => "Ends on long rest",
-        EffectExpiry.Manual => "Until removed",
-        ProficiencyLevel.Half => "Half proficiency",
-        _ => SplitWords(value.ToString() ?? ""),
-    };
-
-    private static string SplitWords(string s) =>
-        string.Concat(s.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => Lookups.Display(value);
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

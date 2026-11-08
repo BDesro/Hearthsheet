@@ -45,7 +45,7 @@ src/
     AppPaths.cs            Per-user data locations, daily database backup
   Hearthsheet.Updater         Tiny console exe that swaps the install folder after the app exits
   Hearthsheet.App             WPF: views, main/sync/update view models, dialogs, converters, composition root
-  Hearthsheet.Web             Blazor WebAssembly PWA (preview): index.html/_headers (strict CSP, no inline script/style), startup
+  Hearthsheet.Web             Blazor WebAssembly PWA: index.html/_headers (strict CSP, no inline script/style), startup
                               ChangeTrackingSelfCheck, MemoryLogProvider (Cloud) for Download diagnostics
 tests/Hearthsheet.Tests       xUnit: domain, rests, persistence, import/export, updates, installer
 ```
@@ -165,7 +165,7 @@ Import treats the file as untrusted:
 ```text
 dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z is newer than the latest release tag: tests, scripts/publish.ps1, gh release create with GITHUB_TOKEN, which creates the tag)
    → GitHub Release: Hearthsheet-Setup.exe (first install) + Hearthsheet-X.Y.Z-win-x64.zip (updates) + SHA256SUMS.txt (both)
-   → App: UpdateService.CheckAsync   (GET api.github.com/repos/{owner}/{repo}/releases; newest stable release with an X.Y.Z tag)
+   → App: UpdateService.CheckAsync   (GET api.github.com/repos/BDesro/Hearthsheet/releases; newest stable release with an X.Y.Z tag)
    → user confirms; character saved
    → DownloadAndStageAsync           (download via asset API; size caps; SHA-256 must match SHA256SUMS; zip extracted with zip-slip protection;
                                       staged Hearthsheet.dll ProductVersion must equal the release version)
@@ -215,7 +215,7 @@ dev → main pull request merged → Release workflow (reads <Version>; if X.Y.Z
 - **Rests:** short vs long, partial and manual recovery, 0-HP rule, effect expiry, replaceable steps, class defaults.
 - **Persistence:** CRUD, reopen, ordering, refusal of rows from a newer schema, a corrupt row isolated, backup restore, duplicate, library import and export.
 - **Import/export:** round-trip, nine kinds of invalid or corrupt file, newer schema, deep nesting, clamping and repair.
-- **Updates:** version parsing and ordering, release selection (drafts and pre-releases ignored), unconfigured source, HTTP errors, redirects to trusted hosts, checksum mismatch and missing entry, wrong-version package, corrupt zip, host allowlist, checksum parsing.
+- **Updates:** version parsing and ordering, release selection (drafts and pre-releases ignored), HTTP errors, redirects to trusted hosts, checksum mismatch and missing entry, wrong-version package, corrupt zip, host allowlist, checksum parsing.
 - **Installer:** replace, rollback on mid-copy failure, refusing an invalid staging folder, argument validation.
 - **Logging:** secret redaction.
 - **Cloud sync:** local bookkeeping and the db upgrade; push/pull, conflicts, deletes vs edits, deferred changes to the open character, stale machines, account relinking and unreadable rows against an in-memory cloud; Supabase auth (remember me, token rotation, revoked and offline sessions, password reset) and store requests against a stub HTTP handler.
@@ -230,7 +230,7 @@ The UI was verified by driving the running app through Windows UI Automation. Th
 - Multiclass characters list one entry per class. Subclass features and extra pact slots (for example Profane Soul) are entered by hand; nothing grants them automatically. With two or more classes the sheet shows a read-only class summary and hit dice (spent and recovered in Play, edited per class in Details); with two or more casters it also shows per-caster DC lines.
 - No bundled spell, feature or item content (see NOTICE.md).
 - A very long spell or feature list grows its sheet page beyond one printed page and is clipped when printing.
-- The update checksum isn't a signature (see §9). Update checks are off until `Updates:Owner/Repository` are configured.
+- The update checksum isn't a signature (see §9).
 - Releases are unsigned, so SmartScreen warns once on the downloaded installer (the README shows *More info → Run anyway*). Packages are self-contained, so about 70 MB.
 - No undo/redo; autosave plus daily backups are the safety net.
 - Persistence calls are synchronous on the UI thread. They are fine for single-character documents, and could move to async if the store ever becomes remote.

@@ -1,18 +1,27 @@
 using Hearthsheet.Core.Content;
 using Hearthsheet.Core.Domain;
 using Hearthsheet.Presentation;
-using Microsoft.Extensions.Logging;
 
 namespace Hearthsheet.Web;
 
-public enum DialogKind { Confirm, Info, Error, NewCharacter }
+public enum DialogKind { Confirm, Info, Error, NewCharacter, QuickAdd, ShortRest, LevelUp }
+
+/// <summary>What the Quick add dialog offers: a type list (or none) and whether a description is asked for.</summary>
+public sealed record QuickAddRequest(IReadOnlyList<object>? Kinds, object? DefaultKind, bool WithDescription);
+
+public sealed record ShortRestRequest(PlayViewModel Play, Character Character);
+
+/// <param name="ClassName">The class the dialog starts on; null starts blank.</param>
+public sealed record LevelUpRequest(Character Character, string? ClassName);
 
 /// <summary>One question waiting for an answer. <see cref="WebDialogs.Complete"/> answers it.</summary>
-public sealed class DialogRequest(DialogKind kind, string title, string message)
+public sealed class DialogRequest(DialogKind kind, string title, string message, object? data = null)
 {
     public DialogKind Kind { get; } = kind;
     public string Title { get; } = title;
     public string Message { get; } = message;
+    /// <summary>The dialog's input: a <see cref="QuickAddRequest"/>, <see cref="ShortRestRequest"/> or <see cref="LevelUpRequest"/>.</summary>
+    public object? Data { get; } = data;
     internal TaskCompletionSource<object?> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
@@ -20,7 +29,7 @@ public sealed class DialogRequest(DialogKind kind, string title, string message)
 /// The web's <see cref="IDialogs"/>. Requests queue up and the single <c>Modal</c> host shows one at a time, the next
 /// once the previous is answered, so a fire-and-forget error can never open over a pending question.
 /// </summary>
-public sealed class WebDialogs(ILogger<WebDialogs> log) : IDialogs
+public sealed class WebDialogs : IDialogs
 {
     private readonly Queue<DialogRequest> _queue = new();
 
@@ -39,9 +48,9 @@ public sealed class WebDialogs(ILogger<WebDialogs> log) : IDialogs
         request.Answer.SetResult(answer);
     }
 
-    private Task<object?> Ask(DialogKind kind, string title, string message)
+    private Task<object?> Ask(DialogKind kind, string title, string message, object? data = null)
     {
-        var request = new DialogRequest(kind, title, message);
+        var request = new DialogRequest(kind, title, message, data);
         _queue.Enqueue(request);
         if (_queue.Count == 1) Changed?.Invoke();
         return request.Answer.Task;
@@ -57,22 +66,12 @@ public sealed class WebDialogs(ILogger<WebDialogs> log) : IDialogs
     public async Task<NewCharacterOptions?> NewCharacterAsync() =>
         await Ask(DialogKind.NewCharacter, "New character", "") as NewCharacterOptions;
 
-    // Phase 3 adds these; nothing calls them before then.
-    public Task<(string ClassName, LevelUpOptions Options)?> LevelUpAsync(Character c, string? className = null)
-    {
-        log.LogWarning("Level up is not available in this preview");
-        return Task.FromResult<(string, LevelUpOptions)?>(null);
-    }
+    public async Task<(string ClassName, LevelUpOptions Options)?> LevelUpAsync(Character c, string? className = null) =>
+        await Ask(DialogKind.LevelUp, "Level up", "", new LevelUpRequest(c, className)) as (string, LevelUpOptions)?;
 
-    public Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription)
-    {
-        log.LogWarning("Quick add is not available in this preview");
-        return Task.FromResult<QuickAddResult?>(null);
-    }
+    public async Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription) =>
+        await Ask(DialogKind.QuickAdd, title, "", new QuickAddRequest(kinds, defaultKind, withDescription)) as QuickAddResult;
 
-    public Task<bool> ShortRestAsync(PlayViewModel play, Character character)
-    {
-        log.LogWarning("Short rest is not available in this preview");
-        return Task.FromResult(false);
-    }
+    public async Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
+        await Ask(DialogKind.ShortRest, "Short rest", "", new ShortRestRequest(play, character)) is true;
 }

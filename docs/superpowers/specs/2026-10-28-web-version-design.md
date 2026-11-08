@@ -176,7 +176,7 @@ avoids signing, installers and per-platform updaters entirely.
       - If anything is unsynced, the app first tries to sync. If that fails (offline), it says how many changes would be
         lost and offers "Stay signed in", "Export them, then sign out" or "Sign out anyway".
 8. **Durability.**
-   - On first sign-in the app calls `navigator.storage.persist()`.
+   - On first sign-in the app calls `navigator.storage.persist()`; installed, it asks again at each start until granted (Chromium may still refuse; it weighs installation, engagement and bookmarks).
    - Safari deletes storage for sites not used for 7 days unless they're installed to the Dock, so the app encourages
      installing.
    - The cloud copy is the real safety net. The app shows a visible "N changes not yet synced" indicator whenever
@@ -310,7 +310,7 @@ avoids signing, installers and per-platform updaters entirely.
     | Open logs | **Download diagnostics**: the in-memory log of this session, already redacted, as a text file |
     | Open data folder | Dropped; **Export all characters** covers getting your data out |
     | Database backups and their mention in error messages | Dropped; error messages point to Export all and the cloud copy instead |
-    | Intro video (`Assets/tigrisoft-intro-short.mp4`) | Kept, played once per browser and skippable; muted autoplay rules apply |
+    | Intro video (`Assets/tigrisoft-intro-short.mp4`) | Dropped (Beau, 2026-11-01): it would add 784 KB to first load |
     | Ctrl+P, zoom shortcuts | Ctrl/Cmd+P opens the print view of the sheet; zoom is the browser's own |
     | Update dialog and installer | Replaced by the service-worker "new version ready" prompt (decision 14) |
 

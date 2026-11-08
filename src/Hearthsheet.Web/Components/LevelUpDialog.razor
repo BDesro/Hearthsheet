@@ -1,0 +1,134 @@
+@* Same fields and checks as the desktop's Level up dialog. Shown inside Modal. *@
+@using Hearthsheet.Core.Content
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Presentation
+
+<form @onsubmit="Ok">
+    <h2 id="dialog-title">Level up</h2>
+    <p class="hint">Pick a class you already have to raise it, or a new one to multiclass. Saving throws stay as they are;
+        features and spells are added by hand afterwards.</p>
+
+    <label for="level-class">Class</label>
+    <input id="level-class" list="level-classes" autofocus @ref="_classInput" @bind="_class" @bind:event="oninput" />
+    <datalist id="level-classes">
+        @foreach (var name in ClassChoices)
+        {
+            <option value="@name" />
+        }
+    </datalist>
+
+    @* A class that isn't built in needs its facts entered. *@
+    @if (IsCustom)
+    {
+        <div class="field-row">
+            <div>
+                <label for="level-die">Hit die</label>
+                <select id="level-die" @bind="_die">
+                    @for (var i = 0; i < Lookups.HitDieSizes.Count; i++)
+                    {
+                        <option value="@i">d@(Lookups.HitDieSizes[i])</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label for="level-caster">Caster</label>
+                <select id="level-caster" @bind="_caster">
+                    @for (var i = 0; i < Lookups.CasterTypes.Length; i++)
+                    {
+                        <option value="@i">@Lookups.Display(Lookups.CasterTypes[i])</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label for="level-ability">Spellcasting ability</label>
+                <select id="level-ability" @bind="_ability">
+                    @for (var i = 0; i < Lookups.OptionalAbilities.Length; i++)
+                    {
+                        <option value="@i">@Lookups.OptionalAbilities[i].Label</option>
+                    }
+                </select>
+            </div>
+        </div>
+    }
+
+    <fieldset class="plain">
+        <legend>Hit points</legend>
+        <label class="inline"><input type="radio" name="level-hp" checked="@(!_rollHp)" @onchange="() => _rollHp = false" />
+            Take average (@CharacterFactory.AverageHitPointGain(Request.Character, Die))</label>
+        <div class="chips">
+            <label class="inline"><input type="radio" name="level-hp" checked="@_rollHp" @onchange="() => _rollHp = true" /> Roll</label>
+            <input class="amount" inputmode="numeric" aria-label="Hit point roll" disabled="@(!_rollHp)" @ref="_rollInput" @bind="_roll" @bind:event="oninput" />
+            <button type="button" disabled="@(!_rollHp)" @onclick="() => _roll = Random.Shared.Next(1, Die + 1).ToString()"><span aria-hidden="true">🎲 </span>Roll for me</button>
+        </div>
+    </fieldset>
+
+    @if (CharacterFactory.MulticlassWarnings(Request.Character, TypedName) is { Count: > 0 } warnings)
+    {
+        <p class="warning">Check: @string.Join(" ", warnings)</p>
+    }
+    @if (_error is not null)
+    {
+        <p role="alert" class="error">@_error</p>
+    }
+    <div class="dialog-buttons">
+        <button type="button" @onclick="() => Done.InvokeAsync(null)">Cancel</button>
+        <button type="submit" class="accent">OK</button>
+    </div>
+</form>
+
+@code {
+    private string _class = "", _roll = "";
+    private int _die = 1, _caster, _ability;
+    private bool _rollHp;
+    private string? _error;
+    private ElementReference _classInput, _rollInput;
+
+    [Parameter, EditorRequired] public LevelUpRequest Request { get; set; } = null!;
+
+    /// <summary>The class and options, or null when cancelled.</summary>
+    [Parameter] public EventCallback<(string ClassName, LevelUpOptions Options)?> Done { get; set; }
+
+    private IEnumerable<string> ClassChoices => Request.Character.Identity.Classes.Select(e => e.Name).Where(n => n.Trim().Length > 0)
+        .Concat(SrdCatalog.Classes.Select(c => c.Name)).Distinct(StringComparer.OrdinalIgnoreCase);
+
+    private string TypedName => _class.Trim();
+
+    private ClassLevel? Existing => Request.Character.Identity.Classes
+        .FirstOrDefault(e => string.Equals(e.Name.Trim(), TypedName, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsCustom => TypedName.Length > 0 && SrdCatalog.FindClass(TypedName) is null && Existing is null;
+
+    /// <summary>The class's hit die: an existing entry's, the catalog's, or the one picked for a custom class.</summary>
+    private int Die => Existing?.HitDie ?? SrdCatalog.FindClass(TypedName)?.HitDie ?? Lookups.HitDieSizes[_die];
+
+    protected override void OnInitialized() => _class = Request.ClassName ?? "";
+
+    private async Task Ok()
+    {
+        int? roll = null;
+        if (TypedName.Length == 0)
+        {
+            await Fail("Pick or type a class.", _classInput);
+            return;
+        }
+        if (_rollHp)
+        {
+            if (!int.TryParse(_roll, out var r) || r < 1 || r > Die)
+            {
+                await Fail($"Enter a roll from 1 to {Die}.", _rollInput);
+                return;
+            }
+            roll = r;
+        }
+        var options = IsCustom
+            ? new LevelUpOptions(roll, Die, Lookups.CasterTypes[_caster], Lookups.OptionalAbilities[_ability].Value as Ability?)
+            : new LevelUpOptions(roll);
+        await Done.InvokeAsync((TypedName, options));
+    }
+
+    private async Task Fail(string message, ElementReference focus)
+    {
+        _error = message;
+        await focus.FocusAsync();
+    }
+}

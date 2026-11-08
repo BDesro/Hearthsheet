@@ -50,7 +50,7 @@ public sealed class BrowserStorage
         var dbName = AccountDb(userId);
         var records = await _js.InvokeAsync<StoreRecord[]>("idbLoad", dbName);
         var journal = new IndexedDbJournal(_js, dbName, _loggers.CreateLogger<IndexedDbJournal>());
-        var store = new MemoryCharacterStore(records, journal, _loggers.CreateLogger<MemoryCharacterStore>());
+        var store = new MemoryCharacterStore(records, journal.Write,_loggers.CreateLogger<MemoryCharacterStore>());
         AccountJournal = journal;
         return store;
     }
@@ -83,12 +83,23 @@ public sealed class BrowserStorage
         AccountJournal?.Close();
     }
 
-    /// <summary>Asks the browser not to evict this site's storage (spec 8), once per browser: after the first sign-in.</summary>
-    public async Task PersistOnceAsync()
+    /// <summary>
+    /// Asks the browser not to evict this site's storage (spec 8). In a tab only once per browser, since Firefox
+    /// prompts; installed, at every start until it is granted, since Chromium decides silently from signals such as
+    /// installation and engagement and may grant it later. Never throws: a refusal only leaves eviction possible.
+    /// </summary>
+    public async Task RequestPersistenceAsync()
     {
-        if (_js.Invoke<string?>("local", PersistedKey) is not null) return;
-        await _js.InvokeAsync<bool>("persist");
-        _js.InvokeVoid("setLocal", PersistedKey, "1");
+        try
+        {
+            if (!_js.Invoke<bool>("isStandalone") && _js.Invoke<string?>("local", PersistedKey) is not null) return;
+            await _js.InvokeAsync<bool>("persist");
+            _js.InvokeVoid("setLocal", PersistedKey, "1");
+        }
+        catch (JSException ex)
+        {
+            _loggers.CreateLogger<BrowserStorage>().LogWarning(ex, "Asking the browser to keep storage failed");
+        }
     }
 
     public LastAccount? ReadLastAccount()

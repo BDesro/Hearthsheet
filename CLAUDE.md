@@ -12,7 +12,7 @@ dotnet test Hearthsheet.slnx
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests"          # one class
 dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~RestTests.LongRest"  # one test / name prefix
 dotnet run --project src/Hearthsheet.App
-dotnet run --project src/Hearthsheet.Web   # the Blazor WebAssembly PWA (preview; points at the Hearthsheet-Test Supabase project)
+dotnet run --project src/Hearthsheet.Web   # the Blazor WebAssembly PWA; dotnet run uses appsettings.Development.json (Hearthsheet-Test)
 pwsh ./scripts/publish.ps1     # needs Inno Setup 6; artifacts/Hearthsheet-Setup.exe + Hearthsheet-<version>-win-x64.zip + SHA256SUMS.txt
 ```
 

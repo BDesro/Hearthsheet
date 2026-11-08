@@ -85,6 +85,16 @@ let watcherId = 0;      // which Shell registered (each call gets a new JS wrapp
 window.addEventListener('online', () => { if (held) pageWatcher?.invokeMethodAsync('Online'); });
 document.addEventListener('visibilitychange', () => pageWatcher?.invokeMethodAsync('Visible', document.visibilityState === 'visible'));
 
+// Ctrl/Cmd+P prints the character sheet rather than whichever view is showing (spec 22); Ctrl/Cmd+S saves.
+// Ctrl+N and Ctrl+1–3 stay the browser's: Chrome doesn't let a page take them.
+document.addEventListener('keydown', e => {
+    if (!pageWatcher || !(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const method = { p: 'Print', s: 'Save' }[e.key.toLowerCase()];
+    if (!method) return;
+    e.preventDefault();
+    pageWatcher.invokeMethodAsync(method);
+});
+
 export function watchPage(dotnetRef, id) {
     pageWatcher = dotnetRef;
     watcherId = id;
@@ -157,8 +167,6 @@ export async function idbLoad(dbName) {
     });
 }
 
-let failWrites = 0;
-
 export async function idbWrite(dbName, batch) {
     requireLock();
     // An open connection is used at once, so the transaction exists before this call returns: a page closing right
@@ -174,7 +182,6 @@ export async function idbWrite(dbName, batch) {
         tx.oncomplete = () => resolve();
         tx.onerror = e => reject(e.target.error ?? tx.error ?? new Error('IndexedDB request failed.'));
         tx.onabort = () => reject(tx.error ?? new Error('Write aborted.'));
-        if (failWrites > 0) { failWrites--; tx.abort(); return; }
         tx.commit?.(); // don't wait for the event loop: a closing page may not give it another turn
     });
 }
@@ -193,11 +200,10 @@ export async function idbDelete(dbName) {
     });
 }
 
-// Test-only: abort the next n idbWrite transactions. Exported for the browser console; app code never calls it.
-export function failNextWrites(n) { failWrites = n; }
-
+// Already granted: true without asking again (Firefox would prompt).
 export async function persist() {
-    return navigator.storage?.persist ? await navigator.storage.persist() : false;
+    if (!navigator.storage?.persist) return false;
+    return await navigator.storage.persisted() || await navigator.storage.persist();
 }
 
 // ---- Synchronous Web Storage (called through IJSInProcessObjectReference) ----

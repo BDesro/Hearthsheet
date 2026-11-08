@@ -1,0 +1,674 @@
+@* The categorized editor, section for section the desktop's DetailsView. Fields bind straight to the Character (or to a
+   row view model where the desktop does); adding, removing and level-up go through CharacterViewModel commands. *@
+@using System.ComponentModel
+@using System.Windows.Input
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@implements IDisposable
+
+<section class="details" aria-labelledby="character-title">
+    <nav class="details-nav" aria-label="Details sections">
+        @foreach (var s in Sections)
+        {
+            <button type="button" aria-current="@(s == _section ? "true" : null)" @onclick="() => _section = s">@s</button>
+        }
+    </nav>
+
+    <div class="details-page">
+        <h3>@_section</h3>
+        @switch (_section)
+        {
+            case "Identity":
+                <p class="hint">Who the character is. Class defaults can pre-fill hit die, saves, HP and spell slots for built-in classes.</p>
+                <div class="fields">
+                    <label>Character name <input @bind="C.Identity.Name" /></label>
+                    <label>Player name <input @bind="C.Identity.PlayerName" /></label>
+                </div>
+                <div class="card-head">
+                    <h4>Classes · Total level @Vm.TotalLevel / 20</h4>
+                    <div class="toolbar">
+                        <button type="button" title="Take a first level in another class (multiclass)" disabled="@Off(Vm.AddClass)" @onclick="() => Vm.AddClass.Execute(null)">Add class…</button>
+                        <button type="button" disabled="@Off(Vm.LevelUp)" @onclick="() => Vm.LevelUp.Execute(null)">Level up…</button>
+                        <button type="button" @onclick="() => Vm.ApplyClassDefaults.Execute(null)">Apply class defaults…</button>
+                    </div>
+                </div>
+                @if (Vm.IsOverLevelCap)
+                {
+                    <p class="warning">Over 20: the last class will be lowered when the character is next loaded.</p>
+                }
+                <p class="hint">The first row is the starting class (it sets saving throw proficiencies and first-level hit points). Hit dice and caster types are per class.</p>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th><span class="visually-hidden">Starting class</span></th><th>Class</th><th>Subclass</th><th>Level</th><th>Hit die</th><th>Dice left</th><th>Caster</th><th>Ability</th><th><span class="visually-hidden">Order and remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var (e, i) in C.Identity.Classes.Select((e, i) => (e, i)))
+                            {
+                                var name = ClassName(e);
+                                <tr @key="e">
+                                    <td class="muted">@(i == 0 ? "Starting class" : "")</td>
+                                    <td><input list="class-names" aria-label="Class name" @bind="e.Name" /></td>
+                                    <td><input aria-label="@name subclass" @bind="e.Subclass" /></td>
+                                    <td><input type="number" class="num" min="1" max="20" aria-label="@name level" @bind="e.Level" /></td>
+                                    <td>
+                                        <select aria-label="@name hit die" @bind="e.HitDie">
+                                            @foreach (var size in Lookups.HitDieSizes)
+                                            {
+                                                <option value="@size">d@(size)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="num" min="0" aria-label="@name hit dice left" @bind="e.HitDiceRemaining" /></td>
+                                    <td>
+                                        <select aria-label="@name caster type" @bind="e.Caster">
+                                            @foreach (var caster in Lookups.CasterTypes)
+                                            {
+                                                <option value="@caster">@Lookups.Display(caster)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>@AbilitySelect(e.SpellcastingAbility, a => e.SpellcastingAbility = a, $"{name} spellcasting ability")</td>
+                                    <td class="nowrap">
+                                        <button type="button" class="icon" title="Move up" aria-label="Move @name up" disabled="@(i == 0)" @onclick="() => Vm.MoveClassUp.Execute(e)">▲</button>
+                                        <button type="button" class="icon" title="Move down" aria-label="Move @name down" disabled="@(i == C.Identity.Classes.Count - 1)" @onclick="() => Vm.MoveClassDown.Execute(e)">▼</button>
+                                        @if (C.Identity.Classes.Count > 1)
+                                        {
+                                            @Remove(e, name)
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="fields">
+                    <label>Species <input list="species" @bind="C.Identity.Species" /></label>
+                    <label>Background <input @bind="C.Identity.Background" /></label>
+                    <label>Alignment <input list="alignments" @bind="C.Identity.Alignment" /></label>
+                    <label>Experience points <input type="number" min="0" @bind="C.Identity.Experience" /></label>
+                    <label class="inline"><input type="checkbox" @bind="C.Identity.Inspiration" /> Has inspiration</label>
+                </div>
+                break;
+
+            case "Ability Scores & Saves":
+                <p class="hint">Enter base scores (1–30). Modifiers are calculated; items and effects can raise or set scores.</p>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Ability</th><th>Base score</th><th>Effective</th><th>Modifier</th><th>Save proficient</th><th>Save bonus</th><th>Save total</th></tr></thead>
+                        <tbody>
+                            @foreach (var a in Vm.Abilities)
+                            {
+                                <tr @key="a">
+                                    <th scope="row">@a.Name</th>
+                                    <td><input type="number" class="num" min="1" max="30" aria-label="@a.Name base score" @bind="a.Score" /></td>
+                                    <td>@a.EffectiveScore</td>
+                                    <td class="value">@Mod(a.Modifier)</td>
+                                    <td><input type="checkbox" aria-label="@a.Name save proficient" @bind="a.Save.Proficient" /></td>
+                                    <td><input type="number" class="num" aria-label="@a.Name save bonus" @bind="a.Save.Bonus" /></td>
+                                    <td class="value">@Mod(a.SaveModifier)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="muted">Proficiency bonus <strong>@Mod(Vm.ProficiencyBonus)</strong> (total level @Vm.TotalLevel)</p>
+                break;
+
+            case "Skills":
+                <p class="hint">Half proficiency covers features like Jack of All Trades. Expertise doubles the proficiency bonus.</p>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Skill</th><th>Ability</th><th>Proficiency</th><th>Extra bonus</th><th>Total</th></tr></thead>
+                        <tbody>
+                            @foreach (var s in Vm.Skills)
+                            {
+                                <tr @key="s">
+                                    <th scope="row">@s.Name</th>
+                                    <td class="muted">@s.AbilityAbbreviation</td>
+                                    <td>
+                                        <select aria-label="@s.Name proficiency" @bind="s.Model.Proficiency">
+                                            @foreach (var level in Lookups.ProficiencyLevels)
+                                            {
+                                                <option value="@level">@Lookups.Display(level)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="num" aria-label="@s.Name bonus" @bind="s.Model.Bonus" /></td>
+                                    <td class="value">@Mod(s.Modifier)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                break;
+
+            case "Combat":
+                <p class="hint">Effective values after items and effects: AC <strong>@Vm.ArmorClass</strong> · Initiative <strong>@Mod(Vm.Initiative)</strong>
+                    · Speed <strong>@Vm.Speed</strong> · Max HP <strong>@Vm.MaxHitPoints</strong> · Passive Perception <strong>@Vm.PassivePerception</strong></p>
+                <div class="fields">
+                    <label>Base armor class <input type="number" class="num" @bind="C.Combat.ArmorClass" /></label>
+                    <label>Initiative bonus <input type="number" class="num" @bind="C.Combat.InitiativeBonus" /></label>
+                    <label>Base speed (ft) <input type="number" class="num" @bind="C.Combat.Speed" /></label>
+                </div>
+                <div class="fields">
+                    <label>Base max HP <input type="number" class="num" @bind="C.Combat.MaxHp" /></label>
+                    <label>Current HP <input type="number" class="num" @bind="C.Combat.CurrentHp" /></label>
+                    <label>Temporary HP <input type="number" class="num" @bind="C.Combat.TemporaryHp" /></label>
+                </div>
+                <div class="fields">
+                    <label>Death save successes <input type="number" class="num" min="0" max="3" @bind="C.Combat.DeathSaveSuccesses" /></label>
+                    <label>Death save failures <input type="number" class="num" min="0" max="3" @bind="C.Combat.DeathSaveFailures" /></label>
+                    <label class="inline"><input type="checkbox" @bind="C.Combat.IsStable" /> Stable at 0 HP</label>
+                </div>
+                <div class="card-head">
+                    <h4>Attacks</h4>
+                    <button type="button" @onclick="() => Vm.AddAttack.Execute(null)">+ Add attack</button>
+                </div>
+                <p class="hint">Pick a weapon to fill in ability, proficiency, to-hit and damage from Equipment; its proficiency comes from the Proficiencies page.
+                    Dice override is only for a second attack with the same weapon that rolls different dice (e.g. two-handed versatile 1d10); leave it empty otherwise.</p>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Name</th><th>Weapon</th><th>Ability</th><th>Proficient</th><th>Extra bonus</th><th>To hit</th>
+                            <th title="Weapon attacks only: dice that replace the weapon's. Leave empty to use the weapon's dice.">Dice override</th><th>Damage / type</th><th>Notes</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var a in Vm.Attacks)
+                            {
+                                var name = Named(a.Name, "attack");
+                                <tr @key="a">
+                                    <td><input aria-label="Attack name" @bind="a.Name" /></td>
+                                    <td>
+                                        <select aria-label="@name weapon" value="@(a.Model.WeaponId?.ToString() ?? "")"
+                                                @onchange="e => a.Model.WeaponId = Guid.TryParse(e.Value as string, out var id) ? id : null">
+                                            <option value="">None</option>
+                                            @foreach (var w in C.Weapons)
+                                            {
+                                                <option value="@w.Id">@w.Name</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>@AbilitySelect(a.Ability, v => a.Ability = v, $"{name} ability")</td>
+                                    <td>
+                                        <input type="checkbox" aria-label="@name proficient" disabled="@a.IsWeaponAttack"
+                                               title="@(a.IsWeaponAttack ? "From your weapon proficiencies" : null)" @bind="a.Proficient" />
+                                    </td>
+                                    <td><input type="number" class="num" aria-label="@name extra bonus" @bind="a.Model.Bonus" /></td>
+                                    <td class="value">@Mod(a.AttackBonus)</td>
+                                    @if (a.IsWeaponAttack)
+                                    {
+                                        <td><input class="dice" aria-label="@name dice override" @bind="a.Model.Dice" /></td>
+                                        <td>@a.DamageRoll</td>
+                                    }
+                                    else
+                                    {
+                                        <td class="muted">—</td>
+                                        <td><input aria-label="@name damage and type" @bind="a.DamageRoll" /></td>
+                                    }
+                                    <td><input aria-label="@name notes" @bind="a.Model.Notes" /></td>
+                                    <td>@Remove(a, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                break;
+
+            case "Proficiencies":
+                <p class="hint">Armor, weapon and tool proficiencies and known languages. Skill and saving throw proficiencies are set on their own pages.
+                    A weapon proficiency covers every weapon whose name or type matches it; pick types from its list, e.g. Simple, Martial or Longsword.
+                    Custom types added in any weapon or proficiency list appear in all of them.</p>
+                <div class="toolbar">
+                    @foreach (var category in Lookups.ProficiencyCategories)
+                    {
+                        <button type="button" @onclick="() => Vm.AddProficiency.Execute(category)">+ @Lookups.Display(category)</button>
+                    }
+                </div>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Category</th><th>Name</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var p in C.Proficiencies)
+                            {
+                                <tr @key="p">
+                                    <td>
+                                        <select aria-label="@Named(p.Name, "Proficiency") category" @bind="p.Category">
+                                            @foreach (var category in Lookups.ProficiencyCategories)
+                                            {
+                                                <option value="@category">@Lookups.Display(category)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="wide-cell">
+                                        @* Weapon entries suggest the standard weapon types, so they match the weapons' types exactly. *@
+                                        <TokenPicker Label="Proficiency name" @bind-Value="p.Name"
+                                                     Options="@(p.Category == ProficiencyCategory.Weapon ? Vm.WeaponTypeOptions : null)" />
+                                    </td>
+                                    <td>@Remove(p, Named(p.Name, "proficiency"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                break;
+
+            case "Features & Traits":
+                <p class="hint">Class, subclass, species and background features, feats, traits and anything custom. Open a feature's details to edit its
+                    description and its permanent effects (modifiers that always apply).</p>
+                <div class="toolbar"><button type="button" @onclick="() => Vm.AddFeature.Execute(null)">+ Add feature</button></div>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Name</th><th>Source</th><th><span class="visually-hidden">Details and remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var f in C.Features)
+                            {
+                                var name = Named(f.Name, "feature");
+                                <tr @key="f" class="@Selected(f == _feature)">
+                                    <td class="wide-cell"><input aria-label="Feature name" @bind="f.Name" /></td>
+                                    <td>
+                                        <select aria-label="@name source" @bind="f.Source">
+                                            @foreach (var source in Lookups.FeatureSources)
+                                            {
+                                                <option value="@source">@Lookups.Display(source)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="nowrap">@DetailsButton(name, f == _feature, () => _feature = Toggle(_feature, f))@Remove(f, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (_feature is { } feature && C.Features.Contains(feature))
+                {
+                    <div class="detail-panel">
+                        <h4>@Named(feature.Name, "Feature")</h4>
+                        <label>Description <textarea rows="6" @bind="feature.Description"></textarea></label>
+                        <ModifierEditor Vm="Vm" Owner="feature" Modifiers="feature.Modifiers" />
+                    </div>
+                }
+                break;
+
+            case "Equipment":
+                <p class="hint">Carrying <strong>@Vm.CarriedWeightText</strong>. Equipped items (attuned, if they require it) apply their modifiers.</p>
+                <div class="fields">
+                    <label>Copper <input type="number" class="num" min="0" @bind="C.Currency.Copper" /></label>
+                    <label>Silver <input type="number" class="num" min="0" @bind="C.Currency.Silver" /></label>
+                    <label>Electrum <input type="number" class="num" min="0" @bind="C.Currency.Electrum" /></label>
+                    <label>Gold <input type="number" class="num" min="0" @bind="C.Currency.Gold" /></label>
+                    <label>Platinum <input type="number" class="num" min="0" @bind="C.Currency.Platinum" /></label>
+                </div>
+                <div class="card-head">
+                    <h4>Items</h4>
+                    <button type="button" @onclick="() => Vm.AddItem.Execute(null)">+ Add item</button>
+                </div>
+                @ItemTable(C.Items, true)
+
+                <div class="card-head">
+                    <h4>Weapons</h4>
+                    <button type="button" @onclick="() => Vm.AddWeapon.Execute(null)">+ Add weapon</button>
+                </div>
+                <p class="hint">Each weapon adds an attack on the Combat page. Prof. comes from your weapon proficiencies (Proficiencies page). To hit, Bonus dmg and
+                    Additional damage are worked out from your ability, proficiency, modifiers and the weapon's effects; add a +1 enchantment or extra fire
+                    damage as an effect. Types (e.g. martial, melee) can be targeted by modifiers such as attack.melee or damage.ranged.</p>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Name</th><th>Types</th><th>Ability</th><th>Prof.</th><th>To hit</th><th>Damage</th><th>Type</th><th>Bonus dmg</th>
+                            <th>Additional damage</th><th>Special effects</th><th><span class="visually-hidden">Effects and remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var w in Vm.Weapons)
+                            {
+                                var name = Named(w.Model.Name, "weapon");
+                                <tr @key="w" class="@Selected(w.Model == _weapon)">
+                                    <td><input aria-label="Weapon name" @bind="w.Model.Name" /></td>
+                                    <td class="wide-cell"><TokenPicker Label="@($"{name} types")" @bind-Value="w.Model.Types" Options="Vm.WeaponTypeOptions" /></td>
+                                    <td>@AbilitySelect(w.Model.Ability, v => w.Model.Ability = v, $"{name} ability")</td>
+                                    <td>@(w.Proficient ? "Yes" : "No")</td>
+                                    <td class="value">@Mod(w.AttackBonus)</td>
+                                    <td><input class="dice" aria-label="@name damage dice" @bind="w.Model.Damage" /></td>
+                                    <td><input class="dice" aria-label="@name damage type" @bind="w.Model.DamageType" /></td>
+                                    <td class="value">@Mod(w.DamageBonus)</td>
+                                    <td>@w.AdditionalDamage</td>
+                                    <td><input aria-label="@name special effects" @bind="w.Model.Notes" /></td>
+                                    <td class="nowrap">@DetailsButton(name, w.Model == _weapon, () => _weapon = Toggle(_weapon, w.Model), "effects")@Remove(w, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (_weapon is { } weapon && C.Weapons.Contains(weapon))
+                {
+                    <div class="detail-panel">
+                        <div class="card-head">
+                            <h4>Effects on @Named(weapon.Name, "weapon")</h4>
+                            <button type="button" @onclick="() => Vm.AddWeaponEffect.Execute(weapon)">+ Add weapon effect</button>
+                        </div>
+                        <p class="hint">Damage with no type (or the weapon's type) joins its main damage.</p>
+                        @if (weapon.Effects.Count > 0)
+                        {
+                            <table class="grid">
+                                <thead><tr><th>Effect</th><th>To hit</th><th>Damage</th><th>Damage type</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+                                <tbody>
+                                    @foreach (var fx in weapon.Effects)
+                                    {
+                                        var name = Named(fx.Name, "effect");
+                                        <tr @key="fx">
+                                            <td><input aria-label="Effect name" @bind="fx.Name" /></td>
+                                            <td><input type="number" class="num" aria-label="@name to hit" @bind="fx.ToHit" /></td>
+                                            <td><input class="dice" aria-label="@name damage" @bind="fx.Damage" /></td>
+                                            <td><input class="dice" aria-label="@name damage type" @bind="fx.DamageType" /></td>
+                                            <td>@Remove(fx, name)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                }
+
+                <div class="card-head">
+                    <h4>Wondrous items</h4>
+                    <button type="button" @onclick="() => Vm.AddWondrousItem.Execute(null)">+ Add wondrous item</button>
+                </div>
+                <p class="hint">Open an item's details to set what it changes (e.g. Cloak of Protection: ac +1, save.all +1). Its modifiers apply only while it is
+                    equipped (and attuned, if it needs attunement).</p>
+                @ItemTable(C.WondrousItems, false)
+                break;
+
+            case "Spells":
+                <p class="hint">Spell save DC <strong>@Vm.SpellSaveDc</strong> · Spell attack <strong>@Vm.SpellAttackBonus</strong>. Spell text is yours to enter — no rulebook text is bundled.</p>
+                <div class="fields">
+                    <label>Spellcasting class <input @bind="C.Spellcasting.SpellcastingClass" /></label>
+                    <label>Concentrating on <input @bind="C.Spellcasting.Concentration" /></label>
+                </div>
+                <h4>Spell slots</h4>
+                <div class="slot-cards">
+                    @foreach (var slot in C.Spellcasting.Slots)
+                    {
+                        <fieldset class="card" @key="slot">
+                            <legend>Level @slot.Level</legend>
+                            <label>Max <input type="number" class="num" min="0" max="20" aria-label="Level @slot.Level slots maximum" @bind="slot.Maximum" /></label>
+                            <label>Used <input type="number" class="num" min="0" max="20" aria-label="Level @slot.Level slots used" @bind="slot.Expended" /></label>
+                        </fieldset>
+                    }
+                    <fieldset class="card">
+                        <legend title="Warlock-style slots that come back on a short rest. Enter them by hand for features like Profane Soul.">Pact Magic</legend>
+                        <label>Level <input type="number" class="num" min="1" max="5" aria-label="Pact slot level" @bind="C.Spellcasting.PactSlots.Level" /></label>
+                        <label>Max <input type="number" class="num" min="0" max="20" aria-label="Pact slots maximum" @bind="C.Spellcasting.PactSlots.Maximum" /></label>
+                        <label>Used <input type="number" class="num" min="0" max="20" aria-label="Pact slots used" @bind="C.Spellcasting.PactSlots.Expended" /></label>
+                    </fieldset>
+                </div>
+                <div class="card-head">
+                    <h4>Spells</h4>
+                    <button type="button" title="Adds at the level of the spell whose details are open" @onclick="() => Vm.AddSpell.Execute(_spell?.Level)">+ Add spell</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Prep.</th><th>Lvl</th><th>Name</th>
+                            @if (Vm.IsMultiCaster)
+                            {
+                                <th>Class</th>
+                            }
+                            <th>School</th><th>Casting time</th><th>Range</th><th>Components</th><th>Duration</th><th>Conc.</th><th>Ritual</th>
+                            <th><span class="visually-hidden">Details and remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var s in C.Spellcasting.Spells)
+                            {
+                                var name = Named(s.Name, "spell");
+                                <tr @key="s" class="@Selected(s == _spell)">
+                                    <td><input type="checkbox" aria-label="@name prepared" @bind="s.Prepared" /></td>
+                                    <td>
+                                        <select aria-label="@name level" @bind="s.Level">
+                                            @foreach (var level in Lookups.SpellLevels)
+                                            {
+                                                <option value="@level">@level</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input aria-label="Spell name" @bind="s.Name" /></td>
+                                    @if (Vm.IsMultiCaster)
+                                    {
+                                        <td><input list="caster-names" aria-label="@name class" @bind="s.Class" /></td>
+                                    }
+                                    <td><input list="spell-schools" aria-label="@name school" @bind="s.School" /></td>
+                                    <td><input class="dice" aria-label="@name casting time" @bind="s.CastingTime" /></td>
+                                    <td><input class="dice" aria-label="@name range" @bind="s.Range" /></td>
+                                    <td><input class="dice" aria-label="@name components" @bind="s.Components" /></td>
+                                    <td><input class="dice" aria-label="@name duration" @bind="s.Duration" /></td>
+                                    <td><input type="checkbox" aria-label="@name concentration" @bind="s.Concentration" /></td>
+                                    <td><input type="checkbox" aria-label="@name ritual" @bind="s.Ritual" /></td>
+                                    <td class="nowrap">@DetailsButton(name, s == _spell, () => _spell = Toggle(_spell, s))@Remove(s, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (_spell is { } spell && C.Spellcasting.Spells.Contains(spell))
+                {
+                    <div class="detail-panel">
+                        <h4>@Named(spell.Name, "Spell")</h4>
+                        <label>Description <textarea rows="6" @bind="spell.Description"></textarea></label>
+                        <label>At higher levels <textarea rows="3" @bind="spell.HigherLevels"></textarea></label>
+                    </div>
+                }
+                break;
+
+            case "Resources":
+                <p class="hint">Limited-use abilities and counters. 'Recovers' decides what rests refill; leave 'Amount' empty to refill completely.
+                    Manual resources are flagged after rests for you to adjust.</p>
+                <div class="toolbar"><button type="button" @onclick="() => Vm.AddResource.Execute(null)">+ Add resource</button></div>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Name</th><th>Current</th><th>Maximum</th><th>Recovers</th><th>Amount</th><th>Notes</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var r in C.Resources)
+                            {
+                                var name = Named(r.Name, "resource");
+                                <tr @key="r">
+                                    <td><input aria-label="Resource name" @bind="r.Name" /></td>
+                                    <td><input type="number" class="num" min="0" aria-label="@name current" @bind="r.Current" /></td>
+                                    <td><input type="number" class="num" min="0" aria-label="@name maximum" @bind="r.Maximum" /></td>
+                                    <td>
+                                        <select aria-label="@name recovers" @bind="r.Recovery">
+                                            @foreach (var timing in Lookups.RecoveryTimings)
+                                            {
+                                                <option value="@timing">@Lookups.Display(timing)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="num" min="0" aria-label="@name recovery amount" @bind="r.RecoveryAmount" /></td>
+                                    <td><input aria-label="@name notes" @bind="r.Notes" /></td>
+                                    <td>@Remove(r, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                break;
+
+            case "Conditions & Effects":
+                <p class="hint">Conditions are tracked for reference. Effects (Bless, potions, curses…) can carry modifiers and expire automatically on rests.</p>
+                <div class="chips">
+                    @foreach (var t in Vm.Conditions)
+                    {
+                        <button type="button" class="pill" aria-pressed="@Pressed(t.IsActive)" @onclick="() => t.IsActive = !t.IsActive">
+                            @if (t.IsActive)
+                            {
+                                <span aria-hidden="true">✓ </span>
+                            }
+                            @t.Name
+                        </button>
+                    }
+                </div>
+                <div class="fields">
+                    <label>Exhaustion level (0–6) <input type="number" class="num" min="0" max="6" @bind="C.ExhaustionLevel" /></label>
+                </div>
+                <div class="card-head">
+                    <h4>Active effects</h4>
+                    <button type="button" @onclick="() => Vm.AddEffect.Execute(null)">+ Add effect</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="grid">
+                        <thead><tr><th>Name</th><th>Duration</th><th>Expires</th><th><span class="visually-hidden">Details and remove</span></th></tr></thead>
+                        <tbody>
+                            @foreach (var e in C.Effects)
+                            {
+                                var name = Named(e.Name, "effect");
+                                <tr @key="e" class="@Selected(e == _effect)">
+                                    <td class="wide-cell"><input aria-label="Effect name" @bind="e.Name" /></td>
+                                    <td><input class="dice" aria-label="@name duration" @bind="e.Duration" /></td>
+                                    <td>
+                                        <select aria-label="@name expires" @bind="e.Expiry">
+                                            @foreach (var expiry in Lookups.EffectExpiries)
+                                            {
+                                                <option value="@expiry">@Lookups.Display(expiry)</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td class="nowrap">@DetailsButton(name, e == _effect, () => _effect = Toggle(_effect, e))@Remove(e, name)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                @if (_effect is { } effect && C.Effects.Contains(effect))
+                {
+                    <div class="detail-panel">
+                        <h4>@Named(effect.Name, "Effect")</h4>
+                        <label>Description <textarea rows="4" @bind="effect.Description"></textarea></label>
+                        <ModifierEditor Vm="Vm" Owner="effect" Modifiers="effect.Modifiers" />
+                    </div>
+                }
+                break;
+
+            case "Biography & Notes":
+                <div class="fields">
+                    <label>Age <input @bind="C.Biography.Age" /></label>
+                    <label>Height <input @bind="C.Biography.Height" /></label>
+                    <label>Weight <input @bind="C.Biography.Weight" /></label>
+                    <label>Eyes <input @bind="C.Biography.Eyes" /></label>
+                    <label>Skin <input @bind="C.Biography.Skin" /></label>
+                    <label>Hair <input @bind="C.Biography.Hair" /></label>
+                </div>
+                <div class="notes">
+                    <label>Personality traits <textarea rows="3" @bind="C.Biography.PersonalityTraits"></textarea></label>
+                    <label>Ideals <textarea rows="3" @bind="C.Biography.Ideals"></textarea></label>
+                    <label>Bonds <textarea rows="3" @bind="C.Biography.Bonds"></textarea></label>
+                    <label>Flaws <textarea rows="3" @bind="C.Biography.Flaws"></textarea></label>
+                    <label>Appearance <textarea rows="3" @bind="C.Biography.Appearance"></textarea></label>
+                    <label>Backstory <textarea rows="7" @bind="C.Biography.Backstory"></textarea></label>
+                    <label>Allies &amp; organizations <textarea rows="3" @bind="C.Biography.Allies"></textarea></label>
+                    <label>Treasure <textarea rows="3" @bind="C.Biography.Treasure"></textarea></label>
+                    <label>Notes <textarea rows="7" @bind="C.Biography.Notes"></textarea></label>
+                </div>
+                break;
+        }
+    </div>
+
+    <datalist id="class-names">@Options(Lookups.ClassNames)</datalist>
+    <datalist id="species">@Options(Lookups.Species)</datalist>
+    <datalist id="alignments">@Options(Lookups.Alignments)</datalist>
+    <datalist id="stat-targets">@Options(Lookups.StatTargetKeys)</datalist>
+    <datalist id="spell-schools">@Options(Lookups.SpellSchools)</datalist>
+    <datalist id="caster-names">@Options(Vm.CasterNames)</datalist>
+</section>
+
+@code {
+    private static readonly string[] Sections =
+        ["Identity", "Ability Scores & Saves", "Skills", "Combat", "Proficiencies", "Features & Traits", "Equipment", "Spells",
+         "Resources", "Conditions & Effects", "Biography & Notes"];
+
+    private string _section = Sections[0];
+
+    // The entry whose description and modifiers are open, one per list as the desktop's grid selections.
+    private Feature? _feature;
+    private Item? _item;
+    private Weapon? _weapon;
+    private Spell? _spell;
+    private Effect? _effect;
+
+    [Parameter, EditorRequired] public CharacterViewModel Vm { get; set; } = null!;
+
+    private Character C => Vm.Character;
+
+    private RenderFragment ItemTable(IList<Item> items, bool withQuantity) =>
+        @<div>
+            <div class="table-scroll">
+                <table class="grid">
+                    <thead><tr><th>Name</th>
+                        @if (withQuantity)
+                        {
+                            <th>Qty</th>
+                        }
+                        <th>Weight (lb)</th><th>Equipped</th><th>Needs attunement</th><th>Attuned</th><th><span class="visually-hidden">Details and remove</span></th></tr></thead>
+                    <tbody>
+                        @foreach (var item in items)
+                        {
+                            var name = Named(item.Name, "item");
+                            <tr @key="item" class="@Selected(item == _item)">
+                                <td class="wide-cell"><input aria-label="Item name" @bind="item.Name" /></td>
+                                @if (withQuantity)
+                                {
+                                    <td><input type="number" class="num" min="0" aria-label="@name quantity" @bind="item.Quantity" /></td>
+                                }
+                                <td><input type="number" class="num" min="0" step="any" aria-label="@name weight" @bind="item.Weight" /></td>
+                                <td><input type="checkbox" aria-label="@name equipped" @bind="item.Equipped" /></td>
+                                <td><input type="checkbox" aria-label="@name needs attunement" @bind="item.RequiresAttunement" /></td>
+                                <td><input type="checkbox" aria-label="@name attuned" @bind="item.Attuned" /></td>
+                                <td class="nowrap">@DetailsButton(name, item == _item, () => _item = Toggle(_item, item))@Remove(item, name)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (_item is { } open && items.Contains(open))
+            {
+                <div class="detail-panel">
+                    <h4>@Named(open.Name, "Item")</h4>
+                    <label>Description / notes <textarea rows="4" @bind="open.Description"></textarea></label>
+                    <ModifierEditor Vm="Vm" Owner="open" Modifiers="open.Modifiers" />
+                </div>
+            }
+        </div>;
+
+    /// <summary>A select for a nullable ability ("None" or one of the six), bound by name.</summary>
+    private RenderFragment AbilitySelect(Ability? value, Action<Ability?> set, string label) =>
+        @<select aria-label="@label" value="@(value?.ToString() ?? "")"
+                 @onchange="e => set(Enum.TryParse<Ability>(e.Value as string, out var a) ? a : null)">
+            @foreach (var option in Lookups.OptionalAbilities)
+            {
+                <option value="@(option.Value?.ToString() ?? "")">@option.Label</option>
+            }
+        </select>;
+
+    private RenderFragment Remove(object entry, string name) =>
+        @<button type="button" class="icon" title="Remove" aria-label="Remove @name" disabled="@Off(Vm.RemoveEntry, entry)"
+                 @onclick="() => Vm.RemoveEntry.Execute(entry)">✕</button>;
+
+    private RenderFragment DetailsButton(string name, bool open, Action toggle, string what = "details") =>
+        @<button type="button" aria-expanded="@Pressed(open)" aria-label="@($"{name} {what}")" @onclick="toggle">@(what == "details" ? "Details" : "Effects")</button>;
+
+    private static RenderFragment Options(IEnumerable<string> values) =>
+        @<text>@foreach (var v in values)
+        {
+            <option value="@v" />
+        }</text>;
+
+    private static T? Toggle<T>(T? current, T value) where T : class => ReferenceEquals(current, value) ? null : value;
+
+    private static string Named(string name, string fallback) => string.IsNullOrWhiteSpace(name) ? fallback : name;
+
+    private static string ClassName(ClassLevel e) => Named(e.Name, "Class");
+
+    private static string Mod(int value) => CharacterRules.FormatModifier(value);
+
+    private static string? Selected(bool on) => on ? "selected" : null;
+
+    private static bool Off(ICommand command, object? parameter = null) => !command.CanExecute(parameter);
+
+    private static string Pressed(bool on) => on ? "true" : "false";
+
+    protected override void OnInitialized() => Vm.PropertyChanged += OnChanged;
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Vm.PropertyChanged -= OnChanged;
+}

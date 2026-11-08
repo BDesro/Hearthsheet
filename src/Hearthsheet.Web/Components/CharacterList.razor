@@ -9,20 +9,20 @@
 @inject WebDialogs Dialogs
 @inject ILogger<CharacterList> Log
 
-<div class="toolbar" role="toolbar" aria-label="Character commands">
-    <button type="button" @onclick="Shell.CreateAsync">New</button>
-    <label class="file-button">
-        Import
-        <InputFile accept="@PortableCharacterFile.FileExtension" OnChange="ImportAsync" />
-    </label>
-    <button type="button" @onclick="Shell.Duplicate" disabled="@(Shell.Current is null)">Duplicate</button>
-    <button type="button" @onclick="ExportAsync" disabled="@(Shell.Current is null)">Export</button>
-    <button type="button" @onclick="Shell.DeleteSelectedAsync" disabled="@(Shell.SelectedSummary is null)">Delete</button>
+<div class="sidebar-head">
+    <h2>Characters</h2>
+    <div class="sidebar-buttons">
+        <button type="button" class="accent" @onclick="Shell.CreateAsync">+ New</button>
+        <label class="file-button">
+            Import…
+            <InputFile accept="@PortableCharacterFile.FileExtension" OnChange="ImportAsync" />
+        </label>
+    </div>
 </div>
 
 @if (Shell.Characters.Count == 0)
 {
-    <p>No characters yet.</p>
+    <p class="hint">No characters yet. Create one or import a .dndchar file.</p>
 }
 <ul class="character-list">
     @foreach (var summary in Shell.Characters)
@@ -37,6 +37,12 @@
         </li>
     }
 </ul>
+
+<div class="sidebar-buttons three">
+    <button type="button" @onclick="Shell.Duplicate" disabled="@(Shell.Current is null)">Duplicate</button>
+    <button type="button" @onclick="ExportAsync" disabled="@(Shell.Current is null)">Export…</button>
+    <button type="button" class="danger" @onclick="Shell.DeleteSelectedAsync" disabled="@(Shell.SelectedSummary is null)">Delete</button>
+</div>
 
 @code {
     [Parameter, EditorRequired] public ShellViewModel Shell { get; set; } = null!;

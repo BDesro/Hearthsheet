@@ -13,31 +13,64 @@
 @inject IJSRuntime JS
 
 <div class="shell">
-    <details class="account-menu">
-        <summary>@(Account.Email ?? "Account")</summary>
-        <div class="menu">
-            <button type="button" @onclick="ExportAllAsync">Export all characters</button>
-            <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
-            <button type="button" @onclick="SignOut">Sign out</button>
-        </div>
-    </details>
+    <header class="app-bar">
+        <h1>Hearthsheet</h1>
+        <details class="account-menu">
+            <summary>@(Account.Email ?? "Account")</summary>
+            <div class="menu">
+                <button type="button" disabled="@_sync.IsBusy" @onclick="_sync.RunAsync">Sync now</button>
+                <button type="button" @onclick="ExportAllAsync">Export all characters</button>
+                <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
+                <button type="button" @onclick="SignOut">Sign out</button>
+            </div>
+        </details>
+    </header>
     <nav class="sidebar" aria-label="Characters">
         <CharacterList Shell="_shell" Account="Account" Storage="Storage" />
     </nav>
     <main class="main">
         @if (_shell.Current is { } current)
         {
-            <CharacterPlaceholder @key="current" Character="current.Character" />
+            @* The desktop's view tabs, with the character's name at the right. *@
+            <div class="view-bar">
+                <div class="view-tabs" role="group" aria-label="View">
+                    @foreach (var view in Views)
+                    {
+                        <button type="button" aria-pressed="@(view == _view ? "true" : "false")" @onclick="() => _view = view">@view</button>
+                    }
+                </div>
+                <CharacterTitle @key="current" Vm="current" />
+            </div>
+            @if (_view == SheetTab)
+            {
+                <SheetView @key="current" Vm="current" />
+            }
+            else if (_view == "Details")
+            {
+                <DetailsView @key="current" Vm="current" />
+            }
+            else
+            {
+                <PlayView @key="current" Vm="current" />
+            }
         }
         else
         {
-            <p>No character open. Choose New or Import to start.</p>
+            <div class="empty-state">
+                <h2>No character open</h2>
+                <p class="hint">Create a new character to fill in the sheet, or import one exported from Hearthsheet.</p>
+                <button type="button" class="accent" @onclick="_shell.CreateAsync">Create character</button>
+            </div>
         }
     </main>
     <StatusBar Shell="_shell" Account="Account" Sync="_sync" Secrets="Storage.Secrets.Journal" />
 </div>
 
 @code {
+    private const string SheetTab = "Character Sheet";
+    private static readonly string[] Views = [SheetTab, "Details", "Play"];
+    private string _view = "Play";
+    private bool _print; // Ctrl+P: print once the sheet has rendered
     private ShellViewModel _shell = null!;
     private WebSync _sync = null!;
     private IJSObjectReference? _js;
@@ -77,6 +110,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_print)
+        {
+            _print = false;
+            await JS.InvokeVoidAsync("print");
+        }
         if (!firstRender) return;
         var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
         if (_disposed) return;
@@ -86,6 +124,19 @@
 
     [JSInvokable] public void Online() => _sync.Online();
     [JSInvokable] public void Visible(bool visible) => _sync.IsVisible = visible;
+
+    // Ctrl/Cmd+P prints the sheet, from any view (spec 22).
+    [JSInvokable]
+    public void Print()
+    {
+        if (_shell.Current is null) return;
+        _view = SheetTab;
+        _print = true;
+        StateHasChanged();
+    }
+
+    // Ctrl/Cmd+S saves now, as on the desktop, instead of the browser's "Save page as".
+    [JSInvokable] public void Save() => _shell.Save();
 
     private void OnSyncChanged() => _ = InvokeAsync(SyncChanged.InvokeAsync);
 

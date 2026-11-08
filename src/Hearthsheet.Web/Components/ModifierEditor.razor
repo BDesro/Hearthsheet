@@ -1,0 +1,41 @@
+@* The modifier list of an item, feature or effect, as in the desktop's ModifierEditor template. *@
+@using Hearthsheet.Core.Domain
+@using Hearthsheet.Presentation
+
+<div class="card-head">
+    <h4>Modifiers (applied while active)</h4>
+    <button type="button" @onclick="() => Vm.AddModifier.Execute(Owner)">+ Add modifier</button>
+</div>
+@if (Modifiers.Count > 0)
+{
+    <table class="grid">
+        <thead><tr><th>Target</th><th>Kind</th><th>Value</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+        <tbody>
+            @foreach (var m in Modifiers)
+            {
+                <tr @key="m">
+                    <td><input list="stat-targets" aria-label="Modifier target" @bind="m.Target" /></td>
+                    <td>
+                        <select aria-label="Modifier kind" @bind="m.Kind">
+                            @foreach (var kind in Lookups.ModifierKinds)
+                            {
+                                <option value="@kind">@Lookups.Display(kind)</option>
+                            }
+                        </select>
+                    </td>
+                    <td><input type="number" class="num" aria-label="Modifier value" @bind="m.Value" /></td>
+                    <td><button type="button" class="icon" title="Remove" aria-label="Remove @m.Target modifier" @onclick="() => Vm.RemoveEntry.Execute(m)">✕</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired] public CharacterViewModel Vm { get; set; } = null!;
+
+    /// <summary>The item, feature or effect that owns the list (AddModifier's parameter).</summary>
+    [Parameter, EditorRequired] public object Owner { get; set; } = null!;
+
+    [Parameter, EditorRequired] public IList<Modifier> Modifiers { get; set; } = null!;
+}

@@ -2,8 +2,9 @@
 
 The web version is `src/Hearthsheet.Web`, a Blazor WebAssembly app that installs as a Progressive Web App (PWA). It is
 static files only: Cloudflare Pages hosts them on the free `hearthsheet.pages.dev` address, and the browser talks to
-Supabase directly. Until the launch gate it shows a "Preview" banner and uses the test Supabase project
-(`Hearthsheet-Test`), so don't share the link yet.
+Supabase directly. The published site uses the production Supabase project (`Hearthsheet-DB`), the same as the
+desktop. `dotnet run` uses the Development environment, so `wwwroot/appsettings.Development.json` points it at the test
+project (`Hearthsheet-Test`) and shows the "Preview" banner. A published build run locally (wrangler) uses production.
 
 ## How it is built and deployed
 
@@ -47,21 +48,59 @@ You need a free Cloudflare account (the Resend setup in `CLOUD_SYNC.md` already 
    - **Environment variables** → **Add environment variable**: name `CLOUDFLARE_ACCOUNT_ID`, value the ID from step 3.
    - If either was stored earlier under **Secrets and variables** → **Actions** at repository level, delete it there.
 5. **Check it.** The next release (a `dev` → `main` merge with a new version) runs **deploy-web**. A green run means
-   the site is live. Open `https://hearthsheet.pages.dev` and check that the Preview banner shows.
+   the site is live. Open `https://hearthsheet.pages.dev` and check that it loads and signs in.
 6. **If the token leaks or expires:** create a new one (step 2), replace the secret (step 4), then delete the old token
    under **API Tokens**.
 
-## Switching from preview to production (at the launch gate)
+## Launch gate
 
-Do these together in one pull request, never one without the other. The strict Content-Security-Policy only lets the app
-talk to the Supabase URL in `_headers`, and `WebConfigTests` fails the build if the two disagree.
+The gate (spec, "Audits and launch gate"): parity checklist complete, no open critical or high findings, data-safety
+scenarios pass, Beau signs off.
 
-1. In `src/Hearthsheet.Web/wwwroot/appsettings.json`, set `Sync:Url` and `Sync:AnonKey` to the production project's
-   values (the same as `src/Hearthsheet.App/appsettings.json`).
-2. In `src/Hearthsheet.Web/wwwroot/_headers`, change the URL after `connect-src 'self'` to the same production URL.
-3. Run `dotnet test Hearthsheet.slnx --filter "FullyQualifiedName~WebConfigTests"`. It must pass.
-4. Then set `"Preview": false` in `appsettings.json`. The banner goes away.
-5. Bump the version and release as usual. Testing keeps using `Hearthsheet-Test` (see `CLOUD_SYNC.md`).
+### Parity checklist (checked 2026-11-01)
+
+Views and dialogs. Every desktop input's accessible name was compared with the web component; all fields are present
+(some with shorter labels, e.g. "Base max HP").
+
+- [x] Character Sheet (three letter-size pages, print), Details (11 sections), Play
+- [x] New character, Level up, Quick add, Short rest, Token picker, modifier editor
+- [x] Account dialog → sign-in page and account menu; Update dialog → update banner (spec 14)
+
+File, View, Account and Help menus:
+
+- [x] New, Duplicate, Import, Export, Export all, Delete: character list and account menu
+- [x] Save: autosave, plus Ctrl/Cmd+S
+- [x] Print and Ctrl/Cmd+P: prints the sheet from any view
+- [x] Sheet / Details / Play: view buttons
+- [x] Zoom in, out, reset: the browser's own zoom (spec 22)
+- [x] Sign in, Sync now, Sign out: account menu; status in the status bar
+- [x] Open log folder → Download diagnostics; Open data folder → Export all (spec 22)
+- [x] Exit: close the tab
+- [x] Intro video: dropped on the web (spec 22); it would add 784 KB to first load
+
+Keyboard shortcuts with no web equivalent: Ctrl+N (new window) and Ctrl+1–3 (switch browser tab) belong to the
+browser, which doesn't let a page take them. The commands are one click away in the character list and view bar.
+
+### Audit status (2026-11-01)
+
+| Row | Result |
+|---|---|
+| Server config, access control, app security, supply chain | Security gate passed (R2); open: SEC-008 (Beau checks Auth settings), SEC-006 and SEC-007 (info). Advisors rechecked 2026-11-01: only SEC-006 on both projects |
+| Data safety | Pass; SEC-009 accepted until 2027-01-30 |
+| Accessibility | Fixes in #58; screen reader pass on the main flows still to do (Beau) |
+| Performance | Pass. Repeat load (service worker, nothing downloaded): 0.27 s on a fast desktop, 1.6 s at 4× CPU slowdown (mid-range laptop), 2.7 s at 6×. First load: 3.5 MB transferred, 1.0 s on a fast connection, Lighthouse desktop TTI 3.1 s. |
+| Cost | Free plan, no add-ons. Each project 11 MB of 500 MB, 1 and 2 users, no Storage objects. Egress and Cloudflare usage are dashboard-only (Beau). |
+
+Startup is CPU-bound once cached: starting the .NET runtime and instantiating about 8 MB of WebAssembly. The largest
+downloads are `dotnet.native.wasm` (1.2 MB compressed) and `System.Private.CoreLib` (0.6 MB); the 0.5 MB ICU file goes
+with the next release (#57). Nothing further is worth cutting while the repeat load meets the target.
+
+## Changing the Supabase project
+
+`wwwroot/appsettings.json` (`Sync:Url`, `Sync:AnonKey`) and the URL after `connect-src 'self'` in `wwwroot/_headers`
+change together, never one without the other. The strict Content-Security-Policy only lets the app talk to the URL in
+`_headers`, and `WebConfigTests` fails the build if the two disagree. The site switched from the test project to
+production at the launch gate; `appsettings.Development.json` keeps local runs on the test project.
 
 ## Testing two versions locally
 

@@ -1,0 +1,59 @@
+@* The desktop's TokenPicker on the web: a comma-separated list (weapon types, weapon proficiencies) typed freely, or
+   ticked from suggestions so spellings stay consistent. Without suggestions it is a plain text box. *@
+@using Hearthsheet.Core.Rules
+
+<div class="token-picker">
+    <input aria-label="@Label" value="@Value" @onchange="e => Set(Convert.ToString(e.Value) ?? string.Empty)" />
+    @if (Options is { Count: > 0 })
+    {
+        <details>
+            <summary title="Choose from the list" aria-label="@Label choices">▾</summary>
+            <div class="token-choices">
+                @foreach (var choice in Choices)
+                {
+                    <label><input type="checkbox" checked="@Has(choice)" @onchange="e => Toggle(choice, e.Value is true)" /> @choice</label>
+                }
+                <div class="chips">
+                    <input aria-label="Custom type" placeholder="Custom" @bind="_custom" @bind:event="oninput" @onkeydown="OnCustomKey" />
+                    <button type="button" @onclick="AddCustom">Add</button>
+                </div>
+            </div>
+        </details>
+    }
+</div>
+
+@code {
+    private string _custom = "";
+
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public IReadOnlyList<string>? Options { get; set; }
+
+    private List<string> Tokens => CharacterRules.SplitList(Value ?? "").ToList();
+
+    // The options plus any values already in the text that aren't among them, so they can be unticked too.
+    private IEnumerable<string> Choices =>
+        Options!.Concat(Tokens.Where(t => !Options!.Contains(t, StringComparer.OrdinalIgnoreCase)));
+
+    private bool Has(string choice) => Tokens.Contains(choice, StringComparer.OrdinalIgnoreCase);
+
+    private Task Toggle(string choice, bool on)
+    {
+        var items = Tokens.Where(t => !string.Equals(t, choice, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (on) items.Add(choice);
+        return Set(string.Join(", ", items));
+    }
+
+    private Task Set(string value) => ValueChanged.InvokeAsync(value);
+
+    private async Task AddCustom()
+    {
+        var value = _custom.Trim().Trim(',', ';', '/').Trim();
+        if (value.Length == 0) return;
+        _custom = "";
+        if (!Has(value)) await Toggle(value, true);
+    }
+
+    private Task OnCustomKey(KeyboardEventArgs e) => e.Key == "Enter" ? AddCustom() : Task.CompletedTask;
+}

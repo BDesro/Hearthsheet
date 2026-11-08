@@ -75,6 +75,7 @@ public partial class App
                 return;
             }
             (_storage, _auth, _account) = (storage, auth, account);
+            if (account is not null) await storage.RequestPersistenceAsync(); // an installed app asks again each start
         }
         catch (Exception ex)
         {
@@ -117,14 +118,7 @@ public partial class App
         }
 
         storage.WriteLastAccount(new LastAccount(userId, auth.Email));
-        try
-        {
-            await storage.PersistOnceAsync();
-        }
-        catch (JSException ex)
-        {
-            Log.LogWarning(ex, "Asking the browser to keep storage failed");
-        }
+        await storage.RequestPersistenceAsync();
 
         if (_account is { } open && open.UserId == userId)
         {
