@@ -1,12 +1,5 @@
-Hearthsheet in your browser
-- New: Hearthsheet now runs in a web browser at https://hearthsheet.pages.dev. Sign in with your cloud sync account to see the same characters as on your PC, with the Play, Details and Sheet views and printing.
-- The web version can be installed as an app and keeps working offline. Use Sync now in the account menu, or Ctrl+S to save.
-
-Easier to read
-- Faint text on the character sheet is darker, so labels are easier to read on screen and on paper.
-
-Cloud sync
-- Each account can store up to 10 MB of characters in the cloud. A character that would go over the limit isn't uploaded, and Hearthsheet tells you which one; the rest keep syncing.
-
-Updates
-- Updates always come from the official Hearthsheet releases. The old Updates:Owner and Updates:Repository settings are ignored; Updates:Enabled still turns update checks off.
+More classes and options
+- New: Artificer is a built-in class. Hit die, saving throws and spell slots fill in automatically, including slots from level 1.
+- Subclass now offers a list of subclasses for each class, from the published books and more. You can still type any subclass.
+- Many more species to choose from, and Background now offers a list of backgrounds. You can still type your own.
+- Picking a subclass only records its name. Your features, stats and hit points are left as you set them.
