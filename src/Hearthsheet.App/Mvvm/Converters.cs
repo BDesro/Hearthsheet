@@ -59,6 +59,16 @@ public sealed class ClassNameConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Subclass suggestions for a class name.</summary>
+public sealed class SubclassesConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Lookups.SubclassesFor(value as string);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>Per-spell save DC ("DC 15") from [spell, character]; empty when the spell's class has no ability.</summary>
 public sealed class SpellDcConverter : IMultiValueConverter
 {

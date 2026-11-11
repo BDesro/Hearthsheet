@@ -23,7 +23,10 @@ public static class Lookups
     public static ModifierKind[] ModifierKinds { get; } = Enum.GetValues<ModifierKind>();
     public static IReadOnlyList<string> StatTargetKeys => StatTargets.All;
     public static IReadOnlyList<string> ClassNames { get; } = Hearthsheet.Core.Content.SrdCatalog.Classes.Select(c => c.Name).ToList();
-    public static IReadOnlyList<string> Species => Hearthsheet.Core.Content.SrdCatalog.Species;
+    public static IReadOnlyList<string> Species { get; } =
+        [.. Hearthsheet.Core.Content.SrdCatalog.Species.Concat(Hearthsheet.Core.Content.PublishedContent.Species).Order()];
+    public static IReadOnlyList<string> Backgrounds => Hearthsheet.Core.Content.PublishedContent.Backgrounds;
+    public static IReadOnlyList<string> SubclassesFor(string? className) => Hearthsheet.Core.Content.PublishedContent.SubclassesFor(className ?? "");
     public static IReadOnlyList<string> Alignments => Hearthsheet.Core.Content.SrdCatalog.Alignments;
     public static IReadOnlyList<int> HitDieSizes => Hearthsheet.Core.Content.SrdCatalog.HitDieSizes;
     public static int[] SpellLevels { get; } = [.. Enumerable.Range(0, 10)];

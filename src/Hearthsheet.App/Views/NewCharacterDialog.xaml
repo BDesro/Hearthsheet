@@ -26,7 +26,7 @@
                 <ComboBox x:Name="SpeciesBox" Width="200" IsEditable="True" ItemsSource="{x:Static vm:Lookups.Species}" AutomationProperties.Name="Species" />
             </HeaderedContentControl>
             <HeaderedContentControl Header="Background" Style="{StaticResource Field}">
-                <TextBox x:Name="BackgroundBox" Width="176" AutomationProperties.Name="Background" />
+                <ComboBox x:Name="BackgroundBox" Width="200" IsEditable="True" ItemsSource="{x:Static vm:Lookups.Backgrounds}" AutomationProperties.Name="Background" />
             </HeaderedContentControl>
         </WrapPanel>
         <HeaderedContentControl Header="Player name (optional)" Style="{StaticResource Field}">
