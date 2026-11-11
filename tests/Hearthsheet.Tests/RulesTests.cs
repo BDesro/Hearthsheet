@@ -333,8 +333,10 @@ public class RulesTests
     [Fact]
     public void Catalog_EveryClassHasPrerequisites()
     {
-        Assert.Equal(13, SrdCatalog.Classes.Count);
+        Assert.Equal(14, SrdCatalog.Classes.Count);
         Assert.All(SrdCatalog.Classes, c => Assert.NotEmpty(c.MulticlassPrerequisites));
+        // Every class has subclass suggestions, keyed by its catalog name.
+        Assert.Equal(SrdCatalog.Classes.Select(c => c.Name).Order(), PublishedContent.Subclasses.Keys.Order());
     }
 
     [Fact]

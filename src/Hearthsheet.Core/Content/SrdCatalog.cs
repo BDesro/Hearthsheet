@@ -31,12 +31,14 @@ public static class SrdCatalog
         Medium = (ProficiencyCategory.Armor, "Medium armor"), Shields = (ProficiencyCategory.Armor, "Shields"),
         Simple = (ProficiencyCategory.Weapon, "Simple weapons"), Martial = (ProficiencyCategory.Weapon, "Martial weapons"),
         Shortswords = (ProficiencyCategory.Weapon, "Shortswords"), Thieves = (ProficiencyCategory.Tool, "Thieves' tools"),
-        Alchemist = (ProficiencyCategory.Tool, "Alchemist's supplies");
+        Alchemist = (ProficiencyCategory.Tool, "Alchemist's supplies"), Tinker = (ProficiencyCategory.Tool, "Tinker's tools");
     private static (Ability, int)[][] Req((Ability, int) one) => [[one]];
     private static (ProficiencyCategory, string)[] Profs(params (ProficiencyCategory, string)[] p) => p;
 
     public static IReadOnlyList<ClassDefinition> Classes { get; } =
     [
+        new("Artificer", 8, [Ability.Constitution, Ability.Intelligence], Ability.Intelligence, CasterType.Half,
+            Req(Int), Profs(Light, Medium, Shields, Thieves, Tinker)),
         new("Barbarian", 12, [Ability.Strength, Ability.Constitution], null, CasterType.None,
             Req(Str), Profs(Shields, Simple, Martial)),
         new("Bard", 8, [Ability.Dexterity, Ability.Charisma], Ability.Charisma, CasterType.Full,
@@ -99,7 +101,7 @@ public static class SrdCatalog
 
     /// <summary>
     /// Spell slots (levels 1..9) from the SRD multiclass rules. A lone caster uses its own table (half and third
-    /// casters round up, with nothing before level 2 or 3); several casters sum the rounded-down levels. Pact
+    /// casters round up, with nothing before level 2 or 3, except Artificer); several casters sum the rounded-down levels. Pact
     /// Magic is separate (<see cref="PactSlots"/>).
     /// </summary>
     public static int[] SpellSlots(IEnumerable<ClassLevel> classes)
@@ -109,19 +111,22 @@ public static class SrdCatalog
             ? casters[0].Caster switch
             {
                 CasterType.Full => casters[0].Level,
-                CasterType.Half => casters[0].Level < 2 ? 0 : (casters[0].Level + 1) / 2,
+                CasterType.Half => casters[0].Level < 2 && !RoundsUp(casters[0]) ? 0 : (casters[0].Level + 1) / 2,
                 _ => casters[0].Level < 3 ? 0 : (casters[0].Level + 2) / 3,
             }
             : casters.Sum(e => e.Caster switch
             {
                 CasterType.Full => e.Level,
-                CasterType.Half => e.Level / 2,
+                CasterType.Half => RoundsUp(e) ? (e.Level + 1) / 2 : e.Level / 2,
                 _ => e.Level / 3,
             });
         var slots = new int[9];
         if (effective > 0) FullCasterSlots[Math.Min(effective, 20) - 1].CopyTo(slots, 0);
         return slots;
     }
+
+    /// <summary>Artificer is a half caster that has slots from level 1 and rounds up when multiclassing.</summary>
+    private static bool RoundsUp(ClassLevel e) => e.Name.Trim().Equals("Artificer", StringComparison.OrdinalIgnoreCase);
 
     public static (int Count, int SlotLevel) PactSlots(int level) => level switch
     {

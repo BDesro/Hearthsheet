@@ -26,7 +26,7 @@
         </div>
         <div>
             <label for="new-background">Background</label>
-            <input id="new-background" @bind="_background" @bind:event="oninput" />
+            <input id="new-background" list="new-backgrounds" @bind="_background" @bind:event="oninput" />
         </div>
     </div>
     <label for="new-player">Player name (optional)</label>
@@ -34,6 +34,12 @@
 
     <datalist id="new-classes">
         @foreach (var name in Lookups.ClassNames)
+        {
+            <option value="@name" />
+        }
+    </datalist>
+    <datalist id="new-backgrounds">
+        @foreach (var name in Lookups.Backgrounds)
         {
             <option value="@name" />
         }

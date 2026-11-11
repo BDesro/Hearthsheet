@@ -363,4 +363,24 @@ public class LevelUpTests
         e.Level = 5;
         Assert.Equal(2, e.HitDiceRemaining);
     }
+
+    [Theory]
+    [InlineData("Artificer", 1, 2, 0)] // artificers have slots from level 1
+    [InlineData("Artificer", 5, 4, 2)]
+    [InlineData("Paladin", 1, 0, 0)]
+    [InlineData("Paladin", 5, 4, 2)]
+    public void SpellSlots_ArtificerRoundsUpFromLevelOne(string name, int level, int first, int second)
+    {
+        var slots = SrdCatalog.SpellSlots([new ClassLevel { Name = name, Level = level, Caster = CasterType.Half }]);
+        Assert.Equal((first, second), (slots[0], slots[1]));
+    }
+
+    [Fact]
+    public void SpellSlots_MulticlassArtificerRoundsUp()
+    {
+        // Artificer 3 counts as 2 caster levels (Paladin 3 would count as 1); plus Wizard 2 = 4.
+        var slots = SrdCatalog.SpellSlots(
+            [new ClassLevel { Name = "Artificer", Level = 3, Caster = CasterType.Half }, new ClassLevel { Name = "Wizard", Level = 2, Caster = CasterType.Full }]);
+        Assert.Equal([4, 3, 0, 0, 0, 0, 0, 0, 0], slots);
+    }
 }
