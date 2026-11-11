@@ -48,7 +48,7 @@
                                 <tr @key="e">
                                     <td class="muted">@(i == 0 ? "Starting class" : "")</td>
                                     <td><input list="class-names" aria-label="Class name" @bind="e.Name" /></td>
-                                    <td><input aria-label="@name subclass" @bind="e.Subclass" /></td>
+                                    <td><input list="subclasses-@i" aria-label="@name subclass" @bind="e.Subclass" /><datalist id="subclasses-@i">@Options(Lookups.SubclassesFor(e.Name))</datalist></td>
                                     <td><input type="number" class="num" min="1" max="20" aria-label="@name level" @bind="e.Level" /></td>
                                     <td>
                                         <select aria-label="@name hit die" @bind="e.HitDie">
@@ -83,7 +83,7 @@
                 </div>
                 <div class="fields">
                     <label>Species <input list="species" @bind="C.Identity.Species" /></label>
-                    <label>Background <input @bind="C.Identity.Background" /></label>
+                    <label>Background <input list="backgrounds" @bind="C.Identity.Background" /></label>
                     <label>Alignment <input list="alignments" @bind="C.Identity.Alignment" /></label>
                     <label>Experience points <input type="number" min="0" @bind="C.Identity.Experience" /></label>
                     <label class="inline"><input type="checkbox" @bind="C.Identity.Inspiration" /> Has inspiration</label>
@@ -565,6 +565,7 @@
 
     <datalist id="class-names">@Options(Lookups.ClassNames)</datalist>
     <datalist id="species">@Options(Lookups.Species)</datalist>
+    <datalist id="backgrounds">@Options(Lookups.Backgrounds)</datalist>
     <datalist id="alignments">@Options(Lookups.Alignments)</datalist>
     <datalist id="stat-targets">@Options(Lookups.StatTargetKeys)</datalist>
     <datalist id="spell-schools">@Options(Lookups.SpellSchools)</datalist>

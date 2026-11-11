@@ -43,7 +43,7 @@ Seven projects, dependencies point inward: `App` → `Presentation`, `Infrastruc
 - Every WPF input needs an `AutomationProperties.Name`; state is never shown by colour alone.
 - The character sheet is a fixed letter-size layout (816×1056 DIP) that prints 1:1; keep add/remove controls hover-only so printouts stay clean.
 - `.ps1` and `.cmd` files must stay CRLF (`.gitattributes`).
-- No bundled spell, feature or item content beyond SRD 5.1 facts; see `NOTICE.md` before adding game content.
+- Bundled game content is names and mechanical facts only (SRD and published), never rules or description text; see `NOTICE.md` before adding game content.
 
 ## Branches and releases
 
