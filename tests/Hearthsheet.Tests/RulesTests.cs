@@ -333,8 +333,9 @@ public class RulesTests
     [Fact]
     public void Catalog_EveryClassHasPrerequisites()
     {
-        Assert.Equal(14, SrdCatalog.Classes.Count);
-        Assert.All(SrdCatalog.Classes, c => Assert.NotEmpty(c.MulticlassPrerequisites));
+        Assert.Equal(15, SrdCatalog.Classes.Count);
+        // Kamen Rider's source page leaves multiclassing blank.
+        Assert.All(SrdCatalog.Classes.Where(c => c.Name != "Kamen Rider"), c => Assert.NotEmpty(c.MulticlassPrerequisites));
         // Every class has subclass suggestions, keyed by its catalog name.
         Assert.Equal(SrdCatalog.Classes.Select(c => c.Name).Order(), PublishedContent.Subclasses.Keys.Order());
     }
