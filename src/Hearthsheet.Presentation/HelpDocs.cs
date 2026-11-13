@@ -158,7 +158,7 @@ public static partial class HelpDocs
         return -1;
     }
 
-    /// <returns>Where the link goes, or null for anything that isn't http(s), a .md doc or a #heading.</returns>
+    /// <returns>Where the link goes, or null for anything that isn't http(s), a bundled doc or a #heading.</returns>
     public static HelpLink? ResolveLink(string target)
     {
         if (target.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
@@ -168,7 +168,8 @@ public static partial class HelpDocs
         if (target.Contains(':')) return null;
         var hash = target.IndexOf('#');
         var doc = hash < 0 ? target : target[..hash];
-        if (!doc.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) return null;
+        // Only bundled docs: anything else would fail to load mid-click.
+        if (!Topics.Any(t => t.File == doc)) return null;
         return new HelpLink(null, doc, hash < 0 || hash == target.Length - 1 ? null : target[(hash + 1)..]);
     }
 }

@@ -10,7 +10,7 @@ using Hearthsheet.Presentation;
 
 namespace Hearthsheet.App.Views;
 
-/// <summary>Shows the bundled player docs (<see cref="HelpDocs"/>). One reusable, non-modal window.</summary>
+/// <summary>Shows the bundled player docs (<see cref="HelpDocs"/>). One non-modal window at a time.</summary>
 public partial class HelpWindow
 {
     private static HelpWindow? _instance;
@@ -22,13 +22,12 @@ public partial class HelpWindow
     /// <summary>Shows <paramref name="file"/>, scrolled to <paramref name="anchor"/> if it names a heading.</summary>
     public static void Open(string file, string? anchor = null)
     {
-        if (_instance is null)
-        {
-            // Opened after a modal dialog's ShowDialog, so it stays usable on top of that dialog.
-            _instance = new HelpWindow { Owner = Application.Current.MainWindow };
-            _instance.Closed += (_, _) => _instance = null;
-        }
-        else _instance._history.Clear();
+        // Always a fresh window: one already open when a modal dialog's ShowDialog began stays disabled until that
+        // dialog closes, while a window created now (e.g. from "Need help?") is usable on top of it.
+        _instance?.Close();
+        _instance = new HelpWindow { Owner = Application.Current.MainWindow };
+        var window = _instance;
+        window.Closed += (_, _) => { if (_instance == window) _instance = null; };
         _instance.Navigate(file, anchor);
         _instance.Show();
         if (_instance.WindowState == WindowState.Minimized) _instance.WindowState = WindowState.Normal;

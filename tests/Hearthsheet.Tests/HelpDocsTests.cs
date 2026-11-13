@@ -125,6 +125,12 @@ public class HelpDocsTests
         Assert.True(HelpDocs.FindAnchor(HelpDocs.Load(HelpDocs.Tutorial), HelpDocs.CreatingACharacter) >= 0);
 
     [Theory]
+    [InlineData("other.md")]
+    [InlineData("../tutorial.md")]
+    [InlineData("missing.md#rests")]
+    public void ResolveLink_rejects_docs_that_are_not_bundled(string target) => Assert.Null(HelpDocs.ResolveLink(target));
+
+    [Theory]
     [InlineData("file:///c:/x")]
     [InlineData("javascript:alert(1)")]
     [InlineData("mailto:a@b")]
