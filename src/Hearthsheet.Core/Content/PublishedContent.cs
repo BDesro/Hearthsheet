@@ -41,6 +41,7 @@ public static class PublishedContent
                 "Arcane Archer", "Banneret", "Battle Master", "Cavalier", "Champion", "Echo Knight", "Eldritch Knight", "Gunslinger",
                 "Psi Warrior", "Renegade", "Rune Knight", "Samurai",
             ],
+            ["Kamen Rider"] = ["Build", "Cross-Z", "Evol", "Grease", "Rogue"],
             ["Monk"] =
             [
                 "Way of the Ascendant Dragon", "Way of the Astral Self", "Way of the Cobalt Soul", "Way of the Drunken Master",

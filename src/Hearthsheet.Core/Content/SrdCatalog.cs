@@ -52,6 +52,8 @@ public static class SrdCatalog
             Req(Wis), Profs(Light, Medium, Shields)),
         new("Fighter", 10, [Ability.Strength, Ability.Constitution], null, CasterType.None,
             [[(Ability.Strength, 13)], [(Ability.Dexterity, 13)]], Profs(Light, Medium, Shields, Simple, Martial)),
+        // D&D Wiki homebrew; its page states no multiclass prerequisites or proficiencies.
+        new("Kamen Rider", 8, [Ability.Strength, Ability.Intelligence], null, CasterType.None),
         new("Monk", 8, [Ability.Strength, Ability.Dexterity], null, CasterType.None,
             [[(Ability.Dexterity, 13), (Ability.Wisdom, 13)]], Profs(Simple, Shortswords)),
         new("Paladin", 10, [Ability.Wisdom, Ability.Charisma], Ability.Charisma, CasterType.Half,
