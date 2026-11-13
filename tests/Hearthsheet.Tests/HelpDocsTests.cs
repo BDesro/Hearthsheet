@@ -84,6 +84,46 @@ public class HelpDocsTests
         Assert.Equal(new HelpLink(null, null, "rests"), HelpDocs.ResolveLink("#rests"));
     }
 
+    [Fact]
+    public void Topics_are_all_bundled()
+    {
+        Assert.Equal(3, HelpDocs.Topics.Count);
+        foreach (var topic in HelpDocs.Topics)
+        {
+            var blocks = HelpDocs.Load(topic.File);
+            Assert.NotEmpty(blocks);
+            Assert.Equal(HelpBlockKind.Heading, blocks[0].Kind);
+            Assert.Equal(1, blocks[0].Level);
+        }
+    }
+
+    [Fact]
+    public void Bundled_docs_links_and_images_resolve()
+    {
+        var files = HelpDocs.Topics.Select(t => t.File).ToHashSet();
+        foreach (var file in files)
+        {
+            foreach (var block in HelpDocs.Load(file))
+            {
+                if (block.Image is { } image) Assert.True(HelpDocs.LoadImage(image) is not null, $"{file}: missing {image}");
+                foreach (var run in block.Runs.Where(r => r.Link is not null))
+                {
+                    var link = HelpDocs.ResolveLink(run.Link!);
+                    Assert.True(link is not null, $"{file}: unresolvable link {run.Link}");
+                    if (link!.Url is not null) continue;
+                    var target = link.Doc ?? file;
+                    Assert.Contains(target, files);
+                    if (link.Anchor is not null)
+                        Assert.True(HelpDocs.FindAnchor(HelpDocs.Load(target), link.Anchor) >= 0, $"{file}: no heading for {run.Link}");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void Tutorial_has_creating_a_character_section() =>
+        Assert.True(HelpDocs.FindAnchor(HelpDocs.Load(HelpDocs.Tutorial), HelpDocs.CreatingACharacter) >= 0);
+
     [Theory]
     [InlineData("file:///c:/x")]
     [InlineData("javascript:alert(1)")]

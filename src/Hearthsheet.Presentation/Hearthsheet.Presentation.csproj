@@ -8,6 +8,11 @@
     <ProjectReference Include="..\Hearthsheet.Core\Hearthsheet.Core.csproj" />
   </ItemGroup>
 
+  <!-- The player docs, shown in-app by both UIs (HelpDocs). The same files are what GitHub shows. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\user\**\*.md;..\..\docs\user\**\*.png" LogicalName="help/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Hearthsheet.Tests" />
   </ItemGroup>

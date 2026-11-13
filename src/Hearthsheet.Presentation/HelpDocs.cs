@@ -24,6 +24,47 @@ public static partial class HelpDocs
 {
     public const string WikidotUrl = "https://dnd5e.wikidot.com";
 
+    public const string Tutorial = "tutorial.md", BeginnersGuide = "beginners-guide.md", Legal = "legal.md";
+
+    /// <summary>The tutorial heading the New character dialog's "Need help?" opens at.</summary>
+    public const string CreatingACharacter = "creating-a-character";
+
+    public sealed record HelpTopic(string File, string Title);
+
+    public static IReadOnlyList<HelpTopic> Topics { get; } =
+    [
+        new(Tutorial, "Tutorial"),
+        new(BeginnersGuide, "Beginner's guide to 5e"),
+        new(Legal, "Legal and credits"),
+    ];
+
+    /// <summary>A bundled doc, parsed. Throws if <paramref name="file"/> isn't bundled.</summary>
+    public static IReadOnlyList<HelpBlock> Load(string file)
+    {
+        using var stream = Open(file) ?? throw new FileNotFoundException($"Help doc '{file}' is not bundled.");
+        using var reader = new StreamReader(stream);
+        return Parse(reader.ReadToEnd());
+    }
+
+    /// <summary>A bundled image's bytes, such as "images/sheet.png", or null.</summary>
+    public static byte[]? LoadImage(string path)
+    {
+        using var stream = Open(path);
+        if (stream is null) return null;
+        using var bytes = new MemoryStream();
+        stream.CopyTo(bytes);
+        return bytes.ToArray();
+    }
+
+    // The csproj names resources "help/<path>", with the build machine's separator inside the path.
+    private static Stream? Open(string path)
+    {
+        var assembly = typeof(HelpDocs).Assembly;
+        var name = assembly.GetManifestResourceNames()
+            .FirstOrDefault(n => n.Replace('\\', '/').Equals("help/" + path, StringComparison.OrdinalIgnoreCase));
+        return name is null ? null : assembly.GetManifestResourceStream(name);
+    }
+
     [GeneratedRegex(@"^(#{1,3})\s+(.+)$")] private static partial Regex HeadingLine();
     [GeneratedRegex(@"^!\[([^\]]*)\]\(([^)\s]+)\)$")] private static partial Regex ImageLine();
 
