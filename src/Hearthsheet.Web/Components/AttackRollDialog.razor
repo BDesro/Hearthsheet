@@ -1,0 +1,93 @@
+@* Same steps as the desktop's Attack roll dialog: type physical dice (or let the app roll what is empty), then Done logs
+   the result. The view model does all the maths. Shown inside Modal. *@
+@using System.ComponentModel
+@using Hearthsheet.Core.Rules
+@using Hearthsheet.Presentation
+@implements IDisposable
+
+<form @onsubmit="() => Done.InvokeAsync(true)">
+    <h2 id="dialog-title">@Vm.Name <span class="muted">@Vm.BonusText</span></h2>
+    <p class="hint">Roll your physical dice and type them in, or let the app roll whatever is still empty.</p>
+
+    <fieldset class="plain">
+        <legend>Roll type</legend>
+        <div class="chips">
+            @foreach (var (mode, text) in Modes)
+            {
+                <label class="inline"><input type="radio" name="attack-mode" checked="@(Vm.Mode == mode)" @onchange="() => Vm.Mode = mode" /> @text</label>
+            }
+        </div>
+    </fieldset>
+
+    <div class="chips">
+        <label for="attack-d20-1">d20</label>
+        <input id="attack-d20-1" class="amount" inputmode="numeric" autofocus aria-label="First d20 roll"
+               aria-describedby="@(Vm.D20Error is null ? null : "attack-d20-error")"
+               @bind="Vm.D20First" @bind:event="oninput" />
+        @if (Vm.HasSecondD20)
+        {
+            <input id="attack-d20-2" class="amount" inputmode="numeric" aria-label="Second d20 roll"
+                   aria-describedby="@(Vm.D20Error is null ? null : "attack-d20-error")"
+                   @bind="Vm.D20Second" @bind:event="oninput" />
+        }
+        @if (Vm.D20Error is { } d20Error)
+        {
+            <span id="attack-d20-error" role="alert" class="error">@d20Error</span>
+        }
+    </div>
+    <p role="status"><strong>@Vm.ToHitText</strong></p>
+    <label class="inline"><input type="checkbox" checked="@Vm.IsCritical" @onchange="e => Vm.IsCritical = (bool)(e.Value ?? false)" />
+        Critical hit (doubles the damage dice)</label>
+
+    @for (var i = 0; i < Vm.Boxes.Count; i++)
+    {
+        var box = Vm.Boxes[i];
+        var id = $"attack-dmg-{i}";
+        <div @key="box" class="attack-box">
+            <div class="chips">
+                <input id="@id" class="amount" inputmode="numeric" aria-label="Roll for @box.Label"
+                       aria-describedby="@(box.Error is null ? null : id + "-error")"
+                       @bind="box.Input" @bind:event="oninput" />
+                <label for="@id">@box.Label <span class="muted">(@box.Min–@box.Max)</span></label>
+            </div>
+            @if (box.Error is { } err)
+            {
+                <p id="@(id + "-error")" role="alert" class="error">@err</p>
+            }
+        </div>
+    }
+
+    @if (!Vm.HasStructuredDamage)
+    {
+        <p class="muted">Damage: @Vm.RawDamage</p>
+        <div class="chips">
+            <input id="attack-dmg-total" class="amount" inputmode="numeric" aria-label="Total damage"
+                   @bind="Vm.FallbackInput" @bind:event="oninput" />
+            <label for="attack-dmg-total">total damage</label>
+        </div>
+    }
+
+    <p role="status" class="attack-totals"><strong>@Vm.TotalsText</strong></p>
+
+    <div class="dialog-buttons">
+        <button type="button" class="roll-for-me" @onclick="() => Vm.RollForMe.Execute(null)"><span aria-hidden="true">🎲 </span>Roll for me</button>
+        <button type="button" @onclick="() => Done.InvokeAsync(false)">Cancel</button>
+        <button type="submit" class="accent">Done</button>
+    </div>
+</form>
+
+@code {
+    private static readonly (RollMode Mode, string Text)[] Modes =
+        [(RollMode.Normal, "Normal"), (RollMode.Advantage, "Advantage"), (RollMode.Disadvantage, "Disadvantage")];
+
+    [Parameter, EditorRequired] public AttackRollViewModel Vm { get; set; } = null!;
+
+    /// <summary>True to log the roll.</summary>
+    [Parameter] public EventCallback<bool> Done { get; set; }
+
+    protected override void OnInitialized() => Vm.PropertyChanged += OnChanged;
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Vm.PropertyChanged -= OnChanged;
+}
