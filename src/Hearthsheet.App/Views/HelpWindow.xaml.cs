@@ -40,7 +40,7 @@ public partial class HelpWindow
         // No browser registered (Win32Exception) or the shell refused: say so instead of crashing the app.
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            MessageBox.Show($"Couldn't open a web browser. The address is:\n\n{url}", "Hearthsheet",
+            MessageDialog.Show(Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive), $"Couldn't open a web browser. The address is:\n\n{url}", "Hearthsheet",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }

@@ -133,7 +133,11 @@
         </Border>
 
         <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{DynamicResource SheetBackdrop}" Focusable="False">
-            <StackPanel x:Name="Pages" HorizontalAlignment="Center" Margin="24">
+            <!-- The pages stay light in dark mode (paper on a dark desk, and what prints): theme lookups inside resolve to Light.xaml. -->
+            <StackPanel x:Name="Pages" HorizontalAlignment="Center" Margin="24" TextElement.Foreground="{DynamicResource Ink}">
+                <StackPanel.Resources>
+                    <ResourceDictionary Source="/Themes/Light.xaml" />
+                </StackPanel.Resources>
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="{Binding DataContext.Zoom, RelativeSource={RelativeSource AncestorType=Window}}"
                                     ScaleY="{Binding DataContext.Zoom, RelativeSource={RelativeSource AncestorType=Window}}" />

@@ -143,7 +143,7 @@ public partial class App
         _log.LogError(e.Exception, "Unhandled UI exception");
         // Keep running: the character is autosaved and the model is unaffected by a failed UI action.
         e.Handled = true;
-        MessageBox.Show(
+        Views.MessageDialog.Show(MainWindow is { IsLoaded: true } w ? w : null,
             $"Something went wrong:\n\n{e.Exception.Message}\n\nYour character data is safe. Details were written to the log.",
             "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
