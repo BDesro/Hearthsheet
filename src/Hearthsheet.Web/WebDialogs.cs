@@ -74,4 +74,6 @@ public sealed class WebDialogs : IDialogs
 
     public async Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         await Ask(DialogKind.ShortRest, "Short rest", "", new ShortRestRequest(play, character)) is true;
+
+    public Task<bool> AttackRollAsync(AttackRollViewModel vm) => Task.FromResult(false); // replaced by the real dialog in a later task
 }

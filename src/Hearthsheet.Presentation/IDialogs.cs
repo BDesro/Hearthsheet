@@ -18,4 +18,7 @@ public interface IDialogs
 
     /// <returns>True when the user chose to finish the short rest.</returns>
     Task<bool> ShortRestAsync(PlayViewModel play, Character character);
+
+    /// <returns>True when the user chose Done (the roll is then logged).</returns>
+    Task<bool> AttackRollAsync(AttackRollViewModel vm);
 }
