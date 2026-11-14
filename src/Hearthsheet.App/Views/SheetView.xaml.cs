@@ -58,6 +58,10 @@ public partial class SheetView
             }
             collator.EndBatchWrite();
         }
+        catch (PrintingCanceledException)
+        {
+            // Cancelled in the printer's own prompt (e.g. "Save Print Output As" for Microsoft Print to PDF): not an error.
+        }
         finally
         {
             for (var i = 0; i < pages.Length; i++)
