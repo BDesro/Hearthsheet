@@ -4,7 +4,7 @@
         Title="Hearthsheet help" Style="{StaticResource AppWindow}" Width="680" Height="760" MinWidth="420" MinHeight="400"
         WindowStartupLocation="CenterOwner">
     <DockPanel>
-        <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="12,8">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,8">
             <StackPanel Orientation="Horizontal">
                 <Button x:Name="BackButton" Content="← Back" Click="OnBack" IsEnabled="False" Padding="10,4"
                         AutomationProperties.Name="Back" />

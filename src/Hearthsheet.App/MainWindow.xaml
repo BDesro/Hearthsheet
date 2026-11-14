@@ -26,13 +26,13 @@
     <Grid>
     <!-- Hidden (laid out but not drawn) while the intro plays, so the software-rendered video has the renderer to itself. -->
     <DockPanel x:Name="AppRoot" Visibility="Hidden">
-        <DockPanel DockPanel.Dock="Top" Background="{StaticResource Surface}">
+        <DockPanel DockPanel.Dock="Top" Background="{DynamicResource Surface}">
         <TextBlock DockPanel.Dock="Right" Margin="12,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                    AutomationProperties.Name="Signed in to cloud sync" ToolTip="Signed in to cloud sync"
                    Visibility="{Binding Sync.IsSignedIn, Converter={StaticResource VisibleWhen}}">
-            <Run Text="●" Foreground="{StaticResource Good}" /> <Run Text="{Binding Sync.AccountEmail, Mode=OneWay}" />
+            <Run Text="●" Foreground="{DynamicResource Good}" /> <Run Text="{Binding Sync.AccountEmail, Mode=OneWay}" />
         </TextBlock>
-        <Menu Background="{StaticResource Surface}" Padding="4,2">
+        <Menu Background="{DynamicResource Surface}" Padding="4,2">
             <MenuItem Header="_File">
                 <MenuItem Header="_New character…" Command="{Binding NewCharacter}" InputGestureText="Ctrl+N" />
                 <MenuItem Header="_Duplicate character" Command="{Binding DuplicateCharacter}" />
@@ -81,9 +81,9 @@
         </DockPanel>
 
         <!-- Status bar -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource Sidebar}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="12,4">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource Sidebar}" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="12,4">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource InkMuted}" VerticalAlignment="Center">
+                <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource InkMuted}" VerticalAlignment="Center">
                     <Run Text="Hearthsheet" /> <Run Text="{Binding AppVersion, Mode=OneWay}" />
                 </TextBlock>
                 <Button DockPanel.Dock="Right" Margin="0,0,14,0" Padding="10,1" MinHeight="22" Command="{Binding Update.ShowDialog}"
@@ -92,7 +92,7 @@
                 <Button DockPanel.Dock="Right" Margin="0,0,14,0" Padding="8,1" MinHeight="22" Command="{Binding Sync.SyncNow}"
                         Content="{Binding Sync.Status}" ToolTip="Sync now" AutomationProperties.Name="Cloud sync status. Sync now"
                         Visibility="{Binding Sync.IsConfigured, Converter={StaticResource VisibleWhen}}" />
-                <TextBlock Text="{Binding Shell.SaveStatus}" Foreground="{StaticResource InkMuted}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Shell.SaveStatus}" Foreground="{DynamicResource InkMuted}" VerticalAlignment="Center" />
             </DockPanel>
         </Border>
 
@@ -104,7 +104,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Character list -->
-            <DockPanel Background="{StaticResource Sidebar}">
+            <DockPanel Background="{DynamicResource Sidebar}">
                 <StackPanel DockPanel.Dock="Top" Margin="14,14,14,8">
                     <TextBlock Text="Characters" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" />
                     <UniformGrid Columns="2">
@@ -115,7 +115,7 @@
                 <UniformGrid DockPanel.Dock="Bottom" Columns="3" Margin="14,6,14,12">
                     <Button Content="Duplicate" Command="{Binding DuplicateCharacter}" Margin="0,0,4,0" Padding="4,5" />
                     <Button Content="Export…" Command="{Binding ExportCharacter}" Margin="2,0" Padding="4,5" />
-                    <Button Content="Delete" Command="{Binding DeleteCharacter}" Foreground="{StaticResource Danger}" Margin="4,0,0,0" Padding="4,5" />
+                    <Button Content="Delete" Command="{Binding DeleteCharacter}" Foreground="{DynamicResource Danger}" Margin="4,0,0,0" Padding="4,5" />
                 </UniformGrid>
                 <Grid>
                     <ListBox ItemsSource="{Binding Shell.Characters}" SelectedItem="{Binding Shell.SelectedSummary}" Background="Transparent" BorderThickness="0"
@@ -133,13 +133,13 @@
                                             </Border>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#E2DCD1" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SidebarHover}" />
                                                 </Trigger>
                                                 <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface}" />
+                                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Surface}" />
                                                 </Trigger>
                                                 <Trigger Property="IsKeyboardFocused" Value="True">
-                                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}" />
                                                     <Setter TargetName="Bd" Property="BorderThickness" Value="1.5" />
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
@@ -152,14 +152,14 @@
                             <DataTemplate DataType="{x:Type app:CharacterSummary}">
                                 <StackPanel>
                                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="{StaticResource InkMuted}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Description}" FontSize="11.5" Foreground="{DynamicResource InkMuted}" TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <StackPanel Margin="16,8"
                                 Visibility="{Binding Shell.Characters.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
-                        <TextBlock TextWrapping="Wrap" Foreground="{StaticResource InkMuted}"
+                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource InkMuted}"
                                    Text="No characters yet. Create one or import a .dndchar file." />
                         <TextBlock TextWrapping="Wrap" Margin="0,8,0,0">
                             <Hyperlink Command="{Binding ShowHelp}" CommandParameter="tutorial.md">New to Hearthsheet? Read the tutorial</Hyperlink>
@@ -168,7 +168,7 @@
                 </Grid>
             </DockPanel>
 
-            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{StaticResource Line}"
+            <GridSplitter Grid.Column="1" Width="4" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="{DynamicResource Line}"
                           ResizeBehavior="PreviousAndNext" Focusable="False" />
 
             <!-- Empty state -->
@@ -184,7 +184,7 @@
             </StackPanel>
 
             <!-- One character, three views -->
-            <TabControl Grid.Column="2" SelectedIndex="{Binding SelectedView}" BorderThickness="0" Padding="0" Background="{StaticResource Canvas}"
+            <TabControl Grid.Column="2" SelectedIndex="{Binding SelectedView}" BorderThickness="0" Padding="0" Background="{DynamicResource Canvas}"
                         Visibility="{Binding HasCharacter, Converter={StaticResource VisibleWhen}}">
                 <TabControl.Resources>
                     <Style TargetType="TabItem" BasedOn="{StaticResource ViewTab}" />
@@ -192,11 +192,11 @@
                 <TabControl.Template>
                     <ControlTemplate TargetType="TabControl">
                         <DockPanel>
-                            <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+                            <Border DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
                                 <DockPanel Margin="16,0">
                                     <StackPanel DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalAlignment="Right">
                                         <TextBlock Text="{Binding Shell.Current.Title}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                                        <TextBlock Text="{Binding Shell.Current.Summary}" Foreground="{StaticResource InkMuted}" HorizontalAlignment="Right" />
+                                        <TextBlock Text="{Binding Shell.Current.Summary}" Foreground="{DynamicResource InkMuted}" HorizontalAlignment="Right" />
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" IsItemsHost="True" />
                                 </DockPanel>
@@ -219,7 +219,7 @@
     </DockPanel>
 
     <!-- Logo intro: plays over black on launch; a click skips it. -->
-    <Grid x:Name="Intro" Background="#101212" ClipToBounds="True" Cursor="Hand" MouseDown="OnIntroDown">
+    <Grid x:Name="Intro" Background="{DynamicResource IntroBackdrop}" ClipToBounds="True" Cursor="Hand" MouseDown="OnIntroDown">
         <MediaElement x:Name="IntroVideo" LoadedBehavior="Manual" Stretch="Uniform" IsHitTestVisible="False"
                       Loaded="OnIntroLoaded" MediaOpened="OnIntroOpened" MediaEnded="OnIntroDone" MediaFailed="OnIntroDone" />
     </Grid>

@@ -66,7 +66,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Border Background="{StaticResource SheetInk}" CornerRadius="4" Padding="2">
-                            <TextBlock Text="{Binding Level}" Foreground="White" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding Level}" Foreground="{StaticResource SheetPaper}" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" />
                         </Border>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center" />
@@ -111,7 +111,7 @@
 
     <DockPanel>
         <!-- Sheet toolbar: section navigation, zoom, print. -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="12,6">
+        <Border DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="12,6">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                     <Button Content="−" Width="30" Padding="0" Command="{Binding DataContext.ZoomOut, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -124,7 +124,7 @@
                     <Button Content="🖶  Print…" Margin="12,0,0,0" Click="OnPrint" ToolTip="Print the sheet (Ctrl+P)" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Go to" VerticalAlignment="Center" Foreground="{StaticResource InkMuted}" Margin="0,0,8,0" />
+                    <TextBlock Text="Go to" VerticalAlignment="Center" Foreground="{DynamicResource InkMuted}" Margin="0,0,8,0" />
                     <Button Content="Main" Tag="{Binding ElementName=Page1}" Click="OnGoToPage" Margin="0,0,4,0" />
                     <Button Content="Backstory" Tag="{Binding ElementName=Page2}" Click="OnGoToPage" Margin="0,0,4,0" />
                     <Button Content="Spells" Tag="{Binding ElementName=Page3}" Click="OnGoToPage" />
@@ -132,7 +132,7 @@
             </DockPanel>
         </Border>
 
-        <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#D9D4CB" Focusable="False">
+        <ScrollViewer x:Name="Scroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{DynamicResource SheetBackdrop}" Focusable="False">
             <StackPanel x:Name="Pages" HorizontalAlignment="Center" Margin="24">
                 <StackPanel.LayoutTransform>
                     <ScaleTransform ScaleX="{Binding DataContext.Zoom, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -253,7 +253,7 @@
                                                             <TextBox Style="{StaticResource SheetNumber}" FontSize="12" Text="{Binding Score}"
                                                                      AutomationProperties.Name="{Binding Name, StringFormat={}{0} score}" />
                                                         </Border>
-                                                        <TextBlock HorizontalAlignment="Center" FontSize="8.5" Foreground="{StaticResource Accent}"
+                                                        <TextBlock HorizontalAlignment="Center" FontSize="8.5" Foreground="{DynamicResource Accent}"
                                                                    Text="{Binding EffectiveScore, StringFormat=effective {0}}"
                                                                    Visibility="{Binding IsModifiedByEffects, Converter={StaticResource VisibleWhen}}" />
                                                     </StackPanel>
@@ -404,7 +404,7 @@
                                                     <TextBlock Text="Hit Point Maximum" FontSize="9" Foreground="{StaticResource SheetFaint}" VerticalAlignment="Center" />
                                                     <TextBox Style="{StaticResource SheetNumber}" FontSize="11" Width="40" Text="{Binding Character.Combat.MaxHp}"
                                                              AutomationProperties.Name="Hit point maximum" />
-                                                    <TextBlock FontSize="9" Foreground="{StaticResource Accent}" VerticalAlignment="Center"
+                                                    <TextBlock FontSize="9" Foreground="{DynamicResource Accent}" VerticalAlignment="Center"
                                                                Text="{Binding MaxHitPoints, StringFormat=(effective {0})}"
                                                                Visibility="{Binding MaxHpModified, Converter={StaticResource VisibleWhen}}" />
                                                 </StackPanel>

@@ -11,7 +11,7 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,12">
             <StackPanel>
                 <TextBlock x:Name="HpText" FontSize="18" FontWeight="SemiBold" />
-                <TextBlock x:Name="DiceText" Foreground="{StaticResource InkMuted}" Margin="0,2,0,0" />
+                <TextBlock x:Name="DiceText" Foreground="{DynamicResource InkMuted}" Margin="0,2,0,0" />
             </StackPanel>
         </Border>
         <StackPanel x:Name="PoolRow" Orientation="Horizontal" Margin="0,0,0,8" Visibility="Collapsed">

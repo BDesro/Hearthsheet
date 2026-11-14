@@ -20,7 +20,7 @@
             <PasswordBox x:Name="ConfirmBox" Padding="4,3" AutomationProperties.Name="Confirm password" />
         </HeaderedContentControl>
         <CheckBox x:Name="RememberBox" Content="Stay signed in" IsChecked="True" Margin="0,0,0,10" />
-        <TextBlock x:Name="Feedback" TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{StaticResource Accent}"
+        <TextBlock x:Name="Feedback" TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource Accent}"
                    AutomationProperties.LiveSetting="Assertive" />
         <DockPanel>
             <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">

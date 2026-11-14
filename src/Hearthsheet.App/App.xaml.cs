@@ -85,6 +85,7 @@ public partial class App
             return;
         }
 
+        Themes.ThemeManager.Apply(UiPreferences.LoadTheme(AppPaths.UiPreferences)); // before the window shows: no light flash
         var window = new MainWindow { DataContext = main };
         MainWindow = window;
         window.Show();
