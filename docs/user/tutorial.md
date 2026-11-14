@@ -49,6 +49,7 @@ Switch to **Play** when the game starts.
 - **Hit points**: type an amount and press **Damage** or **Heal**. Temporary hit points are used up first. **Set HP** sets the number directly.
 - **Death saves**: at 0 hit points, record each **Success** or **Failure**, or a **Natural 20** or **Natural 1**.
 - **Spell slots and casting**: **Cast** a prepared spell and pick the slot level. Hearthsheet spends the slot and keeps track of concentration.
+- **Attacks**: press **Roll** next to an attack, enter your d20 and damage dice (or **Roll for me**). Hearthsheet adds your bonuses, doubles the dice on a critical hit and totals each damage type, and the result goes in the session log.
 - **Resources**: class features with limited uses (rage, ki, channel divinity and so on) have a **Use** button.
 - **Conditions and effects**: tick conditions as they happen, and add active effects that change your numbers for a while.
 - **Quick add**: pick up an item, a spell or a feature mid-session without leaving Play.
