@@ -86,11 +86,11 @@ in the web character list.
 
 ### Shrinking
 
-- Desktop: use WPF's `ToolBar` (its overflow already moves buttons that don't fit into a ⋯ popup). Under a width
+- Desktop: a row of styled buttons (see "Overflow, simplified" below). Under a width
   threshold, button labels collapse and icons stay (tooltips and `AutomationProperties.Name` keep the label).
-  Priority order for overflow: Help first, then Sync, Print, Save; New stays visible longest.
+  Buttons are never hidden on the desktop.
 - Web: a flex row; at a medium breakpoint labels hide (visually hidden, still announced), at narrow width the lower
-  priority buttons move into ⋯ More. Same priority order as desktop.
+  priority buttons hide (they are always in ⋯ More). Hide order: Help first, then Sync, Print; New stays longest.
 - Icons: Segoe Fluent Icons / Segoe MDL2 Assets glyphs on desktop (already on Windows, no new assets). Inline SVG or
   text glyphs on the web (no icon library).
 
@@ -105,7 +105,7 @@ in the web character list.
   view XAML move into theme resources. `Sheet*` brushes stay light-only.
 - Desktop controls to restyle so they follow the theme: ComboBox (box and drop-down list), CheckBox, ScrollBar,
   ToolTip, ContextMenu and MenuItem (also used by the ⋯ and Help popups), the DataGrid's remaining parts, the
-  `ToolBar` itself, and the window title bar (dark title bar via `DwmSetWindowAttribute` with
+  ListBox, RadioButton, PasswordBox, ProgressBar and TabControl, and the window title bar (dark title bar via `DwmSetWindowAttribute` with
   `DWMWA_USE_IMMERSIVE_DARK_MODE`). Every dialog window (`Views/*Dialog.xaml`, Help, Update, Account) must use the
   themed resources too.
 - "Match system" on desktop reads Windows' app theme (`AppsUseLightTheme` under
@@ -114,7 +114,7 @@ in the web character list.
 - Web: dark values for the CSS variables under `:root[data-theme="dark"]` and under
   `@media (prefers-color-scheme: dark)` for Match system; set `color-scheme` so native form controls and
   scrollbars follow. The sheet view keeps light colours. `@media print` always uses the light values.
-  The service worker's offline page and the sign-in screen are themed too.
+  The sign-in screen and dialogs are themed too.
 - Persisting the choice: web in `localStorage` (the existing `setLocal`/`local` helpers). Desktop: builder's call
   (see below).
 - Help documents (`docs/user/*` rendered in the Help window and web viewer) must be readable in dark.
@@ -134,10 +134,11 @@ in the web character list.
   "desk" goes dark. Play and Details go dark like everything else.
 - **Sync button state already exists:** desktop `SyncViewModel` has `IsConfigured`, `IsSignedIn`, `SignIn`,
   `SyncNow`; the web has `WebSync.RunAsync`/`IsBusy`. No new view-model state.
-- **Desktop overflow:** the ⋯ More button sits outside the `ToolBar`, docked right, so it's always reachable.
-  Items in the `ToolBar` are ordered so the lowest priority (Help) is last and overflows first. WPF's own overflow
-  chevron is hidden; overflowed items appear at the top of ⋯ More instead (via `ToolBar.OverflowMode` and a bound
-  list, or a simple width check in code-behind). The builder picks the simpler of the two that works.
+- **Overflow, simplified:** no WPF `ToolBar` control. The bar is a plain row of styled buttons plus an always-visible
+  ⋯ More docked right. On the web, ⋯ More always lists every command (including the ones that also have buttons), so
+  hiding a button never makes a command unreachable and nothing needs to track what overflowed. On the desktop the
+  window's minimum width (900 DIP) always fits the icon-only bar, so desktop buttons only collapse to icons and are
+  never hidden. ⋯ More and Help ▾ use flat lists (no nested submenus), which keeps the themed menu template simple.
 - **No light flash at startup:** desktop applies the theme before `MainWindow` is shown. The web sets `data-theme`
   from a small `js/theme.js` loaded by a `<script src>` in `index.html` before Blazor starts. The site's
   Content-Security-Policy forbids inline scripts, so it must be a file.
