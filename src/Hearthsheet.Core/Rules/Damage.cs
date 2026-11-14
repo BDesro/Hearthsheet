@@ -13,7 +13,7 @@ public static class DamageText
     private static readonly int[] ValidSides = [2, 3, 4, 6, 8, 10, 12, 20, 100];
 
     private static readonly Regex Term = new(
-        @"^\s*(?:(?<n>\d*)d(?<s>\d+)|(?<flat>\d+))\s*(?<type>[A-Za-z]+)?\s*$",
+        @"^\s*(?:(?<n>[0-9]*)d(?<s>[0-9]+)|(?<flat>[0-9]+))\s*(?<type>[A-Za-z]+)?\s*$",
         RegexOptions.CultureInvariant);
 
     /// <summary>The parts, an empty list for blank text, or null when the text isn't plain dice-and-types.</summary>
@@ -37,7 +37,8 @@ public static class DamageText
             if (m.Groups["s"].Success)
             {
                 if (negative) return null;
-                var count = m.Groups["n"].Length == 0 ? 1 : int.Parse(m.Groups["n"].Value);
+                var count = 1;
+                if (m.Groups["n"].Length > 0 && !int.TryParse(m.Groups["n"].Value, out count)) return null;
                 if (!int.TryParse(m.Groups["s"].Value, out var sides) || !ValidSides.Contains(sides)) return null;
                 if (count is < 1 or > 100) return null;
                 dice.Add(new DiceTerm(count, sides));

@@ -79,5 +79,8 @@ public class DamageTextTests
     [InlineData("(1d6) fire")]
     [InlineData("2d6 fire damage")]
     [InlineData("1d6 - 1d4")]
+    [InlineData("99999999999d6")]
+    [InlineData("٣d6")]
+    [InlineData("99999999999 fire")]
     public void Unparseable(string text) => Assert.Null(DamageText.TryParse(text));
 }
