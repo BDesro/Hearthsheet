@@ -16,7 +16,7 @@ All three show the same character, so a change in one view appears in the others
 
 ## Creating a character
 
-Choose **File → New character…** (Ctrl+N), or **Create character** when nothing is open.
+On the desktop, choose **File → New character…** (Ctrl+N), or **Create character** when nothing is open. On the web, click **+ New** above the character list.
 
 ![The New character dialog, filled in for a level 3 elf wizard](images/new-character.png)
 
@@ -75,11 +75,11 @@ If you want the same characters on another computer or in the web app, sign in f
 
 ## Getting help
 
-The **Help** menu opens this tutorial, the beginner's guide and the legal notes at any time, and links to the D&D 5e wikidot for looking up rules.
+The **Help** menu (on the web, the menu under your email address) opens this tutorial, the beginner's guide and the legal notes at any time, and links to the D&D 5e wikidot for looking up rules.
 
 ![The Help menu](images/help-menu.png)
 
-## Keyboard shortcuts
+## Keyboard shortcuts (desktop)
 
 - Ctrl+N: new character
 - Ctrl+S: save
