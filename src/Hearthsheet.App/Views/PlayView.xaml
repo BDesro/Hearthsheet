@@ -157,6 +157,32 @@
             <StackPanel Grid.Column="1">
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="ATTACKS" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="0" Text="No attacks yet. Add them in Details → Combat."
+                                   Visibility="{Binding Character.Attacks.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                        <ItemsControl ItemsSource="{Binding Play.Attacks}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:AttackRow}">
+                                    <DockPanel Margin="0,0,0,6">
+                                        <Button DockPanel.Dock="Right" Content="Roll" Padding="10,3" VerticalAlignment="Top"
+                                                Command="{Binding DataContext.Play.RollAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Model}"
+                                                AutomationProperties.Name="{Binding Name, StringFormat=Roll {0}}" />
+                                        <StackPanel>
+                                            <TextBlock>
+                                                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Run Text="{Binding AttackBonus, Mode=OneWay, Converter={StaticResource Mod}}" />
+                                            </TextBlock>
+                                            <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource InkMuted}" Text="{Binding DamageRoll}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource CardTitle}" Text="RESOURCES" />
                         <TextBlock Style="{StaticResource Hint}" Margin="0" Text="No tracked resources yet. Add one with Quick add → Resource."
                                    Visibility="{Binding Character.Resources.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />

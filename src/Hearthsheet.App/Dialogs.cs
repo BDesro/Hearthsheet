@@ -58,7 +58,9 @@ public sealed class Dialogs : IDialogs
     public Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         Task.FromResult(new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true);
 
-    public Task<bool> AttackRollAsync(AttackRollViewModel vm) => Task.FromResult(false); // replaced by the real dialog in a later task
+    /// <returns>True when the user pressed Done; the caller then logs the roll.</returns>
+    public Task<bool> AttackRollAsync(AttackRollViewModel vm) =>
+        Task.FromResult(new AttackRollDialog { Owner = Owner, DataContext = vm }.ShowDialog() == true);
 
     public void ShowUpdates(UpdateViewModel vm) =>
         new UpdateDialog { Owner = Owner, DataContext = vm }.ShowDialog();
