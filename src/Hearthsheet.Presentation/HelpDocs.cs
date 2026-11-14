@@ -72,6 +72,7 @@ public static partial class HelpDocs
     {
         var blocks = new List<HelpBlock>();
         var paragraph = new List<string>();
+        var slugs = new Dictionary<string, int>();
         void Flush()
         {
             if (paragraph.Count == 0) return;
@@ -86,8 +87,12 @@ public static partial class HelpDocs
             if (HeadingLine().Match(line) is { Success: true } h)
             {
                 Flush();
-                var text = h.Groups[2].Value.Trim();
-                blocks.Add(new HelpBlock(HelpBlockKind.Heading, Inline(text), h.Groups[1].Length, Slug(text)));
+                var runs = Inline(h.Groups[2].Value.Trim());
+                // Like GitHub: slug the rendered text, and number repeats ("notes", "notes-1", ...).
+                var slug = Slug(string.Concat(runs.Select(r => r.Text)));
+                var seen = slugs.GetValueOrDefault(slug);
+                slugs[slug] = seen + 1;
+                blocks.Add(new HelpBlock(HelpBlockKind.Heading, runs, h.Groups[1].Length, seen == 0 ? slug : $"{slug}-{seen}"));
             }
             else if (line.StartsWith("- ", StringComparison.Ordinal))
             {

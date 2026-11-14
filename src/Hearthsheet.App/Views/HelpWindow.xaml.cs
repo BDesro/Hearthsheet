@@ -34,7 +34,16 @@ public partial class HelpWindow
         _instance.Activate();
     }
 
-    public static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    public static void OpenUrl(string url)
+    {
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        // No browser registered (Win32Exception) or the shell refused: say so instead of crashing the app.
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            MessageBox.Show($"Couldn't open a web browser. The address is:\n\n{url}", "Hearthsheet",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
 
     private void Navigate(string file, string? anchor)
     {
