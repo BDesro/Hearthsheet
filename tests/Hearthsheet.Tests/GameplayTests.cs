@@ -263,4 +263,19 @@ public class GameplayTests
         c.RestorePactSlot();
         Assert.Equal(1, c.Spellcasting.PactSlots.Available);
     }
+
+    [Fact]
+    public void Healing_above_max_never_lowers_hp()
+    {
+        // Current HP can sit above max, e.g. after an effect raising max HP ends.
+        var c = Fighter();
+        c.Combat.CurrentHp = 25;
+
+        var message = c.Heal(1);
+        var healed = c.SpendHitDie(10, 5);
+
+        Assert.Equal(25, c.Combat.CurrentHp);
+        Assert.Equal(0, healed);
+        Assert.DoesNotContain("-", message);
+    }
 }

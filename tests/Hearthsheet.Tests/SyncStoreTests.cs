@@ -112,7 +112,7 @@ public abstract class SyncStoreContract<TStore> : IDisposable where TStore : ICh
     {
         var repo = Open();
         var library = new CharacterLibrary(repo, new PortableCharacterFile(), "1.0.0", NullLogger<CharacterLibrary>.Instance);
-        foreach (var name in new[] { "Arannis", "Arannis", "Bo/rin" })
+        foreach (var name in new[] { "Arannis", "Arannis", "Bo/rin", "Who? Me: \"Yes\"" })
         {
             var c = new Character();
             c.Identity.Name = name;
@@ -125,12 +125,12 @@ public abstract class SyncStoreContract<TStore> : IDisposable where TStore : ICh
         using var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Read);
 
         var names = zip.Entries.Select(e => e.FullName).Order().ToList();
-        Assert.Equal(["Arannis (2).dndchar", "Arannis.dndchar", "Bo_rin.dndchar"], names);
+        Assert.Equal(["Arannis (2).dndchar", "Arannis.dndchar", "Bo_rin.dndchar", "Who_ Me_ _Yes_.dndchar"], names);
         foreach (var entry in zip.Entries)
         {
             using var reader = new StreamReader(entry.Open());
             var imported = library.Import(reader.ReadToEnd(), entry.FullName);
-            Assert.Equal(entry.FullName.StartsWith("Arannis") ? "Arannis" : "Bo/rin", imported.Identity.Name);
+            Assert.Equal(entry.FullName[0] switch { 'A' => "Arannis", 'B' => "Bo/rin", _ => "Who? Me: \"Yes\"" }, imported.Identity.Name);
         }
     }
 

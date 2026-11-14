@@ -66,6 +66,22 @@ public class HelpDocsTests
     public void Slug_matches_github(string heading, string slug) => Assert.Equal(slug, HelpDocs.Slug(heading));
 
     [Fact]
+    public void Heading_anchor_uses_rendered_text_like_github()
+    {
+        var blocks = HelpDocs.Parse("## Using **Play** and [rests](#rests)");
+
+        Assert.Equal("using-play-and-rests", blocks[0].Anchor);
+    }
+
+    [Fact]
+    public void Duplicate_headings_get_numbered_anchors_like_github()
+    {
+        var blocks = HelpDocs.Parse("## Notes\n\n## Notes\n\n## Notes");
+
+        Assert.Equal(["notes", "notes-1", "notes-2"], blocks.Select(b => b.Anchor));
+    }
+
+    [Fact]
     public void FindAnchor_found_and_missing_returns_minus_one()
     {
         var blocks = HelpDocs.Parse("# Top\n\nText\n\n## Rests");

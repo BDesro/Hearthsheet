@@ -53,7 +53,7 @@ public sealed partial class Character
         if (amount <= 0) return "No healing.";
         if (CharacterRules.IsDead(this)) return "Character is dead; healing has no effect.";
         var before = Combat.CurrentHp;
-        SetHitPoints(before + amount);
+        RaiseHitPoints(before + amount);
         return $"Healed {Combat.CurrentHp - before} HP.";
     }
 
@@ -64,6 +64,12 @@ public sealed partial class Character
         Combat.CurrentHp = Math.Clamp(value, 0, CharacterRules.MaxHitPoints(this));
         if (before == 0 && Combat.CurrentHp > 0) Revive();
         else if (before > 0 && Combat.CurrentHp == 0) FallUnconscious();
+    }
+
+    // Healing never lowers HP that sits above max (e.g. after an effect raising max HP ended).
+    private void RaiseHitPoints(int value)
+    {
+        if (Combat.CurrentHp < CharacterRules.MaxHitPoints(this)) SetHitPoints(value);
     }
 
     /// <summary>Temporary HP don't stack: the higher of current and new is kept.</summary>
@@ -118,7 +124,7 @@ public sealed partial class Character
         entry.HitDiceRemaining--;
         var healing = Math.Max(0, roll + CharacterRules.AbilityModifier(this, Ability.Constitution));
         var before = Combat.CurrentHp;
-        SetHitPoints(before + healing);
+        RaiseHitPoints(before + healing);
         return Combat.CurrentHp - before;
     }
 

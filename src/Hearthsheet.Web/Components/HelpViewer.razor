@@ -8,21 +8,20 @@
 
 @if (Help.File is not null)
 {
-    <dialog @ref="_element" class="dialog help" aria-labelledby="help-title" @onclose="Help.Close">
+    <dialog @ref="_element" class="dialog help" aria-labelledby="@("help-" + _blocks.FirstOrDefault()?.Anchor)" @onclose="Help.Close">
         <div class="help-bar">
             <button type="button" disabled="@(!Help.CanGoBack)" @onclick="Help.Back">← Back</button>
             @* Closes the native dialog (like Escape) so the browser returns focus; its close event then calls Help.Close. *@
             <button type="button" autofocus @onclick="CloseAsync">Close</button>
         </div>
         <div class="help-body" @ref="_body">
-            @for (var i = 0; i < _blocks.Count; i++)
+            @* Every doc opens with its # title, so the dialog is labelled by the first heading's id. *@
+            @foreach (var block in _blocks)
             {
-                var block = _blocks[i];
-                var titleId = i == 0 ? "help-title" : null;
                 switch (block.Kind)
                 {
                     case HelpBlockKind.Heading when block.Level == 1:
-                        <h1 id="@(titleId ?? "help-" + block.Anchor)">@Inlines(block)</h1>
+                        <h1 id="@("help-" + block.Anchor)">@Inlines(block)</h1>
                         break;
                     case HelpBlockKind.Heading when block.Level == 2:
                         <h2 id="@("help-" + block.Anchor)">@Inlines(block)</h2>
