@@ -24,4 +24,23 @@
     <SolidColorBrush x:Key="SheetBackdrop" Color="#141110" />
     <!-- Behind the intro video: dark in both themes. -->
     <SolidColorBrush x:Key="IntroBackdrop" Color="#101212" />
+    <!--
+        Dark only: Windows' own control parts (a table cell's edit box, a scroll corner, disabled text) read these
+        system colours. Light mode keeps Windows' values, so they aren't in Light.xaml (ThemeTests skip {x:Static} keys).
+    -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#2A2420" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#EDE6DA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#221D19" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#EDE6DA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#3E3630" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="#62574D" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#B5A99B" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#E5837A" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#1F1B16" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#4A2C27" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#EDE6DA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoBrushKey}" Color="#2A2420" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}" Color="#EDE6DA" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#2A2420" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#EDE6DA" />
 </ResourceDictionary>

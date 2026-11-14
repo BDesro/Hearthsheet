@@ -74,7 +74,7 @@
                 <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="IsReadOnly" Value="True" /></DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="LockedForWeapon" TargetType="CheckBox" BasedOn="{x:Static DataGridCheckBoxColumn.DefaultEditingElementStyle}">
+        <Style x:Key="LockedForWeapon" TargetType="CheckBox" BasedOn="{StaticResource GridCheckEdit}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger>
             </Style.Triggers>
@@ -387,7 +387,7 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="100" ItemsSource="{x:Static vm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Ability}" />
-                            <DataGridCheckBoxColumn Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource ComputedForWeapon}"
+                            <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource ComputedForWeapon}"
                                                     EditingElementStyle="{StaticResource LockedForWeapon}" />
                             <DataGridTextColumn Header="Extra bonus" Width="Auto" Binding="{Binding Model.Bonus}" />
                             <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
@@ -499,9 +499,9 @@
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Qty" Width="Auto" MinWidth="60" Binding="{Binding Quantity}" />
                             <DataGridTextColumn Header="Weight (lb)" Width="Auto" MinWidth="90" Binding="{Binding Weight}" />
-                            <DataGridCheckBoxColumn Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -530,7 +530,7 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="95" ItemsSource="{x:Static vm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Model.Ability}" />
-                            <DataGridCheckBoxColumn Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" CellStyle="{StaticResource ComputedCell}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="Damage" Width="Auto" MinWidth="55" Binding="{Binding Model.Damage}" />
                             <DataGridTextColumn Header="Type" Width="Auto" MinWidth="60" Binding="{Binding Model.DamageType}" />
@@ -568,9 +568,9 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Weight (lb)" Width="Auto" MinWidth="90" Binding="{Binding Weight}" />
-                            <DataGridCheckBoxColumn Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -642,7 +642,7 @@
                     </DockPanel>
                     <DataGrid x:Name="SpellGrid" ItemsSource="{Binding Character.Spellcasting.Spells}">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridComboBoxColumn Header="Lvl" Width="Auto" MinWidth="55" ItemsSource="{x:Static vm:Lookups.SpellLevels}" SelectedItemBinding="{Binding Level}" />
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTemplateColumn Header="Class" Width="Auto" MinWidth="90" IsReadOnly="True"
@@ -666,8 +666,8 @@
                             <DataGridTextColumn Header="Range" Width="Auto" MinWidth="80" Binding="{Binding Range}" />
                             <DataGridTextColumn Header="Components" Width="Auto" MinWidth="90" Binding="{Binding Components}" />
                             <DataGridTextColumn Header="Duration" Width="Auto" MinWidth="95" Binding="{Binding Duration}" />
-                            <DataGridCheckBoxColumn Header="Conc." Width="Auto" MinWidth="50" Binding="{Binding Concentration, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Ritual" Width="Auto" MinWidth="50" Binding="{Binding Ritual, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Conc." Width="Auto" MinWidth="50" Binding="{Binding Concentration, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Ritual" Width="Auto" MinWidth="50" Binding="{Binding Ritual, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>

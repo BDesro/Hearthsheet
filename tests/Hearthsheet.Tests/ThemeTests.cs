@@ -20,7 +20,7 @@ public class ThemeTests
     {
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         return XDocument.Load(Path.Combine(AppDir, "Themes", file)).Root!.Elements()
-            .Where(e => e.Name.LocalName == "SolidColorBrush")
+            .Where(e => e.Name.LocalName == "SolidColorBrush" && !((string)e.Attribute(x + "Key")!).StartsWith('{'))
             .ToDictionary(e => (string)e.Attribute(x + "Key")!, e => (string)e.Attribute("Color")!);
     }
 
