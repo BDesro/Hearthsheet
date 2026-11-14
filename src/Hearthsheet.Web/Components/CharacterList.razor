@@ -7,6 +7,7 @@
 @using Microsoft.Extensions.Logging
 @using Microsoft.JSInterop
 @inject WebDialogs Dialogs
+@inject WebHelp Help
 @inject ILogger<CharacterList> Log
 
 <div class="sidebar-head">
@@ -23,6 +24,7 @@
 @if (Shell.Characters.Count == 0)
 {
     <p class="hint">No characters yet. Create one or import a .dndchar file.</p>
+    <p class="hint"><button type="button" class="link" @onclick="() => Help.Open(HelpDocs.Tutorial)">New to Hearthsheet? Read the tutorial</button></p>
 }
 <ul class="character-list">
     @foreach (var summary in Shell.Characters)

@@ -1,10 +1,12 @@
 @* Same fields and checks as the desktop's New character dialog. Shown inside Modal. *@
 @using Hearthsheet.Core.Content
 @using Hearthsheet.Presentation
+@inject WebHelp Help
 
 <form class="new-character" @onsubmit="Create">
     <h2 id="dialog-title">Create a character</h2>
     <p class="hint">Built-in classes pre-fill hit die, saving throws, average HP and spell slots. Everything can be changed later.</p>
+    <p><button type="button" class="link" @onclick="() => Help.Open(HelpDocs.Tutorial, HelpDocs.CreatingACharacter)">Need help?</button></p>
 
     <label for="new-name">Character name</label>
     <input id="new-name" autofocus @ref="_nameInput" @bind="_name" @bind:event="oninput" />

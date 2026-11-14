@@ -1,0 +1,133 @@
+@* The one host for WebHelp: the bundled player docs (HelpDocs) in their own native modal <dialog>, so it opens in
+   the top layer above any dialog already showing. Escape or Close shuts it, and the browser returns focus. *@
+@using Hearthsheet.Presentation
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject WebHelp Help
+@inject IJSRuntime JS
+
+@if (Help.File is not null)
+{
+    <dialog @ref="_element" class="dialog help" aria-labelledby="help-title" @onclose="Help.Close">
+        <div class="help-bar">
+            <button type="button" disabled="@(!Help.CanGoBack)" @onclick="Help.Back">← Back</button>
+            @* Closes the native dialog (like Escape) so the browser returns focus; its close event then calls Help.Close. *@
+            <button type="button" autofocus @onclick="CloseAsync">Close</button>
+        </div>
+        <div class="help-body" @ref="_body">
+            @for (var i = 0; i < _blocks.Count; i++)
+            {
+                var block = _blocks[i];
+                var titleId = i == 0 ? "help-title" : null;
+                switch (block.Kind)
+                {
+                    case HelpBlockKind.Heading when block.Level == 1:
+                        <h1 id="@(titleId ?? "help-" + block.Anchor)">@Inlines(block)</h1>
+                        break;
+                    case HelpBlockKind.Heading when block.Level == 2:
+                        <h2 id="@("help-" + block.Anchor)">@Inlines(block)</h2>
+                        break;
+                    case HelpBlockKind.Heading:
+                        <h3 id="@("help-" + block.Anchor)">@Inlines(block)</h3>
+                        break;
+                    case HelpBlockKind.Bullet:
+                        <ul><li>@Inlines(block)</li></ul>
+                        break;
+                    case HelpBlockKind.Image:
+                        <img src="@ImageSource(block.Image!)" alt="@block.Runs[0].Text" />
+                        break;
+                    default:
+                        <p>@Inlines(block)</p>
+                        break;
+                }
+            }
+        </div>
+    </dialog>
+}
+
+@code {
+    private ElementReference _element;
+    private ElementReference _body;
+    private IReadOnlyList<HelpBlock> _blocks = [];
+    private string? _shownFile;
+    private bool _opened;
+    private bool _scrollPending;
+    private IJSObjectReference? _js;
+
+    protected override void OnInitialized() => Help.Changed += OnChanged;
+
+    private void OnChanged()
+    {
+        if (Help.File is { } file) _blocks = HelpDocs.Load(file);
+        _scrollPending = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Help.File is null)
+        {
+            _opened = false;
+            _shownFile = null;
+            return;
+        }
+        _js ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
+        if (!_opened)
+        {
+            _opened = true;
+            await _js.InvokeVoidAsync("helpShow", _element);
+        }
+        if (_scrollPending)
+        {
+            _scrollPending = false;
+            var target = HelpDocs.FindAnchor(_blocks, Help.Anchor) >= 0 ? "help-" + Help.Anchor : null;
+            await _js.InvokeVoidAsync("helpScroll", _body, target, _shownFile != Help.File || target is null);
+            _shownFile = Help.File;
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        if (_js is null) Help.Close();
+        else await _js.InvokeVoidAsync("helpClose", _element);
+    }
+
+    private RenderFragment Inlines(HelpBlock block) => builder =>
+    {
+        foreach (var run in block.Runs)
+        {
+            RenderFragment text = b =>
+            {
+                if (run.Bold) { b.OpenElement(0, "b"); b.AddContent(1, run.Text); b.CloseElement(); }
+                else b.AddContent(2, run.Text);
+            };
+            switch (run.Link is null ? null : HelpDocs.ResolveLink(run.Link))
+            {
+                case { Url: { } url }:
+                    builder.OpenElement(3, "a");
+                    builder.AddAttribute(4, "href", url);
+                    builder.AddAttribute(5, "target", "_blank");
+                    builder.AddAttribute(6, "rel", "noopener noreferrer");
+                    builder.AddContent(7, text);
+                    builder.CloseElement();
+                    break;
+                case { } link:
+                    builder.OpenElement(8, "button");
+                    builder.AddAttribute(9, "type", "button");
+                    builder.AddAttribute(10, "class", "link");
+                    builder.AddAttribute(11, "onclick", EventCallback.Factory.Create(this, () => Help.Follow(link.Doc, link.Anchor)));
+                    builder.AddContent(12, text);
+                    builder.CloseElement();
+                    break;
+                default:
+                    builder.AddContent(13, text);
+                    break;
+            }
+        }
+    };
+
+    private static string? ImageSource(string path) =>
+        HelpDocs.LoadImage(path) is { } bytes ? "data:image/png;base64," + Convert.ToBase64String(bytes) : null;
+
+    public void Dispose() => Help.Changed -= OnChanged;
+}

@@ -8,6 +8,7 @@
 @using Microsoft.JSInterop
 @implements IDisposable
 @inject WebDialogs Dialogs
+@inject WebHelp Help
 @inject ILoggerFactory Loggers
 @inject MemoryLogProvider Logs
 @inject IJSRuntime JS
@@ -18,6 +19,11 @@
         <details class="account-menu">
             <summary>@(Account.Email ?? "Account")</summary>
             <div class="menu">
+                <button type="button" @onclick="() => Help.Open(HelpDocs.Tutorial)">Tutorial</button>
+                <button type="button" @onclick="() => Help.Open(HelpDocs.BeginnersGuide)">Beginner's guide to 5e</button>
+                <a href="@HelpDocs.WikidotUrl" target="_blank" rel="noopener noreferrer">Look up rules (D&amp;D 5e wikidot)</a>
+                <button type="button" @onclick="() => Help.Open(HelpDocs.Legal)">Legal and credits</button>
+                <hr />
                 <button type="button" disabled="@_sync.IsBusy" @onclick="_sync.RunAsync">Sync now</button>
                 <button type="button" @onclick="ExportAllAsync">Export all characters</button>
                 <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
