@@ -1,5 +1,7 @@
-/* The desktop's look (src/Hearthsheet.App/Themes/Styles.xaml) on the web: warm paper neutrals, dark ink, one crimson
-   accent. Light only, like the desktop. Keep the tokens in step with Styles.xaml. */
+/* The desktop's look on the web: warm paper neutrals, dark ink, one crimson accent, with a warm dark theme.
+   Keep the tokens in step with src/Hearthsheet.App/Themes/Light.xaml and Dark.xaml. js/theme.js sets
+   data-theme on <html> ("light" or "dark", following the system when the user picked Match system).
+   Colours belong in token rules; ThemeTests checks both themes and their contrast. */
 :root {
     color-scheme: light;
     --ink: #1F1B16;
@@ -8,6 +10,7 @@
     --accent-hover: #A63A30;
     --accent-soft: #F3E3DF;
     --accent-pressed: #E8CFC9;
+    --on-accent: #FFFFFF;
     --surface: #FFFFFF;
     --read-only: #F5F2EC;
     --canvas: #F4F1EB;
@@ -18,6 +21,34 @@
     --good: #2F6B3A;
     --danger: #A12C2C;
     --danger-soft: #FBEFED;
+    --sheet-backdrop: #D9D4CB;
+    --banner-bg: #FDE68A;
+    --banner-ink: #1F1F1F;
+    --shadow: 31, 27, 22;
+}
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --ink: #EDE6DA;
+    --ink-muted: #B5A99B;
+    --accent: #E5837A;
+    --accent-hover: #EE998F;
+    --accent-soft: #4A2C27;
+    --accent-pressed: #5A332D;
+    --on-accent: #1F1B16;
+    --surface: #2A2420;
+    --read-only: #322B26;
+    --canvas: #1B1714;
+    --sidebar: #221D19;
+    --sidebar-hover: #2E2722;
+    --line: #3E3630;
+    --line-strong: #62574D;
+    --good: #86C994;
+    --danger: #F0908A;
+    --danger-soft: #3D2220;
+    --sheet-backdrop: #141110;
+    --banner-bg: #5C4A12;
+    --banner-ink: #FDE68A;
+    --shadow: 0, 0, 0;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -40,7 +71,7 @@ button, .file-button {
 button:hover:not(:disabled), .file-button:hover { background: var(--accent-soft); border-color: var(--accent); }
 button:active:not(:disabled) { background: var(--accent-pressed); }
 button:disabled { opacity: 0.45; cursor: default; }
-button.accent { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 button.accent:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
 button.danger { color: var(--danger); }
 button.icon { min-height: 0; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 11px; background: transparent; color: var(--ink-muted); }
@@ -63,8 +94,8 @@ input.dice { width: 7rem; }
 /* App bar, banners and full-page screens */
 .app-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 12px; min-height: 36px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .app-bar h1 { margin: 0; font-size: 15px; color: var(--accent); }
-.preview-banner { background: #fde68a; color: #1f1f1f; padding: 0.5rem 1rem; text-align: center; }
-#blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 0.6rem 1rem; background: #fde68a; color: #1f1f1f; }
+.preview-banner { background: var(--banner-bg); color: var(--banner-ink); padding: 0.5rem 1rem; text-align: center; }
+#blazor-error-ui { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 0.6rem 1rem; background: var(--banner-bg); color: var(--banner-ink); }
 .update-banner, .install-hint { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; padding: 0.5rem 1rem; }
 .update-banner { background: var(--accent-soft); font-weight: 600; }
 .install-hint { background: var(--surface); border-bottom: 1px solid var(--line); }
@@ -77,12 +108,12 @@ input.dice { width: 7rem; }
 .sign-in form label { display: block; margin-top: 0.75rem; font-size: 11.5px; font-weight: 600; color: var(--ink-muted); }
 .sign-in form label.check { display: flex; gap: 0.4rem; align-items: center; font-size: 13px; font-weight: normal; color: var(--ink); }
 .sign-in form input:not([type=checkbox]) { display: block; width: 100%; margin-top: 3px; }
-.sign-in form button[type=submit] { margin-top: 1rem; background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.sign-in form button[type=submit] { margin-top: 1rem; background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .sign-in-links { display: flex; gap: 1rem; flex-wrap: wrap; }
 
 /* Dialogs */
-dialog.dialog { width: min(30rem, calc(100vw - 2rem)); padding: 16px 20px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 30px rgba(31, 27, 22, 0.25); }
-dialog.dialog::backdrop { background: rgba(31, 27, 22, 0.35); }
+dialog.dialog { width: min(30rem, calc(100vw - 2rem)); padding: 16px 20px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 30px rgba(var(--shadow), 0.25); }
+dialog.dialog::backdrop { background: rgba(var(--shadow), 0.35); }
 dialog.dialog h2 { margin: 0 0 0.5rem; font-size: 17px; }
 dialog.dialog label { display: block; margin-top: 0.75rem; font-size: 11.5px; font-weight: 600; color: var(--ink-muted); }
 dialog.dialog label.inline { display: inline-flex; gap: 0.4rem; align-items: center; margin: 0.25rem 0; font-size: 13px; font-weight: normal; color: var(--ink); }
@@ -90,7 +121,7 @@ dialog.dialog :is(input:not([type=radio], [type=checkbox], .amount), select, tex
 .dialog-message { white-space: pre-line; overflow-wrap: anywhere; }
 .dialog-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 dialog.dialog .dialog-buttons, section.dialog .dialog-buttons { margin-top: 1rem; justify-content: flex-end; }
-dialog.dialog button[type=submit] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+dialog.dialog button[type=submit] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
 .field-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 .field-row > div { flex: 1 1 10rem; }
 fieldset.plain { border: 0; padding: 0; margin: 0.75rem 0 0; }
@@ -113,7 +144,7 @@ fieldset.plain legend { font-weight: 600; padding: 0; }
 .account-menu summary::-webkit-details-marker { display: none; }
 .account-menu summary::before { content: "● "; color: var(--good); }
 .account-menu summary::after { content: " ▾"; color: var(--ink-muted); }
-.account-menu .menu { position: absolute; right: 0; z-index: 10; display: flex; flex-direction: column; gap: 4px; min-width: 14rem; padding: 6px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; box-shadow: 0 4px 16px rgba(31, 27, 22, 0.15); }
+.account-menu .menu { position: absolute; right: 0; z-index: 10; display: flex; flex-direction: column; gap: 4px; min-width: 14rem; padding: 6px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; box-shadow: 0 4px 16px rgba(var(--shadow), 0.15); }
 .account-menu .menu button { justify-content: flex-start; border-color: transparent; }
 
 .sidebar { grid-area: sidebar; min-width: 0; display: flex; flex-direction: column; background: var(--sidebar); border-right: 4px solid var(--line); padding: 14px 14px 12px; }
@@ -176,7 +207,7 @@ fieldset.plain legend { font-weight: 600; padding: 0; }
 .stats dt { font-size: 11px; color: var(--ink-muted); }
 .stats dd { margin: 0; font-size: 22px; font-weight: 600; }
 .pill { min-height: 0; border-radius: 12px; padding: 3px 10px; border-color: var(--line); }
-.pill[aria-pressed=true], .pill[aria-pressed=true]:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pill[aria-pressed=true], .pill[aria-pressed=true]:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
 .rows { list-style: none; padding: 0; margin: 0; }
 .row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 6px; }
@@ -262,17 +293,17 @@ table.grid .nowrap { white-space: nowrap; }
 
 /* Character sheet (src/Hearthsheet.App/Themes/SheetStyles.xaml): three letter-size pages of black ink on white, rounded
    boxes, small-caps labels under values. 816×1056 CSS px is the desktop's DIP layout and prints 1:1. */
-.sheet { --sheet-ink: #111111; --sheet-line: #2A2A2A; --sheet-faint: #696969; --sheet-shade: #F1EFEA; } /* faint: 4.5:1 on white and shade */
+.sheet { --sheet-ink: #111111; --sheet-line: #2A2A2A; --sheet-faint: #696969; --sheet-shade: #F1EFEA; --sheet-paper: #FFFFFF; --sheet-focus: #FBF6F4; --sheet-shadow: rgba(0, 0, 0, 0.18); } /* faint: 4.5:1 on white and shade */
 .sheet-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .sheet-goto { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .sheet-goto a { color: var(--accent); }
-.sheet-scroll { overflow-x: auto; padding: 24px; background: #D9D4CB; }
+.sheet-scroll { overflow-x: auto; padding: 24px; background: var(--sheet-backdrop); }
 .sheet-page {
     display: flex; flex-direction: column; width: 816px; min-height: 1056px; margin: 0 auto 24px; padding: 26px 28px;
-    background: #FFFFFF; color: var(--sheet-ink); font-size: 12px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18); scroll-margin-top: 48px;
+    background: var(--sheet-paper); color: var(--sheet-ink); font-size: 12px; box-shadow: 0 2px 14px var(--sheet-shadow); scroll-margin-top: 48px;
 }
 .sheet-page:last-child { margin-bottom: 0; }
-.sheet .box { border: 1.4px solid var(--sheet-line); border-radius: 7px; padding: 5px 6px; margin: 3px; background: #FFFFFF; min-width: 0; }
+.sheet .box { border: 1.4px solid var(--sheet-line); border-radius: 7px; padding: 5px 6px; margin: 3px; background: var(--sheet-paper); min-width: 0; }
 .sheet .box.shade { background: var(--sheet-shade); }
 .sheet .label { display: block; font-size: 8.5px; font-weight: 700; font-variant-caps: all-small-caps; text-align: center; letter-spacing: 0.02em; }
 .sheet .label.left { text-align: left; }
@@ -294,7 +325,7 @@ table.grid .nowrap { white-space: nowrap; }
 .sheet .sa { display: block; resize: none; font-size: 11px; border-bottom: 0; }
 .sheet .sa.grow { field-sizing: content; min-height: 1.4em; font-size: 10px; }
 .sheet :is(.si, .sn, .sa, select):hover { border-bottom-color: var(--sheet-faint); }
-.sheet :is(.si, .sn, .sa, select):focus { outline: none; border-bottom-color: var(--accent); background: #FBF6F4; }
+.sheet :is(.si, .sn, .sa, select):focus { outline: none; border-bottom-color: var(--accent); background: var(--sheet-focus); }
 .sheet .si[readonly] { border-bottom-color: transparent; background: transparent; }
 .sheet .si.big { font-size: 20px; font-weight: 600; }
 .sheet .si.strong { font-size: 11px; font-weight: 700; }
@@ -398,7 +429,7 @@ table.grid .nowrap { white-space: nowrap; }
 .spell-head { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; font-size: 11px; }
 .spell-head strong { margin: 0 auto 0 4px; font-weight: 600; }
 .spell-head .sn { width: 26px; font-size: 11px; }
-.level-badge { flex: none; width: 34px; padding: 2px; border-radius: 4px; background: var(--sheet-ink); color: #FFFFFF; font-size: 15px; font-weight: 700; text-align: center; }
+.level-badge { flex: none; width: 34px; padding: 2px; border-radius: 4px; background: var(--sheet-ink); color: var(--sheet-paper); font-size: 15px; font-weight: 700; text-align: center; }
 .sheet-row.spell { grid-template-columns: 18px minmax(0, 1fr) 18px; }
 
 /* Printing: only the sheet's pages, one per letter sheet with no margins, inputs as plain text. */
