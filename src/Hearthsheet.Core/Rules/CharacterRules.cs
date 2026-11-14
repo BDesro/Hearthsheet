@@ -228,14 +228,40 @@ public static class CharacterRules
     /// e.g. "1d8 + 3 slashing + 2d6 fire". A non-weapon attack's free text is returned as is.
     /// </summary>
     public static string DamageRoll(Character c, Attack attack) => WeaponOf(c, attack) is { } w
-        ? string.Join(" + ", DamageParts(c, w, string.IsNullOrWhiteSpace(attack.Dice) ? w.Damage : attack.Dice).Where(p => p.Length > 0))
+        ? string.Join(" + ", DamageGroups(c, w, WeaponDice(w, attack)).Select(FormatGroup).Where(p => p.Length > 0))
         : attack.Damage;
 
-    /// <summary>The weapon's extra typed damage from its effects, e.g. "2d6 fire".</summary>
-    public static string AdditionalDamage(Character c, Weapon w) => string.Join(" + ", DamageParts(c, w, w.Damage).Skip(1));
+    private static string WeaponDice(Weapon w, Attack attack) => string.IsNullOrWhiteSpace(attack.Dice) ? w.Damage : attack.Dice;
 
-    /// <summary>One part per damage type; the first is always the weapon's main damage (possibly empty).</summary>
-    private static List<string> DamageParts(Character c, Weapon w, string dice)
+    /// <summary>The attack's damage as typed parts (same grouping as <see cref="DamageRoll"/>), or null when its text isn't plain dice.</summary>
+    public static IReadOnlyList<DamagePart>? DamageParts(Character c, Attack attack)
+    {
+        if (WeaponOf(c, attack) is not { } w) return DamageText.TryParse(attack.Damage);
+        var result = new List<DamagePart>();
+        foreach (var (type, dice, flat) in DamageGroups(c, w, WeaponDice(w, attack)))
+        {
+            var terms = new List<DiceTerm>();
+            var total = flat;
+            foreach (var d in dice)
+            {
+                if (DamageText.TryParse(d) is not { } pieces) return null;
+                foreach (var p in pieces)
+                {
+                    if (p.Type.Length > 0 && !string.Equals(p.Type, type, StringComparison.OrdinalIgnoreCase)) return null;
+                    terms.AddRange(p.Dice);
+                    total += p.Flat;
+                }
+            }
+            result.Add(new DamagePart(type, terms, total));
+        }
+        return result;
+    }
+
+    /// <summary>The weapon's extra typed damage from its effects, e.g. "2d6 fire".</summary>
+    public static string AdditionalDamage(Character c, Weapon w) => string.Join(" + ", DamageGroups(c, w, w.Damage).Skip(1).Select(FormatGroup));
+
+    /// <summary>One group per damage type; the first is always the weapon's main damage (possibly empty).</summary>
+    private static List<(string Type, List<string> Dice, int Flat)> DamageGroups(Character c, Weapon w, string dice)
     {
         var groups = new List<(string Type, List<string> Dice, int Flat)> { (w.DamageType.Trim(), [dice.Trim()], DamageBonus(c, w)) };
         foreach (var e in w.Effects.Where(e => !string.IsNullOrWhiteSpace(e.Damage)))
@@ -252,8 +278,11 @@ public static class CharacterRules
             if (int.TryParse(e.Damage, out var flat)) groups[i] = (groups[i].Type, groups[i].Dice, groups[i].Flat + flat);
             else groups[i].Dice.Add(e.Damage.Trim());
         }
-        return [.. groups.Select(g => $"{FormatDice(g.Dice.Where(d => d.Length > 0).ToList(), g.Flat)} {g.Type}".Trim())];
+        return groups;
     }
+
+    private static string FormatGroup((string Type, List<string> Dice, int Flat) g) =>
+        $"{FormatDice(g.Dice.Where(d => d.Length > 0).ToList(), g.Flat)} {g.Type}".Trim();
 
     private static string FormatDice(List<string> dice, int flat) =>
         dice.Count == 0 ? (flat == 0 ? "" : flat.ToString())

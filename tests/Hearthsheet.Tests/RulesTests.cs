@@ -217,6 +217,62 @@ public class RulesTests
         Assert.Equal("ignored", CharacterRules.DamageRoll(c, twoHanded)); // orphaned: plain attack
     }
 
+    private static (Character C, Weapon W, Attack A) SwordWith(string dice, params WeaponEffect[] effects)
+    {
+        var c = new Character();
+        c.Abilities.Strength = 16;
+        var w = new Weapon { Name = "Longsword", Types = "martial, melee", Damage = dice, DamageType = "slashing" };
+        foreach (var e in effects) w.Effects.Add(e);
+        c.Weapons.Add(w);
+        var a = new Attack { WeaponId = w.Id };
+        c.Attacks.Add(a);
+        return (c, w, a);
+    }
+
+    [Fact]
+    public void DamageParts_WeaponGroupsMatchSheetText()
+    {
+        var (c, _, a) = SwordWith("1d8", new WeaponEffect { Damage = "1" }, new WeaponEffect { Damage = "2d6", DamageType = "fire" });
+        var parts = CharacterRules.DamageParts(c, a)!;
+        Assert.Equal(2, parts.Count);
+        Assert.Equal(("slashing", 4), (parts[0].Type, parts[0].Flat));
+        Assert.Equal([new DiceTerm(1, 8)], parts[0].Dice);
+        Assert.Equal(("fire", 0), (parts[1].Type, parts[1].Flat));
+        Assert.Equal([new DiceTerm(2, 6)], parts[1].Dice);
+
+        a.Dice = "1d10";
+        Assert.Equal([new DiceTerm(1, 10)], CharacterRules.DamageParts(c, a)![0].Dice);
+    }
+
+    [Fact]
+    public void DamageParts_NonWeaponAndOrphanedUseFreeText()
+    {
+        var c = new Character();
+        Assert.Equal([new DiceTerm(8, 6)], CharacterRules.DamageParts(c, new Attack { Damage = "8d6 Fire" })![0].Dice);
+        Assert.Null(CharacterRules.DamageParts(c, new Attack { WeaponId = Guid.NewGuid(), Damage = "ignored" }));
+    }
+
+    [Fact]
+    public void DamageParts_EffectWithDiceAndFlatMergesIntoItsType()
+    {
+        var (c, _, a) = SwordWith("1d8", new WeaponEffect { Damage = "1d6+2", DamageType = "cold" });
+        var cold = CharacterRules.DamageParts(c, a)![1];
+        Assert.Equal(("cold", 2), (cold.Type, cold.Flat));
+        Assert.Equal([new DiceTerm(1, 6)], cold.Dice);
+    }
+
+    [Fact]
+    public void DamageParts_BlankDiceKeepsFlat_AndUnparseableIsNull()
+    {
+        var (c, w, a) = SwordWith("", new WeaponEffect { Damage = "1" });
+        var parts = CharacterRules.DamageParts(c, a)!;
+        Assert.Empty(parts[0].Dice);
+        Assert.Equal(CharacterRules.DamageBonus(c, w), parts[0].Flat);
+
+        w.Damage = "1d8 (versatile)";
+        Assert.Null(CharacterRules.DamageParts(c, a));
+    }
+
     [Fact]
     public void WondrousItem_AppliesOnlyWhileEquipped()
     {
