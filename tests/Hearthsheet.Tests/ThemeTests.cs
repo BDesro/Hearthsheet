@@ -117,6 +117,7 @@ public class ThemeTests
     }
 
     private const string DarkSelector = ":root[data-theme=\"dark\"]";
+    private const string LightSelector = ":root, .sheet-page";
 
     /// <summary><see cref="TextPairs"/> as CSS variable names.</summary>
     private static string CssName(string key) => key switch
@@ -127,10 +128,10 @@ public class ThemeTests
 
     [Fact]
     public void WebThemes_HaveTheSameVariables() =>
-        Assert.Equal(CssVars(":root").Keys.Order(), CssVars(DarkSelector).Keys.Order());
+        Assert.Equal(CssVars(LightSelector).Keys.Order(), CssVars(DarkSelector).Keys.Order());
 
     [Theory]
-    [InlineData(":root")]
+    [InlineData(LightSelector)]
     [InlineData(DarkSelector)]
     public void WebThemes_TextPairsMeetAA(string selector)
     {

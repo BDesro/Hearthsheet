@@ -2,7 +2,7 @@
    Keep the tokens in step with src/Hearthsheet.App/Themes/Light.xaml and Dark.xaml. js/theme.js sets
    data-theme on <html> ("light" or "dark", following the system when the user picked Match system).
    Colours belong in token rules; ThemeTests checks both themes and their contrast. */
-:root {
+:root, .sheet-page { /* the sheet pages keep the light tokens in dark mode: paper on a dark desk, and what prints */
     color-scheme: light;
     --ink: #1F1B16;
     --ink-muted: #6B6259;
