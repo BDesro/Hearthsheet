@@ -43,4 +43,6 @@
     <SolidColorBrush x:Key="{x:Static SystemColors.InfoTextBrushKey}" Color="#EDE6DA" />
     <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#2A2420" />
     <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#EDE6DA" />
+    <!-- Hyperlinks (Help, the empty list, dialogs): the lightened accent instead of Windows' #0066CC. -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.HotTrackBrushKey}" Color="#E5837A" />
 </ResourceDictionary>

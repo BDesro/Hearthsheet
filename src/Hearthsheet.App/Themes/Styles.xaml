@@ -562,6 +562,8 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                            <!-- Screen readers: the ✓ alone isn't announced (these items aren't IsCheckable). -->
+                            <Setter Property="AutomationProperties.ItemStatus" Value="Selected" />
                         </Trigger>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentSoft}" />

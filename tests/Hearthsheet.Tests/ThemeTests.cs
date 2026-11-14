@@ -74,6 +74,19 @@ public class ThemeTests
         Assert.Empty(failures);
     }
 
+    /// <summary>Hyperlinks take Windows' HotTrack colour (#0066CC), which is ~2.8:1 on the dark surfaces.</summary>
+    [Fact]
+    public void DarkTheme_LinksMeetAA()
+    {
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var link = XDocument.Load(Path.Combine(AppDir, "Themes", "Dark.xaml")).Root!.Elements()
+            .FirstOrDefault(e => (string?)e.Attribute(x + "Key") == "{x:Static SystemColors.HotTrackBrushKey}");
+        Assert.NotNull(link);
+        var dark = XamlBrushes("Dark.xaml");
+        foreach (var back in (string[])["Surface", "Canvas", "Sidebar"])
+            Assert.True(Contrast((string)link.Attribute("Color")!, dark[back]) >= 4.5, $"link on {back}");
+    }
+
     private static IEnumerable<string> AppXaml() =>
         Directory.EnumerateFiles(AppDir, "*.xaml", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
