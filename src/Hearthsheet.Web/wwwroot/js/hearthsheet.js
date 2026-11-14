@@ -95,6 +95,21 @@ document.addEventListener('keydown', e => {
     pageWatcher.invokeMethodAsync(method);
 });
 
+// Toolbar menus (<details class="menu-button">): close on a pick, a click outside, or Escape (focus back on the button).
+document.addEventListener('click', e => {
+    for (const menu of document.querySelectorAll('details.menu-button[open]')) {
+        const picked = menu.contains(e.target) && e.target.closest('.menu button, .menu a');
+        if (picked || !menu.contains(e.target)) menu.open = false;
+    }
+});
+document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const menu = document.querySelector('details.menu-button[open]');
+    if (!menu) return;
+    menu.open = false;
+    menu.querySelector('summary').focus();
+});
+
 export function watchPage(dotnetRef, id) {
     pageWatcher = dotnetRef;
     watcherId = id;

@@ -14,19 +14,51 @@
 @inject IJSRuntime JS
 
 <div class="shell">
+    @* Toolbar: large buttons for the common commands; ⋯ More always lists everything, so buttons hidden on narrow
+       screens (see app.css) stay reachable. Menus close on a pick, outside click or Escape (js/hearthsheet.js). *@
     <header class="app-bar">
         <h1>Hearthsheet</h1>
-        <details class="account-menu">
-            <summary>@(Account.Email ?? "Account")</summary>
+        <div class="toolbar" role="toolbar" aria-label="Commands">
+            <button type="button" class="tool" @onclick="_shell.CreateAsync">
+                <span class="glyph" aria-hidden="true">+</span><span class="label">New character</span>
+            </button>
+            <button type="button" class="tool hide-narrow" @onclick="Print" disabled="@(_shell.Current is null)">
+                <svg class="glyph" aria-hidden="true" viewBox="0 0 16 16"><path d="M4 6V1.5h8V6M4 12H2V6h12v6h-2M4 9.5h8v5H4z" /></svg><span class="label">Print sheet</span>
+            </button>
+            <button type="button" class="tool hide-narrow" @onclick="_sync.RunAsync" disabled="@_sync.IsBusy">
+                <svg class="glyph" aria-hidden="true" viewBox="0 0 16 16"><path d="M13.5 6.5A5.5 5.5 0 0 0 3.2 4.6M2.5 9.5a5.5 5.5 0 0 0 10.3 1.9M3 1.5v3.3h3.3M13 14.5v-3.3H9.7" /></svg><span class="label">Sync now</span>
+            </button>
+            <details class="menu-button hide-narrow">
+                <summary class="tool"><span class="glyph" aria-hidden="true">?</span><span class="label">Help</span><span aria-hidden="true"> ▾</span></summary>
+                <div class="menu">
+                    @HelpItems
+                </div>
+            </details>
+        </div>
+        <details class="menu-button more">
+            <summary class="tool" aria-label="More commands"><span class="glyph" aria-hidden="true">⋯</span><span class="label">More</span></summary>
             <div class="menu">
-                <button type="button" @onclick="() => Help.Open(HelpDocs.Tutorial)">Tutorial</button>
-                <button type="button" @onclick="() => Help.Open(HelpDocs.BeginnersGuide)">Beginner's guide to 5e</button>
-                <a href="@HelpDocs.WikidotUrl" target="_blank" rel="noopener noreferrer">Look up rules (D&amp;D 5e wikidot)</a>
-                <button type="button" @onclick="() => Help.Open(HelpDocs.Legal)">Legal and credits</button>
+                <p class="menu-account muted">@(Account.Email ?? "Signed in")</p>
                 <hr />
+                <button type="button" @onclick="_shell.CreateAsync">New character</button>
+                <button type="button" @onclick="Print" disabled="@(_shell.Current is null)">Print sheet</button>
                 <button type="button" disabled="@_sync.IsBusy" @onclick="_sync.RunAsync">Sync now</button>
+                <hr />
+                @HelpItems
+                <hr />
                 <button type="button" @onclick="ExportAllAsync">Export all characters</button>
                 <button type="button" @onclick="DownloadDiagnosticsAsync">Download diagnostics</button>
+                <hr />
+                <div class="menu-group" role="group" aria-label="Theme">
+                    <span class="muted">Theme</span>
+                    @foreach (var (value, label) in Themes)
+                    {
+                        <button type="button" aria-pressed="@(_theme == value ? "true" : "false")" @onclick="() => SetThemeAsync(value)">
+                            <span class="check" aria-hidden="true">@(_theme == value ? "✓" : "")</span>@label
+                        </button>
+                    }
+                </div>
+                <hr />
                 <button type="button" @onclick="SignOut">Sign out</button>
             </div>
         </details>
@@ -84,6 +116,22 @@
     private bool _disposed;
     private static int s_lastWatchId;
     private readonly int _watchId = ++s_lastWatchId; // the browser has one thread
+    private static readonly (string Value, string Label)[] Themes = [("system", "Match system"), ("light", "Light"), ("dark", "Dark")];
+    private string _theme = "system"; // js/theme.js keeps the choice per device
+
+    private async Task SetThemeAsync(string theme)
+    {
+        _theme = theme;
+        await JS.InvokeVoidAsync("hearthsheetTheme.set", theme);
+    }
+
+    // In both the Help ▾ menu and ⋯ More.
+    private RenderFragment HelpItems => @<text>
+        <button type="button" @onclick="() => Help.Open(HelpDocs.Tutorial)">Tutorial</button>
+        <button type="button" @onclick="() => Help.Open(HelpDocs.BeginnersGuide)">Beginner's guide to 5e</button>
+        <a href="@HelpDocs.WikidotUrl" target="_blank" rel="noopener noreferrer">Look up rules (D&amp;D 5e wikidot)</a>
+        <button type="button" @onclick="() => Help.Open(HelpDocs.Legal)">Legal and credits</button>
+    </text>;
 
     [Parameter, EditorRequired] public AccountSession Account { get; set; } = null!;
     [Parameter, EditorRequired] public BrowserStorage Storage { get; set; } = null!;
@@ -122,6 +170,8 @@
             await JS.InvokeVoidAsync("print");
         }
         if (!firstRender) return;
+        _theme = await JS.InvokeAsync<string>("hearthsheetTheme.get");
+        StateHasChanged();
         var js = await JS.InvokeAsync<IJSObjectReference>("import", "./js/hearthsheet.js");
         if (_disposed) return;
         (_js, _ref) = (js, DotNetObjectReference.Create(this));
