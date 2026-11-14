@@ -4,6 +4,8 @@
 @using Hearthsheet.Core.Sync
 @using Microsoft.Extensions.Logging
 @inject ILogger<SignIn> Log
+@using Hearthsheet.Presentation
+@inject WebHelp Help
 
 <section class="sign-in" aria-labelledby="sign-in-title">
     <h2 id="sign-in-title">@Title</h2>
@@ -48,6 +50,7 @@
         {
             <button type="button" class="link" @onclick="() => Switch(Mode.Reset)" disabled="@_busy">I have a code</button>
         }
+        <button type="button" class="link" @onclick="() => Help.Open(HelpDocs.Legal)">Legal and credits</button>
     </p>
 </section>
 

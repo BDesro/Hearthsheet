@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Hearthsheet.App.Composition;
+using Hearthsheet.App.Views;
 using Hearthsheet.Presentation;
 using Hearthsheet.Core.Application;
 using Hearthsheet.Core.Domain;
@@ -56,6 +57,8 @@ public sealed class MainViewModel : Observable
         ZoomReset = new RelayCommand(() => Zoom = 1.0);
         OpenLogs = new RelayCommand(() => Process.Start(new ProcessStartInfo(_s.Paths.Logs) { UseShellExecute = true }));
         OpenDataFolder = new RelayCommand(() => Process.Start(new ProcessStartInfo(_s.Paths.Root) { UseShellExecute = true }));
+        ShowHelp = new RelayCommand(p => HelpWindow.Open(p as string ?? HelpDocs.Tutorial));
+        OpenWikidot = new RelayCommand(() => HelpWindow.OpenUrl(HelpDocs.WikidotUrl));
     }
 
     public ShellViewModel Shell { get; }
@@ -84,6 +87,9 @@ public sealed class MainViewModel : Observable
     public ICommand ZoomReset { get; }
     public ICommand OpenLogs { get; }
     public ICommand OpenDataFolder { get; }
+    /// <summary>Opens a bundled help doc; the parameter is its file name.</summary>
+    public ICommand ShowHelp { get; }
+    public ICommand OpenWikidot { get; }
 
     public void OnStarted()
     {

@@ -66,6 +66,12 @@
                 <MenuItem Header="Sign _out" Command="{Binding Sync.SignOut}" />
             </MenuItem>
             <MenuItem Header="_Help">
+                <MenuItem Header="_Tutorial" Command="{Binding ShowHelp}" CommandParameter="tutorial.md" />
+                <MenuItem Header="_Beginner's guide to 5e" Command="{Binding ShowHelp}" CommandParameter="beginners-guide.md" />
+                <MenuItem Header="Look up rules (D&amp;D 5e _wikidot)" Command="{Binding OpenWikidot}" />
+                <Separator />
+                <MenuItem Header="_Legal and credits" Command="{Binding ShowHelp}" CommandParameter="legal.md" />
+                <Separator />
                 <MenuItem Header="Check for _updates…" Command="{Binding Update.ShowDialog}" />
                 <Separator />
                 <MenuItem Header="Open _log folder" Command="{Binding OpenLogs}" />
@@ -151,9 +157,14 @@
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                    <TextBlock Margin="16,8" TextWrapping="Wrap" Foreground="{StaticResource InkMuted}"
-                               Text="No characters yet. Create one or import a .dndchar file."
-                               Visibility="{Binding Shell.Characters.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                    <StackPanel Margin="16,8"
+                                Visibility="{Binding Shell.Characters.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+                        <TextBlock TextWrapping="Wrap" Foreground="{StaticResource InkMuted}"
+                                   Text="No characters yet. Create one or import a .dndchar file." />
+                        <TextBlock TextWrapping="Wrap" Margin="0,8,0,0">
+                            <Hyperlink Command="{Binding ShowHelp}" CommandParameter="tutorial.md">New to Hearthsheet? Read the tutorial</Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
                 </Grid>
             </DockPanel>
 

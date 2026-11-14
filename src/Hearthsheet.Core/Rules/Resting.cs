@@ -28,12 +28,12 @@ public sealed class RestService(IReadOnlyList<IRestStep> steps)
 {
     public static RestService CreateDefault() => new(
     [
+        new EffectExpiration(), // first: an ending effect can lower max HP, which LongRestHitPoints restores to
         new LongRestHitPoints(),
         new LongRestHitDice(),
         new SpellSlotRecovery(),
         new ResourceRecovery(),
         new ExhaustionRecovery(),
-        new EffectExpiration(),
     ]);
 
     public RestReport Rest(Character c, RestKind kind)

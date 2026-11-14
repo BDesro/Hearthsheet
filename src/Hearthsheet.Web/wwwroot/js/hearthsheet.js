@@ -239,3 +239,19 @@ export function dialogsDone() {
     returnFocus?.focus?.();
     returnFocus = null;
 }
+
+// Help opens over whatever dialog is showing, so it skips dialogShow's shared return-focus bookkeeping; the browser
+// returns focus itself when a modal <dialog> closes.
+export function helpShow(el) {
+    if (!el.open) el.showModal();
+}
+
+export function helpScroll(body, id, toTop) {
+    const target = id ? document.getElementById(id) : null;
+    if (target) target.scrollIntoView({ block: "start" });
+    else if (toTop) body.scrollTop = 0;
+}
+
+export function helpClose(el) {
+    el.close();
+}

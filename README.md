@@ -35,6 +35,14 @@ After that, the app updates itself from new releases. Your characters live in `%
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
+## Using Hearthsheet
+
+- [Tutorial](docs/user/tutorial.md): your first character, step by step
+- [Beginner's guide to 5e](docs/user/beginners-guide.md): what the numbers on the sheet mean
+- [Legal and credits](docs/user/legal.md)
+
+The same pages are in the app under **Help**. Hearthsheet ships no rules text, so keep a reference such as the [D&D 5e wikidot](https://dnd5e.wikidot.com) open alongside it. The wikidot is a community site, not affiliated with Hearthsheet.
+
 ## Build, run, test
 
 ```bash

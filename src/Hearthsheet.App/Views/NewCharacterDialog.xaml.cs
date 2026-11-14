@@ -9,6 +9,9 @@ public partial class NewCharacterDialog
 
     public NewCharacterOptions? Result { get; private set; }
 
+    private void OnHelp(object sender, RoutedEventArgs e) =>
+        HelpWindow.Open(Presentation.HelpDocs.Tutorial, Presentation.HelpDocs.CreatingACharacter);
+
     private void OnCreate(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(NameBox.Text))

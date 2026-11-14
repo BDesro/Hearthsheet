@@ -1,6 +1,8 @@
 # Intellectual property notes
 
-Hearthsheet is an unofficial fan tool. It is not affiliated with, endorsed or sponsored by Wizards of the Coast. *Dungeons & Dragons* and *D&D* are trademarks of Wizards of the Coast LLC.
+Hearthsheet is an unofficial fan tool. It is not affiliated with, endorsed or sponsored by Wizards of the Coast. *Dungeons & Dragons* and *D&D* are trademarks of Wizards of the Coast LLC. Hearthsheet is also not affiliated with the D&D 5e wikidot (<https://dnd5e.wikidot.com>); the app and its docs only link to it as a reference and contain none of its content.
+
+The player-facing version of these notes is [docs/user/legal.md](docs/user/legal.md), shown in the app under **Help → Legal and credits**.
 
 ## What the app contains
 

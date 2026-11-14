@@ -10,6 +10,9 @@
         <TextBlock Style="{StaticResource SectionTitle}" Text="Create a character" />
         <TextBlock Style="{StaticResource Hint}" Width="400" HorizontalAlignment="Left"
                    Text="Built-in classes pre-fill hit die, saving throws, average HP and spell slots. Everything can be changed later." />
+        <TextBlock Margin="0,0,0,10">
+            <Hyperlink Click="OnHelp">Need help?</Hyperlink>
+        </TextBlock>
         <HeaderedContentControl Header="Character name" Style="{StaticResource Field}">
             <TextBox x:Name="NameBox" Width="400" HorizontalAlignment="Left" AutomationProperties.Name="Character name" />
         </HeaderedContentControl>

@@ -99,8 +99,9 @@ public sealed class CharacterLibrary(
 
     private static string SafeFileName(string name)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        var s = string.Concat(name.Select(ch => invalid.Contains(ch) ? '_' : ch)).Trim();
+        // Windows' rules on every platform: the browser's own list is only '/' and NUL, and a zip made there is
+        // usually unpacked on Windows.
+        var s = string.Concat(name.Select(ch => ch < ' ' || "<>:\"/\\|?*".Contains(ch) ? '_' : ch)).Trim();
         return s.Length == 0 ? "Character" : s;
     }
 }

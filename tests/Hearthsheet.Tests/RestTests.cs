@@ -123,6 +123,22 @@ public class RestTests
     }
 
     [Fact]
+    public void LongRest_RestoresHpToMaxWithoutEffectsThatEnd()
+    {
+        var c = Wizard();
+        var max = CharacterRules.MaxHitPoints(c);
+        var aid = new Effect { Name = "Aid", Expiry = EffectExpiry.LongRest };
+        aid.Modifiers.Add(new Modifier { Target = StatTargets.MaxHp, Kind = ModifierKind.Bonus, Value = 5 });
+        c.Effects.Add(aid);
+        c.TakeDamage(10);
+
+        _rest.Rest(c, RestKind.Long);
+
+        Assert.Equal(max, CharacterRules.MaxHitPoints(c));
+        Assert.Equal(max, c.Combat.CurrentHp);
+    }
+
+    [Fact]
     public void RestSteps_AreReplaceable()
     {
         var c = Wizard();
