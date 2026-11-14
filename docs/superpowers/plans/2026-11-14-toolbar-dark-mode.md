@@ -28,7 +28,7 @@
 1. **Theme switched while a dialog or popup is open:** the open dialog, its title bar and any open dropdown recolour too (DynamicResource + `ThemeManager` iterating `Application.Current.Windows`). Covered by the manual check in Task 3 Step 6.
 2. **Missing, empty or corrupt `ui.json`** (or an unknown value like `"Theme":"Purple"`): the app starts on Match system and doesn't crash. Covered by tests in Task 1.
 3. **Windows switches light/dark while the app runs:** under Match system the app follows within a second; under explicit Light or Dark it does not change. Manual check in Task 3 Step 6.
-4. **Printing from dark mode:** the printout (desktop `Ctrl+P`, web print) is the normal light sheet with no dark backdrop. Manual check in Task 4 Step 5 (desktop) and Task 7 Step 5 (web).
+4. **Printing from dark mode:** the printout (desktop `Ctrl+P`, web print) is the normal light sheet with no dark backdrop. Manual check in Task 4 Step 4 (desktop) and Task 7 Step 5 (web).
 5. **Phone-width web (375px):** no horizontal scroll, and every command, including hidden buttons and the theme choice, is reachable through ⋯ More with the keyboard. Manual check in Task 8 Step 4.
 
 ---
@@ -88,7 +88,7 @@
 - Produces: implicit styles (no `x:Key`) for `ComboBox` (both `IsEditable` modes, with its `ComboBoxItem` and drop-down `Popup`), `CheckBox`, `RadioButton`, `ScrollBar` (vertical and horizontal, with thumb), `ToolTip`, `ContextMenu`, `MenuItem` (flat: check mark, header, `InputGestureText`; no submenu support), `Separator` (menu), `ListBox`/`ListBoxItem`, `PasswordBox`, `ProgressBar`, `TabControl`; plus `DataGrid` row/row-header/select-all parts not yet styled.
 
 - [ ] **Step 1: Write each template** using `Surface` for fields and popups, `LineStrong` for borders, `Accent` for focus, checked state and selection (selection also uses a check glyph or bold text, not colour alone), `Ink`/`InkMuted` text, and `AccentSoft` for hover. Keep today's light look: sizes, paddings and corner radii match the existing `TextBox` style.
-- [ ] **Step 2: Temporary switch for manual testing:** in `App.OnStartup` (Task 2 Step 6), honour an `#if DEBUG` env var `HEARTHSHEET_THEME=Dark`. Remove it in Task 4 Step 4, when the real switch exists. (Project rule: no env-var config ships.)
+- [ ] **Step 2: Choose Dark for manual testing** by writing `{"Theme":"Dark"}` to `%LOCALAPPDATA%\Hearthsheet\ui.json` (Task 2 Step 6 reads it at startup). No code change.
 - [ ] **Step 3: Build** with `dotnet build Hearthsheet.slnx`. Expected: success.
 - [ ] **Step 4: Point the app at a scratch data folder** with sync blanked (memory note: scratch data still syncs). Set `Application:DataDirectory` to a temp folder and `Sync:Url` to `""` in `%LOCALAPPDATA%\Hearthsheet\appsettings.user.json`, saving a backup of the original file first. Restore it at the end of Task 4.
 - [ ] **Step 5: Run in Dark** (`dotnet run --project src/Hearthsheet.App`) and screenshot the Details, Play and Sheet tabs, an open editable and an open non-editable ComboBox, a tooltip, the New character, Level up, Short rest, Quick add, Account and Update dialogs, and the Help window. Expected: no light control chrome anywhere except inside the white sheet pages.
@@ -116,16 +116,15 @@
   - Add `Alt` access: the More button's `Content` uses `_More`, and Help uses `_Help`.
   - `ToolbarButton` style: `MinHeight` 36, `FontSize` 14, padding 12,6, transparent background with `AccentSoft` hover, content = icon glyph + label `TextBlock` with `x:Name="Label"`, `ToolTip` = label, `AutomationProperties.Name` = label.
   - In `MainWindow.xaml.cs`, `SizeChanged` sets the toolbar's `Tag` to `"Compact"` when `ActualWidth < 1100`; a style `DataTrigger` on that `Tag` collapses `Label`.
-- [ ] **Step 4: Remove** the temporary `HEARTHSHEET_THEME` env var from Task 3 Step 2.
-- [ ] **Step 5: Build and run** (scratch settings from Task 3 Step 4).
+- [ ] **Step 4: Build and run** (scratch settings from Task 3 Step 4).
   - Expected: the theme switches live from ⋯ More, and the choice survives a restart.
   - Delete a character to see the themed confirm, in both themes.
   - Labels collapse when the window is narrower than 1100 and every button still has a tooltip.
   - **Review Focus 4:** `Ctrl+P` in Dark, print to "Microsoft Print to PDF", and open the PDF: white pages, no dark backdrop.
   - Re-run Task 3 Step 6 with explicit Light and Dark.
   - Then restore the original `appsettings.user.json` from the backup.
-- [ ] **Step 6: Run** `dotnet test Hearthsheet.slnx`. Expected: all pass.
-- [ ] **Step 7: Commit** `Desktop toolbar, themed message dialog, white sheet in dark mode`.
+- [ ] **Step 5: Run** `dotnet test Hearthsheet.slnx`. Expected: all pass.
+- [ ] **Step 6: Commit** `Desktop toolbar, themed message dialog, white sheet in dark mode`.
 
 ### Task 5: Web dark theme tokens and early theme script
 
