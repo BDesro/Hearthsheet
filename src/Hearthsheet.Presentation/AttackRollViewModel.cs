@@ -51,10 +51,12 @@ public sealed class DamageBox : Observable
         Value = null;
         Error = null;
         var text = Input.Trim();
-        if (text.Length == 0) return;
-        if (!int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var n)) Error = "Enter a whole number";
-        else if (n < Min || n > Max) Error = $"Between {Min} and {Max}";
-        else Value = n;
+        if (text.Length > 0)
+        {
+            if (!int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var n)) Error = "Enter a whole number";
+            else if (n < Min || n > Max) Error = $"Between {Min} and {Max}";
+            else Value = n;
+        }
         Raise(nameof(Value));
         Raise(nameof(Error));
     }
@@ -72,6 +74,7 @@ public sealed class AttackRollViewModel : Observable
     private readonly List<int> _boxPartIndex = [];
     private bool _critical;
     private bool _automaticCrit;
+    private bool _manualCrit;
     private int? _lastUsed;
 
     public AttackRollViewModel(Character c, Attack attack, Random random)
@@ -124,6 +127,7 @@ public sealed class AttackRollViewModel : Observable
         set
         {
             _automaticCrit = false;
+            _manualCrit = true; // a manual tick or untick is never changed by later d20 edits
             SetCritical(value);
         }
     }
@@ -228,12 +232,12 @@ public sealed class AttackRollViewModel : Observable
         if (used != _lastUsed)
         {
             _lastUsed = used;
-            if (used == 20)
+            if (used == 20 && !_manualCrit)
             {
                 _automaticCrit = true;
                 SetCritical(true);
             }
-            else if (_automaticCrit)
+            else if (used != 20 && _automaticCrit)
             {
                 _automaticCrit = false;
                 SetCritical(false);

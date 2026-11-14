@@ -67,6 +67,41 @@ public class AttackRollViewModelTests
     }
 
     [Fact]
+    public void ManualTickBeforeTwenty_SurvivesLeavingTwenty()
+    {
+        var vm = Roll();
+        vm.IsCritical = true;
+        vm.D20First = "20";
+        vm.D20First = "12";
+        Assert.True(vm.IsCritical);
+    }
+
+    [Fact]
+    public void ManualUntick_SurvivesLeavingAndReturningToTwenty()
+    {
+        var vm = Roll();
+        vm.D20First = "20";
+        vm.IsCritical = false;
+        vm.D20First = "12";
+        vm.D20First = "20";
+        Assert.False(vm.IsCritical);
+    }
+
+    [Fact]
+    public void ClearingABox_RaisesErrorAndClearsIt()
+    {
+        var vm = Roll();
+        var box = vm.Boxes[0];
+        box.Input = "abc";
+        Assert.NotNull(box.Error);
+        var raised = new List<string?>();
+        box.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+        box.Input = "";
+        Assert.Null(box.Error);
+        Assert.Contains(nameof(DamageBox.Error), raised);
+    }
+
+    [Fact]
     public void NaturalOne_IsAMiss()
     {
         var vm = Roll();
