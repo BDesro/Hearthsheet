@@ -389,6 +389,15 @@
         <Setter Property="Focusable" Value="False" />
     </Style>
 
+    <!-- Enum table columns: show Lookups.Display text ("Long rest") instead of the raw name ("LongRest"). -->
+    <DataTemplate x:Key="EnumDisplayItem"><TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+    <Style x:Key="EnumGridCell" TargetType="ComboBox" BasedOn="{StaticResource {x:Static DataGridComboBoxColumn.TextBlockComboBoxStyleKey}}">
+        <Setter Property="ItemTemplate" Value="{StaticResource EnumDisplayItem}" />
+    </Style>
+    <Style x:Key="EnumGridEdit" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="ItemTemplate" Value="{StaticResource EnumDisplayItem}" />
+    </Style>
+
     <Style TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource Ink}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />

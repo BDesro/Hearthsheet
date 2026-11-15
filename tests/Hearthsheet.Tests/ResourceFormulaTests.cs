@@ -31,6 +31,28 @@ public class ResourceFormulaTests
     }
 
     [Fact]
+    public void Hyphenated_class_name()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Spell-Sword", Level = 4 };
+        var r = ResourceFormula.TryResolve(c, "1d6 + spell-sword level - 1")!;
+        Assert.Equal(3, r.Flat);
+        Assert.Equal("1d6 + 4 (spell-sword level) − 1", r.Description);
+    }
+
+    [Fact]
+    public void Hyphen_before_a_number_still_subtracts() =>
+        Assert.Equal(-1, ResourceFormula.TryResolve(new Character(), "1d6-1")!.Flat);
+
+    [Fact]
+    public void Class_stored_with_double_space_matches()
+    {
+        var c = new Character();
+        c.Identity.Classes[0] = new ClassLevel { Name = "Blood  Hunter", Level = 5 };
+        Assert.Equal(5, ResourceFormula.TryResolve(c, "blood hunter level")!.Flat);
+    }
+
+    [Fact]
     public void Class_level_is_case_and_space_insensitive() =>
         Assert.Equal(11, ResourceFormula.TryResolve(Multiclass(), "  1d10+  FIGHTER   Level ")!.Flat);
 

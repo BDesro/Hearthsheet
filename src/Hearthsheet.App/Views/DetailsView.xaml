@@ -114,7 +114,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridComboBoxColumn Header="Kind" Width="Auto" MinWidth="90" ItemsSource="{x:Static vm:Lookups.ModifierKinds}" SelectedItemBinding="{Binding Kind}" />
+                        <DataGridComboBoxColumn Header="Kind" Width="Auto" MinWidth="90" ItemsSource="{x:Static vm:Lookups.ModifierKinds}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Kind}" />
                         <DataGridTextColumn Header="Value" Width="Auto" MinWidth="70" Binding="{Binding Value}" />
                         <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                     </DataGrid.Columns>
@@ -422,7 +422,7 @@
                     </StackPanel>
                     <DataGrid ItemsSource="{Binding Character.Proficiencies}" MaxHeight="600">
                         <DataGrid.Columns>
-                            <DataGridComboBoxColumn Header="Category" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.ProficiencyCategories}" SelectedItemBinding="{Binding Category}" />
+                            <DataGridComboBoxColumn Header="Category" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.ProficiencyCategories}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Category}" />
                             <DataGridTemplateColumn Header="Name" Width="*" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -460,7 +460,7 @@
                     <DataGrid x:Name="FeatureGrid" ItemsSource="{Binding Character.Features}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
-                            <DataGridComboBoxColumn Header="Source" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.FeatureSources}" SelectedItemBinding="{Binding Source}" />
+                            <DataGridComboBoxColumn Header="Source" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.FeatureSources}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Source}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -697,7 +697,7 @@
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Current" Width="Auto" MinWidth="70" Binding="{Binding Current}" />
                             <DataGridTextColumn Header="Maximum" Width="Auto" MinWidth="75" Binding="{Binding Maximum}" />
-                            <DataGridComboBoxColumn Header="Recovers" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.RecoveryTimings}" SelectedItemBinding="{Binding Recovery}" />
+                            <DataGridComboBoxColumn Header="Recovers" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.RecoveryTimings}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Recovery}" />
                             <DataGridTextColumn Header="Amount" Width="Auto" MinWidth="70" Binding="{Binding RecoveryAmount, TargetNullValue=''}" />
                             <DataGridTemplateColumn Header="Roll" Width="Auto" MinWidth="170">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -766,7 +766,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Duration" Width="Auto" MinWidth="120" Binding="{Binding Duration}" />
-                            <DataGridComboBoxColumn Header="Expires" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.EffectExpiries}" SelectedItemBinding="{Binding Expiry}" />
+                            <DataGridComboBoxColumn Header="Expires" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.EffectExpiries}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Expiry}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
