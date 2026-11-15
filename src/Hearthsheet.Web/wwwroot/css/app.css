@@ -241,7 +241,7 @@ fieldset.plain legend { font-weight: 600; padding: 0; }
 
 /* Details view: the section list in a sidebar column beside the page, above it on narrow screens. */
 .details { display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: stretch; min-height: 100%; }
-@media (max-width: 60rem) { .details { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 60rem) { .details { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; } }
 .details-nav { display: flex; flex-direction: column; padding: 10px 0; background: var(--sidebar); }
 @media (max-width: 60rem) { .details-nav { flex-direction: row; flex-wrap: wrap; padding: 6px; } }
 .details-nav button { justify-content: flex-start; text-align: left; min-height: 0; padding: 8px 14px; margin: 1px 6px; border: 0; border-radius: 6px; background: transparent; }
