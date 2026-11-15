@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Hearthsheet.Core.Domain;
 
@@ -61,7 +62,7 @@ public static class ResourceFormula
                 case Kind.Ability: value = CharacterRules.AbilityModifier(c, t.Ability); label = t.Text; break;
                 default:
                     value = c.Identity.Classes
-                        .Where(e => string.Equals(e.Name.Trim(), t.Text, StringComparison.OrdinalIgnoreCase))
+                        .Where(e => string.Equals(Spaces.Replace(e.Name, " ").Trim(), t.Text, StringComparison.OrdinalIgnoreCase))
                         .Sum(e => e.Level);
                     label = value == 0 ? $"no {t.Text} levels" : $"{t.Text} level";
                     break;
@@ -86,8 +87,9 @@ public static class ResourceFormula
     {
         if (string.IsNullOrWhiteSpace(formula)) return null;
 
-        // Split keeps the separators: term, sign, term, sign, ...
-        var parts = Regex.Split(formula, @"([+\-−])");
+        // Split keeps the separators: term, sign, term, sign, ... A hyphen between two letters is part of a
+        // word ("spell-sword level"), not a minus.
+        var parts = Regex.Split(formula, @"(\+|−|(?<!\p{L})-|-(?!\p{L}))");
         var leading = parts[0].Trim().Length == 0 && parts.Length > 1;
         var tokens = new List<Token>();
         for (var i = leading ? 2 : 0; i < parts.Length; i += 2)
@@ -107,12 +109,12 @@ public static class ResourceFormula
 
         if (Dice.Match(term) is { Success: true } d)
         {
-            var count = d.Groups[1].Length == 0 ? 1 : int.Parse(d.Groups[1].Value);
-            var sides = int.Parse(d.Groups[2].Value);
+            var count = d.Groups[1].Length == 0 ? 1 : int.Parse(d.Groups[1].Value, CultureInfo.InvariantCulture);
+            var sides = int.Parse(d.Groups[2].Value, CultureInfo.InvariantCulture);
             if (negative || count is < 1 or > 100 || !DamageText.ValidSides.Contains(sides)) return null;
             return new Token(false, Kind.Dice, count, sides, "", default);
         }
-        if (Number.IsMatch(term)) return new Token(negative, Kind.Number, int.Parse(term), 0, "", default);
+        if (Number.IsMatch(term)) return new Token(negative, Kind.Number, int.Parse(term, CultureInfo.InvariantCulture), 0, "", default);
         if (term == "level") return new Token(negative, Kind.Level, 0, 0, "", default);
         if (term == "proficiency") return new Token(negative, Kind.Proficiency, 0, 0, "", default);
         if (Abilities.TryGetValue(term, out var a))

@@ -82,7 +82,7 @@ public sealed class AttackRollViewModel : Observable
     public AttackRollViewModel(Character c, Attack attack, Random random)
     {
         _random = random;
-        Name = new AttackRow(c, attack).Name;
+        Name = new AttackRow(c, attack).Name is { Length: > 0 } n ? n : "Attack";
         AttackBonus = CharacterRules.AttackBonus(c, attack);
         BonusText = CharacterRules.FormatModifier(AttackBonus);
         RawDamage = CharacterRules.DamageRoll(c, attack);
@@ -209,6 +209,7 @@ public sealed class AttackRollViewModel : Observable
             if (used == 1) return $"{Name}: natural 1 (miss)";
             var pieces = new List<string>();
             if (used is { } u) pieces.Add($"{u + AttackBonus} to hit{(IsCritical ? " (crit)" : "")}");
+            else if (IsCritical) pieces.Add("crit");
             if (HasStructuredDamage)
             {
                 var totals = Totals();

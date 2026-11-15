@@ -237,6 +237,18 @@ public class GameplayTests
     }
 
     [Fact]
+    public void Roll_heal_on_dead_character_keeps_the_use()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 0;
+        c.Combat.DeathSaveFailures = 3;
+        var r = Rolled(c, ResourceResult.Heal);
+        var text = c.UseResourceWithRoll(r, 18);
+        Assert.Equal(1, r.Current);
+        Assert.Equal("Character is dead; healing has no effect.", text);
+    }
+
+    [Fact]
     public void Negative_total_heals_nothing()
     {
         var c = Fighter();

@@ -271,6 +271,27 @@ public class AttackRollViewModelTests
     }
 
     [Fact]
+    public void LogLine_ManualCritWithoutD20_SaysCrit()
+    {
+        var vm = Roll(withFire: false);
+        vm.IsCritical = true;
+        vm.Boxes[0].Input = "12";
+        Assert.Equal("Longsword: crit, 15 slashing", vm.LogLine);
+    }
+
+    [Fact]
+    public void BlankAttackName_IsCalledAttack()
+    {
+        var c = new Character();
+        var a = new Attack { Damage = "1d6" };
+        c.Attacks.Add(a);
+        var vm = new AttackRollViewModel(c, a, new Random(1));
+        vm.Boxes[0].Input = "4";
+        Assert.Equal("Attack", vm.Name);
+        Assert.Equal("Attack: 4 damage", vm.LogLine);
+    }
+
+    [Fact]
     public void LogLine_UntypedPrintsAsDamage_AndNoD20Form()
     {
         var c = new Character();

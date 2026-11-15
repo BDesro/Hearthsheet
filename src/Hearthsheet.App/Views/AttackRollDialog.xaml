@@ -63,7 +63,7 @@
         <TextBlock FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,14" Foreground="{DynamicResource Ink}" Text="{Binding TotalsText}" />
 
         <DockPanel>
-            <Button DockPanel.Dock="Left" Content="🎲 Roll for me" Command="{Binding RollForMe}" />
+            <Button DockPanel.Dock="Left" Content="🎲 Roll for me" AutomationProperties.Name="Roll for me" Command="{Binding RollForMe}" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" IsCancel="True" Margin="0,0,8,0" />
                 <Button Content="Done" IsDefault="True" Style="{StaticResource AccentButton}" Click="OnDone" />
