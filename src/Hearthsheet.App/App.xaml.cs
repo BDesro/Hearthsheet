@@ -85,6 +85,7 @@ public partial class App
             return;
         }
 
+        Themes.ThemeManager.Apply(UiPreferences.LoadTheme(AppPaths.UiPreferences)); // before the window shows: no light flash
         var window = new MainWindow { DataContext = main };
         MainWindow = window;
         window.Show();
@@ -142,9 +143,17 @@ public partial class App
         _log.LogError(e.Exception, "Unhandled UI exception");
         // Keep running: the character is autosaved and the model is unaffected by a failed UI action.
         e.Handled = true;
-        MessageBox.Show(
-            $"Something went wrong:\n\n{e.Exception.Message}\n\nYour character data is safe. Details were written to the log.",
-            "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Warning);
+        var message = $"Something went wrong:\n\n{e.Exception.Message}\n\nYour character data is safe. Details were written to the log.";
+        try
+        {
+            Views.MessageDialog.Show(MainWindow is { IsLoaded: true } w ? w : null, message, "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            // The themed dialog uses the app's styles; if they are what broke, Windows' own box still gets the message out.
+            _log.LogError(ex, "Couldn't show the error dialog");
+            MessageBox.Show(message, "Hearthsheet", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

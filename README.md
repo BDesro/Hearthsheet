@@ -10,7 +10,7 @@ One character model drives three views:
 | **Details** | The same character organized by category (Identity, Abilities & Saves, Skills, Combat, Proficiencies, Features, Equipment, Spells, Resources, Conditions & Effects, Biography) for comfortable editing. |
 | **Play** | A session dashboard: damage/heal/temp HP, death saves, short and long rests, resources, spell slots, casting, conditions, effects, quick-add, and a session log. |
 
-Characters are stored locally in SQLite, autosaved, backed up daily, and can be exported/imported as portable `.dndchar` files. The app checks GitHub Releases for updates and installs them after verifying the package checksum. Signing in to an optional cloud account (Account menu) keeps your characters in sync across computers; local storage stays the source of truth and everything keeps working offline.
+Characters are stored locally in SQLite, autosaved, backed up daily, and can be exported/imported as portable `.dndchar` files. The app checks GitHub Releases for updates and installs them after verifying the package checksum. Signing in to an optional cloud account (**Sign in…** in the toolbar) keeps your characters in sync across computers; local storage stays the source of truth and everything keeps working offline.
 
 ## Requirements
 
@@ -100,7 +100,7 @@ Settings are layered. Later sources override earlier ones, so no binary has to c
 | `Application:DataDirectory` | `%LOCALAPPDATA%\Hearthsheet` | Where the database, logs, backups and update staging live. |
 | `Logging:FileMinimumLevel` | `Information` | Minimum level written to the log file (set `Debug` for verbose logs). |
 | `Updates:Enabled` | `true` | Checks the BDesro/Hearthsheet GitHub releases silently at startup; a status-bar button appears when an update exists. |
-| `Sync:Url` / `Sync:AnonKey` | *(the project's Supabase instance)* | The Supabase project URL and its public publishable key. When empty, the Account menu and sync are hidden. See [docs/CLOUD_SYNC.md](docs/CLOUD_SYNC.md) to use your own project. |
+| `Sync:Url` / `Sync:AnonKey` | *(the project's Supabase instance)* | The Supabase project URL and its public publishable key. When empty, sign-in and sync are hidden. See [docs/CLOUD_SYNC.md](docs/CLOUD_SYNC.md) to use your own project. |
 
 ## Where things are stored
 
@@ -108,7 +108,7 @@ Settings are layered. Later sources override earlier ones, so no binary has to c
 |---|---|
 | Characters | `%LOCALAPPDATA%\Hearthsheet\characters.db` (SQLite, WAL mode) |
 | Daily backups (last 10) | `%LOCALAPPDATA%\Hearthsheet\backups\` |
-| Logs | `%LOCALAPPDATA%\Hearthsheet\logs\app-YYYYMMDD.log`. In the app: Help → Open log folder |
+| Logs | `%LOCALAPPDATA%\Hearthsheet\logs\app-YYYYMMDD.log`. In the app: ⋯ More → Open log folder |
 | Updater log | `%LOCALAPPDATA%\Hearthsheet\logs\updater.log` |
 | Cloud session (optional, only with "Stay signed in") | Windows Credential Manager → Windows Credentials → `Hearthsheet/supabase-session` |
 

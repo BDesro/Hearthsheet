@@ -28,6 +28,8 @@ public sealed class AppPaths
     /// <summary>Optional per-user configuration overrides (e.g. Logging:FileMinimumLevel) — no binary changes needed.</summary>
     /// <remarks>Always under the default root: it is read before any DataDirectory override is known.</remarks>
     public static string UserSettings => Path.Combine(DefaultRoot, "appsettings.user.json");
+    /// <summary>Per-device display preferences such as the theme, written by the app (see <see cref="Infrastructure.UiPreferences"/>).</summary>
+    public static string UiPreferences => Path.Combine(DefaultRoot, "ui.json");
 }
 
 public static class DatabaseBackups

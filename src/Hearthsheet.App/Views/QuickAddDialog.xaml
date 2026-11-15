@@ -19,7 +19,7 @@
         <HeaderedContentControl x:Name="DescriptionField" Header="Description (optional)" Style="{StaticResource Field}" Margin="0,0,0,12">
             <TextBox x:Name="DescriptionBox" Style="{StaticResource MultilineBox}" AutomationProperties.Name="Description" />
         </HeaderedContentControl>
-        <TextBlock x:Name="ErrorText" Foreground="{StaticResource Danger}" Margin="0,0,0,8" Visibility="Collapsed" Text="Enter a name." />
+        <TextBlock x:Name="ErrorText" Foreground="{DynamicResource Danger}" Margin="0,0,0,8" Visibility="Collapsed" Text="Enter a name." />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancel" IsCancel="True" Margin="0,0,8,0" />
             <Button Content="Add" IsDefault="True" Style="{StaticResource AccentButton}" Click="OnAdd" />

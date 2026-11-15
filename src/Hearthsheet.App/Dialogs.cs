@@ -31,9 +31,7 @@ public sealed class Dialogs : IDialogs
     }
 
     private static MessageBoxResult Show(string message, string title, MessageBoxButton buttons, MessageBoxImage image) =>
-        Owner is { } owner
-            ? MessageBox.Show(owner, message, title, buttons, image, MessageBoxResult.None)
-            : MessageBox.Show(message, title, buttons, image, MessageBoxResult.None);
+        MessageDialog.Show(Owner, message, title, buttons, image);
 
     public Task<NewCharacterOptions?> NewCharacterAsync()
     {
