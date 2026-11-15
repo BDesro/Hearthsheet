@@ -56,6 +56,8 @@
                          Text="{Binding FallbackInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Total damage" />
                 <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource Ink}" Text="total damage" />
             </StackPanel>
+            <TextBlock Margin="64,2,0,0" Foreground="{DynamicResource Danger}" Text="{Binding FallbackError}" />
+
         </StackPanel>
 
         <TextBlock FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,14" Foreground="{DynamicResource Ink}" Text="{Binding TotalsText}" />

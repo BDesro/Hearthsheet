@@ -62,9 +62,14 @@
         <p class="muted">Damage: @Vm.RawDamage</p>
         <div class="chips">
             <input id="attack-dmg-total" class="amount" inputmode="numeric" aria-label="Total damage"
+                   aria-describedby="@(Vm.FallbackError is null ? null : "attack-dmg-total-error")"
                    @bind="Vm.FallbackInput" @bind:event="oninput" />
             <label for="attack-dmg-total">total damage</label>
         </div>
+        @if (Vm.FallbackError is { } fErr)
+        {
+            <p id="attack-dmg-total-error" role="alert" class="error">@fErr</p>
+        }
     }
 
     <p role="status" class="attack-totals"><strong>@Vm.TotalsText</strong></p>

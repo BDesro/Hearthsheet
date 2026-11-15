@@ -214,6 +214,32 @@ public class AttackRollViewModelTests
         Assert.Equal("Fire Cone: 24 damage", vm.LogLine);
     }
 
+    [Theory]
+    [InlineData("abc", null, "Enter a whole number")]
+    [InlineData("10000", null, "Between 0 and 9999")]
+    [InlineData("99999999999", null, "Between 0 and 9999")]
+    [InlineData("24", 24, null)]
+    [InlineData("", null, null)]
+    public void FallbackError_AndValue(string input, int? value, string? error)
+    {
+        var c = new Character();
+        var a = new Attack { Name = "Fire Cone", Damage = "30-ft cone. Save DC 16. Half damage" };
+        c.Attacks.Add(a);
+        var vm = new AttackRollViewModel(c, a, new Random(1));
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        vm.FallbackInput = input;
+
+        Assert.Equal(value, vm.FallbackValue);
+        Assert.Equal(error, vm.FallbackError);
+        if (input.Length > 0)
+        {
+            Assert.Contains(nameof(vm.FallbackError), raised);
+            Assert.Contains(nameof(vm.FallbackValue), raised);
+        }
+    }
+
     [Fact]
     public void LogLine_AllForms()
     {

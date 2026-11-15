@@ -136,10 +136,30 @@ public sealed class AttackRollViewModel : Observable
 
     public bool HasStructuredDamage => _baseParts is not null;
     public string RawDamage { get; }
-    public string FallbackInput { get; set { if (Set(ref field, value ?? "")) Changed(); } } = "";
+    public string FallbackInput
+    {
+        get;
+        set
+        {
+            if (!Set(ref field, value ?? "")) return;
+            Raise(nameof(FallbackValue));
+            Raise(nameof(FallbackError));
+            Changed();
+        }
+    } = "";
 
     public int? FallbackValue =>
         int.TryParse(FallbackInput.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var n) && n <= 9999 ? n : null;
+
+    public string? FallbackError
+    {
+        get
+        {
+            var text = FallbackInput.Trim();
+            if (text.Length == 0 || FallbackValue is not null) return null;
+            return text.All(char.IsAsciiDigit) ? "Between 0 and 9999" : "Enter a whole number";
+        }
+    }
 
     public ICommand RollForMe { get; }
 
