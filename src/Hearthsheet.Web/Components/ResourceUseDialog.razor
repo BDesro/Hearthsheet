@@ -1,0 +1,52 @@
+@* Same steps as the desktop's Use resource dialog: type physical dice (or let the app roll what is empty), then Use
+   spends the resource and applies the total. The view model does all the maths. Shown inside Modal. *@
+@using System.ComponentModel
+@using Hearthsheet.Presentation
+@implements IDisposable
+
+<form @onsubmit="OnSubmit">
+    <h2 id="dialog-title">Use @Vm.Name <span class="muted">@Vm.UsesText</span></h2>
+    <p class="hint">Roll your physical dice and type them in, or let the app roll whatever is still empty.</p>
+    <p><strong>Roll @Vm.FormulaText</strong></p>
+
+    @for (var i = 0; i < Vm.Boxes.Count; i++)
+    {
+        var box = Vm.Boxes[i];
+        var id = $"resource-dmg-{i}";
+        <div @key="box" class="attack-box">
+            <div class="chips">
+                <input id="@id" class="amount" inputmode="numeric" autofocus="@(i == 0)" aria-label="@box.Label roll"
+                       aria-describedby="@(box.Error is null ? null : id + "-error")"
+                       @bind="box.Input" @bind:event="oninput" />
+                <label for="@id">@box.Label <span class="muted">(@box.Min–@box.Max)</span></label>
+            </div>
+            @if (box.Error is { } err)
+            {
+                <p id="@(id + "-error")" role="alert" class="error">@err</p>
+            }
+        </div>
+    }
+
+    <p role="status" class="attack-totals"><strong>@Vm.SummaryText</strong></p>
+
+    <div class="dialog-buttons">
+        <button type="button" class="roll-for-me" @onclick="() => Vm.RollForMe.Execute(null)"><span aria-hidden="true">🎲 </span>Roll for me</button>
+        <button type="button" @onclick="() => Done.InvokeAsync(false)">Cancel</button>
+        <button type="submit" class="accent" disabled="@(!Vm.CanUse)">Use</button>
+    </div>
+</form>
+
+@code {
+    [Parameter, EditorRequired] public ResourceUseViewModel Vm { get; set; } = null!;
+
+    /// <summary>True to spend the resource and apply the total.</summary>
+    [Parameter] public EventCallback<bool> Done { get; set; }
+
+    protected override void OnInitialized() => Vm.PropertyChanged += OnChanged;
+
+    private Task OnSubmit() => Vm.CanUse ? Done.InvokeAsync(true) : Task.CompletedTask;
+
+    private void OnChanged(object? sender, PropertyChangedEventArgs e) => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Vm.PropertyChanged -= OnChanged;
+}
