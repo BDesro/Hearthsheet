@@ -40,8 +40,8 @@ public sealed class PlayViewModel : Observable
         DeathSave = new RelayCommand<DeathSaveResult>(r => Act($"Death save {r}", c => c.RecordDeathSave(r)));
         ShortRest = new RelayCommand(DoShortRest);
         LongRest = new RelayCommand(DoLongRest);
-        UseResource = new RelayCommand<Resource>(r => Act($"Use {r.Name}", c =>
-            c.UseResource(r) ? $"Used {r.Name} ({r.Current}/{r.Maximum} left)." : $"{r.Name} has no uses left."));
+        RollAttack = new RelayCommand(DoRollAttack, p => p is Attack);
+        UseResource = new RelayCommand(DoUseResource, p => p is Resource);
         RestoreResource = new RelayCommand<Resource>(r => Act($"Restore {r.Name}", c =>
         {
             c.RestoreResource(r);
@@ -123,6 +123,8 @@ public sealed class PlayViewModel : Observable
     /// <summary>Amount typed into the HP box, used by Set HP / Temp HP and the custom Damage/Heal buttons.</summary>
     public int HpInput { get; set => Set(ref field, Math.Clamp(value, 0, 9999)); } = 5;
 
+    public IEnumerable<AttackRow> Attacks => _owner.Attacks;
+
     public IEnumerable<Spell> PreparedSpells => Character.Spellcasting.Spells
         .Where(s => s.Prepared || s.Level == 0).OrderBy(s => s.Level).ThenBy(s => s.Name, StringComparer.OrdinalIgnoreCase);
 
@@ -133,6 +135,7 @@ public sealed class PlayViewModel : Observable
     public ICommand DeathSave { get; }
     public ICommand ShortRest { get; }
     public ICommand LongRest { get; }
+    public ICommand RollAttack { get; }
     public ICommand UseResource { get; }
     public ICommand RestoreResource { get; }
     public ICommand ToggleSlot { get; }
@@ -150,7 +153,11 @@ public sealed class PlayViewModel : Observable
     public ICommand QuickAddEffect { get; }
     public ICommand QuickAddResource { get; }
 
-    internal void Refresh() => Raise(nameof(PreparedSpells));
+    internal void Refresh()
+    {
+        Raise(nameof(PreparedSpells));
+        Raise(nameof(Attacks));
+    }
 
     /// <summary>A button's CommandParameter ("5") or, with no parameter, the typed amount.</summary>
     private int Amount(object? parameter) =>
@@ -180,6 +187,31 @@ public sealed class PlayViewModel : Observable
     {
         if (!await _dialogs.ShortRestAsync(this, Character)) return;
         Act("Short Rest", c => Describe(_rest.Rest(c, RestKind.Short)));
+    }
+
+    private async Task DoRollAttack(object? parameter)
+    {
+        if (parameter is not Attack attack) return;
+        var vm = new AttackRollViewModel(Character, attack, Random.Shared);
+        if (await _dialogs.AttackRollAsync(vm)) Record(vm.LogLine);
+    }
+
+    private async Task DoUseResource(object? parameter)
+    {
+        if (parameter is not Resource r) return;
+        var roll = r.Current == 0 || string.IsNullOrWhiteSpace(r.Roll) ? null : ResourceFormula.TryResolve(Character, r.Roll);
+        if (roll is null)
+        {
+            var unreadable = r.Current > 0 && !string.IsNullOrWhiteSpace(r.Roll);
+            Act($"Use {r.Name}", c =>
+                !c.UseResource(r) ? $"{r.Name} has no uses left."
+                : $"Used {r.Name} ({r.Current}/{r.Maximum} left).{(unreadable ? $" Couldn't read the roll \"{r.Roll.Trim()}\"." : "")}");
+            return;
+        }
+
+        var vm = new ResourceUseViewModel(Character, r, roll, Random.Shared);
+        if (await _dialogs.UseResourceAsync(vm) && vm.Total is int t)
+            Act($"Use {r.Name}", c => c.UseResourceWithRoll(r, t));
     }
 
     private async Task DoLongRest()

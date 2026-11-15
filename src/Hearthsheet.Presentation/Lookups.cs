@@ -19,6 +19,7 @@ public static class Lookups
     public static ProficiencyCategory[] ProficiencyCategories { get; } = Enum.GetValues<ProficiencyCategory>();
     public static FeatureSource[] FeatureSources { get; } = Enum.GetValues<FeatureSource>();
     public static RecoveryTiming[] RecoveryTimings { get; } = Enum.GetValues<RecoveryTiming>();
+    public static ResourceResult[] ResourceResults { get; } = Enum.GetValues<ResourceResult>();
     public static EffectExpiry[] EffectExpiries { get; } = Enum.GetValues<EffectExpiry>();
     public static ModifierKind[] ModifierKinds { get; } = Enum.GetValues<ModifierKind>();
     public static IReadOnlyList<string> StatTargetKeys => StatTargets.All;
@@ -42,12 +43,29 @@ public static class Lookups
         RecoveryTiming.ShortRest => "Short or long rest",
         RecoveryTiming.LongRest => "Long rest",
         RecoveryTiming.Manual => "Manual",
+        ResourceResult.JustShow => "Just show",
+        ResourceResult.Heal => "Heal me",
+        ResourceResult.TemporaryHp => "Temporary HP",
         EffectExpiry.ShortRest => "Ends on any rest",
         EffectExpiry.LongRest => "Ends on long rest",
         EffectExpiry.Manual => "Until removed",
         ProficiencyLevel.Half => "Half proficiency",
         _ => SplitWords(value.ToString() ?? ""),
     };
+
+    /// <summary>Hover text for a resource: its notes and, when it has a roll, the formula and what it does.</summary>
+    public static string? ResourceTooltip(string notes, string roll, ResourceResult result)
+    {
+        var lines = new List<string>();
+        if (notes.Trim().Length > 0) lines.Add(notes.Trim());
+        if (roll.Trim().Length > 0)
+            lines.Add($"Roll: {roll.Trim()}{(result == ResourceResult.JustShow ? "" : $" ({Display(result)})")}");
+        return lines.Count == 0 ? null : string.Join("\n", lines);
+    }
+
+    /// <summary>The formula error for a non-blank roll that can't be read; null for a blank (no roll) or readable one.</summary>
+    public static string? RollError(string? roll) =>
+        string.IsNullOrWhiteSpace(roll) || ResourceFormula.IsReadable(roll) ? null : ResourceFormula.ReadError;
 
     private static string SplitWords(string s) =>
         string.Concat(s.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));

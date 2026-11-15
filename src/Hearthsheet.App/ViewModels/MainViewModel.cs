@@ -59,7 +59,26 @@ public sealed class MainViewModel : Observable
         OpenDataFolder = new RelayCommand(() => Process.Start(new ProcessStartInfo(_s.Paths.Root) { UseShellExecute = true }));
         ShowHelp = new RelayCommand(p => HelpWindow.Open(p as string ?? HelpDocs.Tutorial));
         OpenWikidot = new RelayCommand(() => HelpWindow.OpenUrl(HelpDocs.WikidotUrl));
+        SetTheme = new RelayCommand(p =>
+        {
+            if (!Enum.TryParse<ThemeChoice>(p as string, out var choice)) return;
+            Themes.ThemeManager.Apply(choice);
+            try { UiPreferences.SaveTheme(AppPaths.UiPreferences, choice); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _log.LogWarning(ex, "Couldn't save the theme choice"); // the theme still applies for this session
+            }
+            Raise(nameof(IsSystemTheme));
+            Raise(nameof(IsLightTheme));
+            Raise(nameof(IsDarkTheme));
+        });
     }
+
+    /// <summary>Parameter: "System", "Light" or "Dark" (<see cref="ThemeChoice"/>).</summary>
+    public ICommand SetTheme { get; }
+    public bool IsSystemTheme => Themes.ThemeManager.Choice == ThemeChoice.System;
+    public bool IsLightTheme => Themes.ThemeManager.Choice == ThemeChoice.Light;
+    public bool IsDarkTheme => Themes.ThemeManager.Choice == ThemeChoice.Dark;
 
     public ShellViewModel Shell { get; }
     public UpdateViewModel Update { get; }

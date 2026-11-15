@@ -1,0 +1,73 @@
+<Window x:Class="Hearthsheet.App.Views.AttackRollDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Attack roll" Style="{StaticResource AppWindow}" SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FocusManager.FocusedElement="{Binding ElementName=FirstD20Box}">
+    <StackPanel Margin="22,18" Width="420">
+        <TextBlock Style="{StaticResource SectionTitle}" Text="{Binding Name}" />
+        <TextBlock Style="{StaticResource Hint}"
+                   Text="Roll your physical dice and type them in, or let the app roll whatever is still empty." />
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <RadioButton x:Name="NormalMode" Content="Normal" IsChecked="True" Margin="0,0,16,0" Click="OnModeClick" Tag="Normal" AutomationProperties.Name="Normal roll" />
+            <RadioButton Content="Advantage" Margin="0,0,16,0" Click="OnModeClick" Tag="Advantage" AutomationProperties.Name="Roll with advantage" />
+            <RadioButton Content="Disadvantage" Click="OnModeClick" Tag="Disadvantage" AutomationProperties.Name="Roll with disadvantage" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <TextBlock Text="d20" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBox x:Name="FirstD20Box" Width="56" HorizontalContentAlignment="Center"
+                     Text="{Binding D20First, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="First d20 roll" />
+            <TextBox Width="56" HorizontalContentAlignment="Center" Margin="8,0,0,0"
+                     Visibility="{Binding HasSecondD20, Converter={StaticResource VisibleWhen}}"
+                     Text="{Binding D20Second, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Second d20 roll" />
+            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Danger}" Text="{Binding D20Error}" />
+        </StackPanel>
+        <TextBlock Margin="0,0,0,6" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource Ink}" Text="{Binding ToHitText}" />
+        <CheckBox Content="Critical hit (doubles the damage dice)" Margin="0,0,0,10"
+                  IsChecked="{Binding IsCritical}" AutomationProperties.Name="Critical hit" />
+
+        <ItemsControl ItemsSource="{Binding Boxes}" IsTabStop="False">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Width="56" HorizontalContentAlignment="Center"
+                                     Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="{Binding Label, StringFormat=Roll for {0}}" />
+                            <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource Ink}" Text="{Binding Label}" />
+                            <TextBlock VerticalAlignment="Center" Margin="6,0,0,0" Foreground="{DynamicResource InkMuted}">
+                                <Run Text="(" /><Run Text="{Binding Min, Mode=OneWay}" /><Run Text="–" /><Run Text="{Binding Max, Mode=OneWay}" /><Run Text=")" />
+                            </TextBlock>
+                        </StackPanel>
+                        <TextBlock Margin="64,2,0,0" Foreground="{DynamicResource Danger}" Text="{Binding Error}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel Margin="0,0,0,6" Visibility="{Binding HasStructuredDamage, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}">
+            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource InkMuted}" Margin="0,0,0,4">
+                <Run Text="Damage:" /> <Run Text="{Binding RawDamage, Mode=OneWay}" />
+            </TextBlock>
+            <StackPanel Orientation="Horizontal">
+                <TextBox Width="56" HorizontalContentAlignment="Center"
+                         Text="{Binding FallbackInput, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Total damage" />
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource Ink}" Text="total damage" />
+            </StackPanel>
+            <TextBlock Margin="64,2,0,0" Foreground="{DynamicResource Danger}" Text="{Binding FallbackError}" />
+
+        </StackPanel>
+
+        <TextBlock FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,14" Foreground="{DynamicResource Ink}" Text="{Binding TotalsText}" />
+
+        <DockPanel>
+            <Button DockPanel.Dock="Left" Content="🎲 Roll for me" AutomationProperties.Name="Roll for me" Command="{Binding RollForMe}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" IsCancel="True" Margin="0,0,8,0" />
+                <Button Content="Done" IsDefault="True" Style="{StaticResource AccentButton}" Click="OnDone" />
+            </StackPanel>
+        </DockPanel>
+    </StackPanel>
+</Window>

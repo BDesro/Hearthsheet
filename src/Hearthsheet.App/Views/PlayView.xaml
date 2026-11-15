@@ -14,7 +14,7 @@
         </Style>
         <Style x:Key="StatLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11" />
-            <Setter Property="Foreground" Value="{StaticResource InkMuted}" />
+            <Setter Property="Foreground" Value="{DynamicResource InkMuted}" />
         </Style>
         <Style x:Key="Chip" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="MinWidth" Value="44" />
@@ -27,11 +27,11 @@
         </Style>
         <!-- A spell-slot pip: filled while available, hollow once expended. -->
         <ControlTemplate x:Key="PipTemplate" TargetType="Button">
-            <Ellipse x:Name="Pip" Fill="{StaticResource Accent}" Stroke="{StaticResource Accent}" StrokeThickness="2" />
+            <Ellipse x:Name="Pip" Fill="{DynamicResource Accent}" Stroke="{DynamicResource Accent}" StrokeThickness="2" />
             <ControlTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsExpended}" Value="True">
                     <Setter TargetName="Pip" Property="Fill" Value="Transparent" />
-                    <Setter TargetName="Pip" Property="Stroke" Value="{StaticResource LineStrong}" />
+                    <Setter TargetName="Pip" Property="Stroke" Value="{DynamicResource LineStrong}" />
                 </DataTrigger>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter TargetName="Pip" Property="StrokeThickness" Value="3" />
@@ -57,14 +57,14 @@
                     <StackPanel>
                         <DockPanel>
                             <TextBlock Style="{StaticResource CardTitle}" Text="HIT POINTS" />
-                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding VitalStatus}" FontWeight="Bold" Foreground="{StaticResource Danger}" />
+                            <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding VitalStatus}" FontWeight="Bold" Foreground="{DynamicResource Danger}" />
                         </DockPanel>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock FontSize="40" FontWeight="SemiBold" Text="{Binding Character.Combat.CurrentHp}" AutomationProperties.Name="Current hit points" />
-                            <TextBlock FontSize="24" Foreground="{StaticResource InkMuted}" VerticalAlignment="Bottom" Margin="6,0,0,6" Text="{Binding MaxHitPoints, StringFormat=/ {0}}" />
-                            <Border Background="{StaticResource AccentSoft}" CornerRadius="10" Padding="8,2" Margin="12,0,0,8" VerticalAlignment="Bottom"
+                            <TextBlock FontSize="24" Foreground="{DynamicResource InkMuted}" VerticalAlignment="Bottom" Margin="6,0,0,6" Text="{Binding MaxHitPoints, StringFormat=/ {0}}" />
+                            <Border Background="{DynamicResource AccentSoft}" CornerRadius="10" Padding="8,2" Margin="12,0,0,8" VerticalAlignment="Bottom"
                                     Visibility="{Binding Character.Combat.TemporaryHp, Converter={StaticResource VisibleWhen}}">
-                                <TextBlock Foreground="{StaticResource Accent}" FontWeight="SemiBold" Text="{Binding Character.Combat.TemporaryHp, StringFormat=+{0} temp}" />
+                                <TextBlock Foreground="{DynamicResource Accent}" FontWeight="SemiBold" Text="{Binding Character.Combat.TemporaryHp, StringFormat=+{0} temp}" />
                             </Border>
                         </StackPanel>
                         <WrapPanel Margin="0,8,0,0">
@@ -85,10 +85,10 @@
                         </DockPanel>
 
                         <!-- Death saves appear only while at 0 HP -->
-                        <Border Margin="0,8,0,0" Padding="10,8" CornerRadius="6" Background="#FBEFED"
+                        <Border Margin="0,8,0,0" Padding="10,8" CornerRadius="6" Background="{DynamicResource DangerSoft}"
                                 Visibility="{Binding IsDying, Converter={StaticResource VisibleWhen}}">
                             <StackPanel>
-                                <TextBlock FontWeight="SemiBold" Foreground="{StaticResource Danger}" Margin="0,0,0,6">
+                                <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Danger}" Margin="0,0,0,6">
                                     <Run Text="Death saves —" />
                                     <Run Text="{Binding Character.Combat.DeathSaveSuccesses, Mode=OneWay}" /><Run Text=" successes," />
                                     <Run Text="{Binding Character.Combat.DeathSaveFailures, Mode=OneWay}" /><Run Text=" failures" />
@@ -123,8 +123,8 @@
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource CardTitle}" Text="REST" />
-                        <TextBlock Margin="0,0,0,8" Foreground="{StaticResource InkMuted}">
-                            <Run Text="Hit dice:" /> <Run Text="{Binding HitDiceText, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Ink}" />
+                        <TextBlock Margin="0,0,0,8" Foreground="{DynamicResource InkMuted}">
+                            <Run Text="Hit dice:" /> <Run Text="{Binding HitDiceText, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" />
                         </TextBlock>
                         <UniformGrid Columns="2">
                             <Button Content="Short Rest…" Margin="0,0,6,0" Command="{Binding Play.ShortRest}" ToolTip="Spend hit dice, then recover short-rest resources" />
@@ -157,13 +157,44 @@
             <StackPanel Grid.Column="1">
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="ATTACKS" />
+                        <TextBlock Style="{StaticResource Hint}" Margin="0" Text="No attacks yet. Add them in Details → Combat."
+                                   Visibility="{Binding Character.Attacks.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
+                        <ItemsControl ItemsSource="{Binding Play.Attacks}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:AttackRow}">
+                                    <DockPanel Margin="0,0,0,6">
+                                        <Button DockPanel.Dock="Right" Content="Roll" Padding="10,3" VerticalAlignment="Top"
+                                                Command="{Binding DataContext.Play.RollAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Model}"
+                                                AutomationProperties.Name="{Binding DisplayName, StringFormat=Roll {0}}" />
+                                        <StackPanel>
+                                            <TextBlock>
+                                                <Run Text="{Binding DisplayName, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Run Text="{Binding AttackBonus, Mode=OneWay, Converter={StaticResource Mod}}" />
+                                            </TextBlock>
+                                            <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource InkMuted}" Text="{Binding DamageRoll}" />
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource CardTitle}" Text="RESOURCES" />
                         <TextBlock Style="{StaticResource Hint}" Margin="0" Text="No tracked resources yet. Add one with Quick add → Resource."
                                    Visibility="{Binding Character.Resources.Count, Converter={StaticResource VisibleWhen}, ConverterParameter=Invert}" />
                         <ItemsControl ItemsSource="{Binding Character.Resources}" IsTabStop="False">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type domain:Resource}">
-                                    <Grid Margin="0,0,0,6">
+                                    <Grid Margin="0,0,0,6" Background="Transparent">
+                                        <Grid.ToolTip>
+                                            <MultiBinding Converter="{StaticResource ResourceTooltip}">
+                                                <Binding Path="Notes" /><Binding Path="Roll" /><Binding Path="Result" />
+                                            </MultiBinding>
+                                        </Grid.ToolTip>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
@@ -171,10 +202,10 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock FontSize="11" Foreground="{StaticResource InkMuted}" Text="{Binding Recovery, Converter={StaticResource EnumDisplay}}" />
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource InkMuted}" Text="{Binding Recovery, Converter={StaticResource EnumDisplay}}" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="8,0" FontSize="16">
-                                            <Run Text="{Binding Current, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" / " Foreground="{StaticResource InkMuted}" /><Run Text="{Binding Maximum, Mode=OneWay}" Foreground="{StaticResource InkMuted}" />
+                                            <Run Text="{Binding Current, Mode=OneWay}" FontWeight="SemiBold" /><Run Text=" / " Foreground="{DynamicResource InkMuted}" /><Run Text="{Binding Maximum, Mode=OneWay}" Foreground="{DynamicResource InkMuted}" />
                                         </TextBlock>
                                         <StackPanel Grid.Column="2" Orientation="Horizontal">
                                             <Button Content="Use" Margin="0,0,4,0" Padding="10,3"
@@ -194,9 +225,9 @@
                 <Border Style="{StaticResource Card}" Visibility="{Binding HasSpellcasting, Converter={StaticResource VisibleWhen}}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource CardTitle}" Text="SPELL SLOTS" />
-                        <TextBlock Foreground="{StaticResource InkMuted}" Margin="0,0,0,8">
-                            <Run Text="Save DC" /> <Run Text="{Binding SpellSaveDc, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Ink}" />
-                            <Run Text="  ·  Attack" /> <Run Text="{Binding SpellAttackBonus, Mode=OneWay}" FontWeight="SemiBold" Foreground="{StaticResource Ink}" />
+                        <TextBlock Foreground="{DynamicResource InkMuted}" Margin="0,0,0,8">
+                            <Run Text="Save DC" /> <Run Text="{Binding SpellSaveDc, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" />
+                            <Run Text="  ·  Attack" /> <Run Text="{Binding SpellAttackBonus, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" />
                         </TextBlock>
                         <ItemsControl ItemsSource="{Binding SpellLevels}" IsTabStop="False">
                             <ItemsControl.ItemTemplate>
@@ -243,7 +274,7 @@
                         <DockPanel Margin="0,8,0,0" Visibility="{Binding Character.Spellcasting.Concentration, Converter={StaticResource VisibleWhen}}">
                             <Button DockPanel.Dock="Right" Content="Drop" Command="{Binding Play.DropConcentration}" />
                             <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                <Run Text="Concentrating on" Foreground="{StaticResource InkMuted}" />
+                                <Run Text="Concentrating on" Foreground="{DynamicResource InkMuted}" />
                                 <Run Text="{Binding Character.Spellcasting.Concentration, Mode=OneWay}" FontWeight="SemiBold" />
                             </TextBlock>
                         </DockPanel>
@@ -264,7 +295,7 @@
                                         <Button DockPanel.Dock="Right" Content="Ritual" Padding="8,2" Margin="0,0,4,0"
                                                 Visibility="{Binding Ritual, Converter={StaticResource VisibleWhen}}"
                                                 Command="{Binding DataContext.Play.CastRitual, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{StaticResource InkMuted}"
+                                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource InkMuted}"
                                                    Visibility="{Binding DataContext.IsMultiCaster, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource VisibleWhen}}">
                                             <TextBlock.Text>
                                                 <MultiBinding Converter="{StaticResource SpellDc}">
@@ -274,7 +305,7 @@
                                             </TextBlock.Text>
                                         </TextBlock>
                                         <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                            <Run Text="{Binding Level, Mode=OneWay, StringFormat=[{0}]}" Foreground="{StaticResource InkMuted}" />
+                                            <Run Text="{Binding Level, Mode=OneWay, StringFormat=[{0}]}" Foreground="{DynamicResource InkMuted}" />
                                             <Run Text="{Binding Name, Mode=OneWay}" />
                                         </TextBlock>
                                     </DockPanel>
@@ -326,7 +357,7 @@
                                                 AutomationProperties.Name="{Binding Name, StringFormat=End {0}}" />
                                         <StackPanel>
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                            <TextBlock FontSize="11" Foreground="{StaticResource InkMuted}" Text="{Binding Expiry, Converter={StaticResource EnumDisplay}}" />
+                                            <TextBlock FontSize="11" Foreground="{DynamicResource InkMuted}" Text="{Binding Expiry, Converter={StaticResource EnumDisplay}}" />
                                         </StackPanel>
                                     </DockPanel>
                                 </DataTemplate>
@@ -353,7 +384,7 @@
                                         <CheckBox DockPanel.Dock="Right" IsChecked="{Binding Equipped}" ToolTip="Equipped" Margin="0,0,6,0"
                                                   AutomationProperties.Name="{Binding Name, StringFormat={}{0} equipped}" />
                                         <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
-                                            <Run Text="{Binding Quantity, Mode=OneWay, StringFormat={}{0}×}" Foreground="{StaticResource InkMuted}" />
+                                            <Run Text="{Binding Quantity, Mode=OneWay, StringFormat={}{0}×}" Foreground="{DynamicResource InkMuted}" />
                                             <Run Text="{Binding Name, Mode=OneWay}" />
                                         </TextBlock>
                                     </DockPanel>

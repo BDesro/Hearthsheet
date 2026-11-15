@@ -37,11 +37,11 @@
             <RadioButton x:Name="RollRadio" GroupName="Hp" Content="Roll" VerticalAlignment="Center" Checked="OnChanged" AutomationProperties.Name="Roll hit points" />
             <TextBox x:Name="RollBox" Width="56" Margin="8,0,0,0" HorizontalContentAlignment="Center" IsEnabled="{Binding IsChecked, ElementName=RollRadio}"
                      AutomationProperties.Name="Hit point roll" />
-            <Button x:Name="RollButton" Content="🎲 Roll for me" Margin="8,0,0,0" Click="OnRoll" IsEnabled="{Binding IsChecked, ElementName=RollRadio}" />
+            <Button x:Name="RollButton" Content="🎲 Roll for me" AutomationProperties.Name="Roll for me" Margin="8,0,0,0" Click="OnRoll" IsEnabled="{Binding IsChecked, ElementName=RollRadio}" />
         </StackPanel>
 
-        <TextBlock x:Name="WarningText" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{StaticResource Danger}" Visibility="Collapsed" />
-        <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{StaticResource Danger}" Visibility="Collapsed" />
+        <TextBlock x:Name="WarningText" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{DynamicResource Danger}" Visibility="Collapsed" />
+        <TextBlock x:Name="ErrorText" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="{DynamicResource Danger}" Visibility="Collapsed" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancel" IsCancel="True" Margin="0,0,8,0" />
             <Button Content="OK" IsDefault="True" Style="{StaticResource AccentButton}" Click="OnOk" />

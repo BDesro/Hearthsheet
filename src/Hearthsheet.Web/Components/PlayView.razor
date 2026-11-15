@@ -95,6 +95,23 @@
 
     <div class="play-column">
         <section class="card">
+            <h3>Attacks</h3>
+            @if (C.Attacks.Count == 0)
+            {
+                <p class="hint">No attacks yet. Add them in Details → Combat.</p>
+            }
+            <ul class="rows">
+                @foreach (var a in P.Attacks)
+                {
+                    <li @key="a.Model" class="row">
+                        <span class="row-name"><strong>@a.DisplayName</strong> @CharacterRules.FormatModifier(a.AttackBonus)<small>@a.DamageRoll</small></span>
+                        <button type="button" aria-label="Roll @a.DisplayName" @onclick="() => P.RollAttack.Execute(a.Model)">Roll</button>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        <section class="card">
             <h3>Resources</h3>
             @if (C.Resources.Count == 0)
             {
@@ -103,11 +120,17 @@
             <ul class="rows">
                 @foreach (var r in C.Resources)
                 {
-                    <li @key="r" class="row">
+                    var tip = Lookups.ResourceTooltip(r.Notes, r.Roll, r.Result);
+                    var tipId = $"res-tip-{C.Resources.IndexOf(r)}";
+                    <li @key="r" class="row" title="@tip" aria-describedby="@(tip is null ? null : tipId)">
                         <span class="row-name"><strong>@r.Name</strong><small>@Lookups.Display(r.Recovery)</small></span>
                         <span class="count"><strong>@r.Current</strong> / @r.Maximum</span>
                         <button type="button" aria-label="Use @r.Name" @onclick="() => P.UseResource.Execute(r)">Use</button>
                         <button type="button" aria-label="Restore one @r.Name" @onclick="() => P.RestoreResource.Execute(r)">+</button>
+                        @if (tip is not null)
+                        {
+                            <span id="@tipId" class="visually-hidden">@tip</span>
+                        }
                     </li>
                 }
             </ul>

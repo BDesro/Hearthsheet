@@ -20,6 +20,7 @@ public enum FeatureSource { Class, Subclass, Species, Background, Feat, Trait, C
 
 /// <summary>Which rest refills a resource. Manual resources are flagged for the user after a rest.</summary>
 public enum RecoveryTiming { Manual, ShortRest, LongRest }
+public enum ResourceResult { JustShow, Heal, TemporaryHp }
 
 /// <summary>When an active effect is removed automatically. ShortRest means "at the end of any rest".</summary>
 public enum EffectExpiry { Manual, ShortRest, LongRest }

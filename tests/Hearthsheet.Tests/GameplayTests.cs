@@ -180,6 +180,87 @@ public class GameplayTests
         Assert.Equal(4, ki.Current);
     }
 
+    private static Resource Rolled(Character c, ResourceResult result, string name = "Second Wind", int uses = 1)
+    {
+        var r = new Resource { Name = name, Maximum = uses, Current = uses, Result = result };
+        c.Resources.Add(r);
+        return r;
+    }
+
+    [Fact]
+    public void Roll_heal_spends_and_clamps_at_max()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 15;
+        var r = Rolled(c, ResourceResult.Heal);
+        var text = c.UseResourceWithRoll(r, 18);
+        Assert.Equal(20, c.Combat.CurrentHp);
+        Assert.Equal(0, r.Current);
+        Assert.Equal("Used Second Wind (0/1 left): rolled 18. Healed 5 HP.", text);
+    }
+
+    [Fact]
+    public void Roll_temp_hp_keeps_higher()
+    {
+        var c = Fighter();
+        c.Combat.TemporaryHp = 10;
+        var r = Rolled(c, ResourceResult.TemporaryHp, "Aid", 2);
+        var text = c.UseResourceWithRoll(r, 6);
+        Assert.Equal(10, c.Combat.TemporaryHp);
+        Assert.EndsWith("Temporary HP now 10.", text);
+        c.UseResourceWithRoll(r, 12);
+        Assert.Equal(12, c.Combat.TemporaryHp);
+    }
+
+    [Fact]
+    public void Roll_just_show_changes_no_hp()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 15;
+        var r = Rolled(c, ResourceResult.JustShow, "X", 3);
+        var text = c.UseResourceWithRoll(r, 7);
+        Assert.Equal(15, c.Combat.CurrentHp);
+        Assert.Equal(0, c.Combat.TemporaryHp);
+        Assert.Equal("Used X (2/3 left): rolled 7.", text);
+    }
+
+    [Fact]
+    public void Roll_with_no_uses_applies_nothing()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 15;
+        var r = Rolled(c, ResourceResult.Heal);
+        r.Current = 0;
+        var text = c.UseResourceWithRoll(r, 18);
+        Assert.Equal(15, c.Combat.CurrentHp);
+        Assert.Equal("Second Wind has no uses left.", text);
+    }
+
+    [Fact]
+    public void Roll_heal_on_dead_character_keeps_the_use()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 0;
+        c.Combat.DeathSaveFailures = 3;
+        var r = Rolled(c, ResourceResult.Heal);
+        var text = c.UseResourceWithRoll(r, 18);
+        Assert.Equal(1, r.Current);
+        Assert.Equal("Character is dead; healing has no effect.", text);
+    }
+
+    [Fact]
+    public void Negative_total_heals_nothing()
+    {
+        var c = Fighter();
+        c.Combat.CurrentHp = 15;
+        var r = Rolled(c, ResourceResult.Heal);
+        var text = c.UseResourceWithRoll(r, -2);
+        Assert.Equal(15, c.Combat.CurrentHp);
+        Assert.Equal(0, r.Current);
+        Assert.Contains("rolled -2.", text);
+        Assert.Contains("No healing.", text);
+    }
+
     [Fact]
     public void CastSpell_UsesLowestAvailableSlot_AndTracksConcentration()
     {

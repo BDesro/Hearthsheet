@@ -31,9 +31,7 @@ public sealed class Dialogs : IDialogs
     }
 
     private static MessageBoxResult Show(string message, string title, MessageBoxButton buttons, MessageBoxImage image) =>
-        Owner is { } owner
-            ? MessageBox.Show(owner, message, title, buttons, image, MessageBoxResult.None)
-            : MessageBox.Show(message, title, buttons, image, MessageBoxResult.None);
+        MessageDialog.Show(Owner, message, title, buttons, image);
 
     public Task<NewCharacterOptions?> NewCharacterAsync()
     {
@@ -57,6 +55,14 @@ public sealed class Dialogs : IDialogs
     /// <returns>True when the user chose to finish the short rest.</returns>
     public Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         Task.FromResult(new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true);
+
+    /// <returns>True when the user pressed Use; the caller then spends the resource.</returns>
+    public Task<bool> UseResourceAsync(ResourceUseViewModel vm) =>
+        Task.FromResult(new ResourceUseDialog { Owner = Owner, DataContext = vm }.ShowDialog() == true);
+
+    /// <returns>True when the user pressed Done; the caller then logs the roll.</returns>
+    public Task<bool> AttackRollAsync(AttackRollViewModel vm) =>
+        Task.FromResult(new AttackRollDialog { Owner = Owner, DataContext = vm }.ShowDialog() == true);
 
     public void ShowUpdates(UpdateViewModel vm) =>
         new UpdateDialog { Owner = Owner, DataContext = vm }.ShowDialog();

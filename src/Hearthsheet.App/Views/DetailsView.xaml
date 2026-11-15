@@ -74,25 +74,25 @@
                 <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="IsReadOnly" Value="True" /></DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="LockedForWeapon" TargetType="CheckBox" BasedOn="{x:Static DataGridCheckBoxColumn.DefaultEditingElementStyle}">
+        <Style x:Key="LockedForWeapon" TargetType="CheckBox" BasedOn="{StaticResource GridCheckEdit}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger>
             </Style.Triggers>
         </Style>
         <!-- Computed cells are tinted (ReadOnlyFill); editable ones stay white. Per-row variants for attacks. -->
         <Style x:Key="ComputedCell" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-            <Setter Property="Background" Value="{StaticResource ReadOnlyFill}" />
+            <Setter Property="Background" Value="{DynamicResource ReadOnlyFill}" />
         </Style>
         <Style x:Key="ComputedForWeapon" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="Background" Value="{StaticResource ReadOnlyFill}" /></DataTrigger>
-                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="True"><Setter Property="Background" Value="{DynamicResource ReadOnlyFill}" /></DataTrigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentSoft}" /></Trigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="ComputedForPlain" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="Background" Value="{StaticResource ReadOnlyFill}" /></DataTrigger>
-                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{StaticResource AccentSoft}" /></Trigger>
+                <DataTrigger Binding="{Binding IsWeaponAttack}" Value="False"><Setter Property="Background" Value="{DynamicResource ReadOnlyFill}" /></DataTrigger>
+                <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentSoft}" /></Trigger>
             </Style.Triggers>
         </Style>
         <!-- Modifier editor used by items, features and effects. DataContext = Item, Feature or Effect. -->
@@ -114,7 +114,7 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridComboBoxColumn Header="Kind" Width="Auto" MinWidth="90" ItemsSource="{x:Static vm:Lookups.ModifierKinds}" SelectedItemBinding="{Binding Kind}" />
+                        <DataGridComboBoxColumn Header="Kind" Width="Auto" MinWidth="90" ItemsSource="{x:Static vm:Lookups.ModifierKinds}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Kind}" />
                         <DataGridTextColumn Header="Value" Width="Auto" MinWidth="70" Binding="{Binding Value}" />
                         <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                     </DataGrid.Columns>
@@ -123,14 +123,14 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <TabControl TabStripPlacement="Left" Background="{StaticResource Canvas}" BorderThickness="0" Padding="0">
+    <TabControl TabStripPlacement="Left" Background="{DynamicResource Canvas}" BorderThickness="0" Padding="0">
         <TabControl.Resources>
             <Style TargetType="TabItem" BasedOn="{StaticResource NavTab}" />
         </TabControl.Resources>
         <TabControl.Template>
             <ControlTemplate TargetType="TabControl">
                 <DockPanel>
-                    <Border DockPanel.Dock="Left" Background="{StaticResource Sidebar}" Width="190" Padding="0,10">
+                    <Border DockPanel.Dock="Left" Background="{DynamicResource Sidebar}" Width="190" Padding="0,10">
                         <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
                     </Border>
                     <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" />
@@ -162,7 +162,7 @@
                             <Run Text="Classes · Total level" /> <Run Text="{Binding TotalLevel, Mode=OneWay}" /> <Run Text="/ 20" />
                         </TextBlock>
                     </DockPanel>
-                    <TextBlock Style="{StaticResource Hint}" Foreground="{StaticResource Danger}" FontWeight="SemiBold"
+                    <TextBlock Style="{StaticResource Hint}" Foreground="{DynamicResource Danger}" FontWeight="SemiBold"
                                Text="Over 20: the last class will be lowered when the character is next loaded."
                                Visibility="{Binding IsOverLevelCap, Converter={StaticResource VisibleWhen}}" />
                     <TextBlock Style="{StaticResource Hint}" Text="The first row is the starting class (it sets saving throw proficiencies and first-level hit points). Hit dice and caster types are per class." />
@@ -171,7 +171,7 @@
                             <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <TextBlock x:Name="Mark" Text="" Foreground="{StaticResource InkMuted}" FontSize="11" VerticalAlignment="Center" Margin="4,0" />
+                                        <TextBlock x:Name="Mark" Text="" Foreground="{DynamicResource InkMuted}" FontSize="11" VerticalAlignment="Center" Margin="4,0" />
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="0">
                                                 <Setter TargetName="Mark" Property="Text" Value="Starting class" />
@@ -272,7 +272,7 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource SectionTitle}" Text="Ability Scores &amp; Saving Throws" />
                     <TextBlock Style="{StaticResource Hint}" Text="Enter base scores (1–30). Modifiers are calculated; items and effects can raise or set scores." />
-                    <Grid Margin="0,0,0,6" TextElement.FontWeight="SemiBold" TextElement.Foreground="{StaticResource InkMuted}">
+                    <Grid Margin="0,0,0,6" TextElement.FontWeight="SemiBold" TextElement.Foreground="{DynamicResource InkMuted}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="130" /><ColumnDefinition Width="90" /><ColumnDefinition Width="80" />
                             <ColumnDefinition Width="80" /><ColumnDefinition Width="110" /><ColumnDefinition Width="90" /><ColumnDefinition Width="80" />
@@ -300,7 +300,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Margin="0,18,0,0" Foreground="{StaticResource InkMuted}">
+                    <TextBlock Margin="0,18,0,0" Foreground="{DynamicResource InkMuted}">
                         <Run Text="Proficiency bonus" /> <Run Text="{Binding ProficiencyBonus, Mode=OneWay, Converter={StaticResource Mod}}" FontWeight="SemiBold" />
                         <Run Text="{Binding TotalLevel, Mode=OneWay, StringFormat=  (total level {0})}" />
                     </TextBlock>
@@ -323,7 +323,7 @@
                                         <ColumnDefinition Width="90" /><ColumnDefinition Width="60" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" />
-                                    <TextBlock Grid.Column="1" Text="{Binding AbilityAbbreviation}" VerticalAlignment="Center" Foreground="{StaticResource InkMuted}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding AbilityAbbreviation}" VerticalAlignment="Center" Foreground="{DynamicResource InkMuted}" />
                                     <ComboBox Grid.Column="2" Margin="0,0,10,0" ItemsSource="{x:Static vm:Lookups.ProficiencyLevels}" SelectedItem="{Binding Model.Proficiency}"
                                               AutomationProperties.Name="{Binding Name, StringFormat={}{0} proficiency}">
                                         <ComboBox.ItemTemplate>
@@ -387,7 +387,7 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="100" ItemsSource="{x:Static vm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Ability}" />
-                            <DataGridCheckBoxColumn Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource ComputedForWeapon}"
+                            <DataGridCheckBoxColumn ElementStyle="{StaticResource GridCheck}" Header="Proficient" Width="Auto" Binding="{Binding Proficient, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource ComputedForWeapon}"
                                                     EditingElementStyle="{StaticResource LockedForWeapon}" />
                             <DataGridTextColumn Header="Extra bonus" Width="Auto" Binding="{Binding Model.Bonus}" />
                             <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
@@ -422,7 +422,7 @@
                     </StackPanel>
                     <DataGrid ItemsSource="{Binding Character.Proficiencies}" MaxHeight="600">
                         <DataGrid.Columns>
-                            <DataGridComboBoxColumn Header="Category" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.ProficiencyCategories}" SelectedItemBinding="{Binding Category}" />
+                            <DataGridComboBoxColumn Header="Category" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.ProficiencyCategories}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Category}" />
                             <DataGridTemplateColumn Header="Name" Width="*" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -460,7 +460,7 @@
                     <DataGrid x:Name="FeatureGrid" ItemsSource="{Binding Character.Features}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
-                            <DataGridComboBoxColumn Header="Source" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.FeatureSources}" SelectedItemBinding="{Binding Source}" />
+                            <DataGridComboBoxColumn Header="Source" Width="Auto" MinWidth="140" ItemsSource="{x:Static vm:Lookups.FeatureSources}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Source}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -499,9 +499,9 @@
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Qty" Width="Auto" MinWidth="60" Binding="{Binding Quantity}" />
                             <DataGridTextColumn Header="Weight (lb)" Width="Auto" MinWidth="90" Binding="{Binding Weight}" />
-                            <DataGridCheckBoxColumn Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -530,7 +530,7 @@
                             </DataGridTemplateColumn>
                             <DataGridComboBoxColumn Header="Ability" Width="Auto" MinWidth="95" ItemsSource="{x:Static vm:Lookups.OptionalAbilities}"
                                                     DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValueBinding="{Binding Model.Ability}" />
-                            <DataGridCheckBoxColumn Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" CellStyle="{StaticResource ComputedCell}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Prof." Width="Auto" IsReadOnly="True" Binding="{Binding Proficient, Mode=OneWay}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="To hit" Width="Auto" IsReadOnly="True" Binding="{Binding AttackBonus, Converter={StaticResource Mod}}" CellStyle="{StaticResource ComputedCell}" />
                             <DataGridTextColumn Header="Damage" Width="Auto" MinWidth="55" Binding="{Binding Model.Damage}" />
                             <DataGridTextColumn Header="Type" Width="Auto" MinWidth="60" Binding="{Binding Model.DamageType}" />
@@ -545,7 +545,7 @@
                             <Button DockPanel.Dock="Right" Content="+ Add weapon effect" Command="{Binding AddWeaponEffect}" CommandParameter="{Binding SelectedItem.Model, ElementName=WeaponGrid}" />
                             <TextBlock VerticalAlignment="Center" TextWrapping="Wrap">
                                 <Run Text="{Binding SelectedItem.Model.Name, ElementName=WeaponGrid, Mode=OneWay, StringFormat=Effects on {0}}" FontWeight="SemiBold" />
-                                <Run Text="  Damage with no type (or the weapon's type) joins its main damage." Foreground="{StaticResource InkMuted}" />
+                                <Run Text="  Damage with no type (or the weapon's type) joins its main damage." Foreground="{DynamicResource InkMuted}" />
                             </TextBlock>
                         </DockPanel>
                         <DataGrid ItemsSource="{Binding SelectedItem.Model.Effects, ElementName=WeaponGrid}" MaxHeight="180">
@@ -568,9 +568,9 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Weight (lb)" Width="Auto" MinWidth="90" Binding="{Binding Weight}" />
-                            <DataGridCheckBoxColumn Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Equipped" Width="Auto" MinWidth="80" Binding="{Binding Equipped, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Needs attunement" Width="Auto" MinWidth="130" Binding="{Binding RequiresAttunement, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Attuned" Width="Auto" MinWidth="70" Binding="{Binding Attuned, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -613,9 +613,9 @@
                                     <StackPanel>
                                         <TextBlock Text="{Binding Level, StringFormat=Level {0}}" FontWeight="SemiBold" />
                                         <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                            <TextBlock Text="Max" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                            <TextBlock Text="Max" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{DynamicResource InkMuted}" />
                                             <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Maximum}" AutomationProperties.Name="{Binding Level, StringFormat=Level {0} slots maximum}" />
-                                            <TextBlock Text="Used" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                            <TextBlock Text="Used" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource InkMuted}" />
                                             <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Expended}" AutomationProperties.Name="{Binding Level, StringFormat=Level {0} slots used}" />
                                         </StackPanel>
                                     </StackPanel>
@@ -627,11 +627,11 @@
                         <StackPanel>
                             <TextBlock Text="Pact Magic" FontWeight="SemiBold" ToolTip="Warlock-style slots that come back on a short rest. Enter them by hand for features like Profane Soul." />
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <TextBlock Text="Level" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBlock Text="Level" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{DynamicResource InkMuted}" />
                                 <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Level}" AutomationProperties.Name="Pact slot level" />
-                                <TextBlock Text="Max" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBlock Text="Max" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource InkMuted}" />
                                 <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Maximum}" AutomationProperties.Name="Pact slots maximum" />
-                                <TextBlock Text="Used" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{StaticResource InkMuted}" />
+                                <TextBlock Text="Used" VerticalAlignment="Center" Margin="8,0,4,0" Foreground="{DynamicResource InkMuted}" />
                                 <TextBox Width="36" HorizontalContentAlignment="Center" Text="{Binding Character.Spellcasting.PactSlots.Expended}" AutomationProperties.Name="Pact slots used" />
                             </StackPanel>
                         </StackPanel>
@@ -642,7 +642,7 @@
                     </DockPanel>
                     <DataGrid x:Name="SpellGrid" ItemsSource="{Binding Character.Spellcasting.Spells}">
                         <DataGrid.Columns>
-                            <DataGridCheckBoxColumn Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Prep." Width="Auto" MinWidth="50" Binding="{Binding Prepared, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridComboBoxColumn Header="Lvl" Width="Auto" MinWidth="55" ItemsSource="{x:Static vm:Lookups.SpellLevels}" SelectedItemBinding="{Binding Level}" />
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTemplateColumn Header="Class" Width="Auto" MinWidth="90" IsReadOnly="True"
@@ -666,8 +666,8 @@
                             <DataGridTextColumn Header="Range" Width="Auto" MinWidth="80" Binding="{Binding Range}" />
                             <DataGridTextColumn Header="Components" Width="Auto" MinWidth="90" Binding="{Binding Components}" />
                             <DataGridTextColumn Header="Duration" Width="Auto" MinWidth="95" Binding="{Binding Duration}" />
-                            <DataGridCheckBoxColumn Header="Conc." Width="Auto" MinWidth="50" Binding="{Binding Concentration, UpdateSourceTrigger=PropertyChanged}" />
-                            <DataGridCheckBoxColumn Header="Ritual" Width="Auto" MinWidth="50" Binding="{Binding Ritual, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Conc." Width="Auto" MinWidth="50" Binding="{Binding Concentration, UpdateSourceTrigger=PropertyChanged}" />
+                            <DataGridCheckBoxColumn EditingElementStyle="{StaticResource GridCheckEdit}" ElementStyle="{StaticResource GridCheck}" Header="Ritual" Width="Auto" MinWidth="50" Binding="{Binding Ritual, UpdateSourceTrigger=PropertyChanged}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>
@@ -697,8 +697,40 @@
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Current" Width="Auto" MinWidth="70" Binding="{Binding Current}" />
                             <DataGridTextColumn Header="Maximum" Width="Auto" MinWidth="75" Binding="{Binding Maximum}" />
-                            <DataGridComboBoxColumn Header="Recovers" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.RecoveryTimings}" SelectedItemBinding="{Binding Recovery}" />
+                            <DataGridComboBoxColumn Header="Recovers" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.RecoveryTimings}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Recovery}" />
                             <DataGridTextColumn Header="Amount" Width="Auto" MinWidth="70" Binding="{Binding RecoveryAmount, TargetNullValue=''}" />
+                            <DataGridTemplateColumn Header="Roll" Width="Auto" MinWidth="170">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="4,0" VerticalAlignment="Center"
+                                                   ToolTip="{Binding Roll, Converter={StaticResource ResourceRollError}}"
+                                                   AutomationProperties.HelpText="{Binding Roll, Converter={StaticResource ResourceRollError}}">
+                                            <Run Text="{Binding Roll, Mode=OneWay}" />
+                                            <Run Text="{Binding Roll, Mode=OneWay, Converter={StaticResource ResourceRollError}, ConverterParameter=mark}" Foreground="{DynamicResource Danger}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Loaded="OnCellEditorLoaded" Text="{Binding Roll, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Resource roll formula"
+                                                 AutomationProperties.HelpText="{Binding Roll, Converter={StaticResource ResourceRollError}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Result" Width="Auto" MinWidth="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Margin="4,0" VerticalAlignment="Center" Text="{Binding Result, Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Loaded="OnCellEditorLoaded" ItemsSource="{x:Static vm:Lookups.ResourceResults}" SelectedItem="{Binding Result}" AutomationProperties.Name="Resource roll result">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Notes" Width="*" Binding="{Binding Notes}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
@@ -734,7 +766,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Name" Width="*" Binding="{Binding Name}" />
                             <DataGridTextColumn Header="Duration" Width="Auto" MinWidth="120" Binding="{Binding Duration}" />
-                            <DataGridComboBoxColumn Header="Expires" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.EffectExpiries}" SelectedItemBinding="{Binding Expiry}" />
+                            <DataGridComboBoxColumn Header="Expires" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.EffectExpiries}" ElementStyle="{StaticResource EnumGridCell}" EditingElementStyle="{StaticResource EnumGridEdit}" SelectedItemBinding="{Binding Expiry}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>
                     </DataGrid>

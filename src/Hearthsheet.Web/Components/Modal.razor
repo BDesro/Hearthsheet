@@ -1,5 +1,6 @@
 @* The one host for WebDialogs: shows the request at the head of the queue in a native modal <dialog> (the page behind
    is inert, Escape closes it as a cancel), and returns focus to the trigger once the queue is empty. *@
+@using Hearthsheet.Presentation
 @using Microsoft.JSInterop
 @implements IDisposable
 @inject WebDialogs Dialogs
@@ -26,6 +27,14 @@
         else if (request.Data is LevelUpRequest levelUp)
         {
             <LevelUpDialog Request="levelUp" Done="answer => Dialogs.Complete(request, answer)" />
+        }
+        else if (request.Data is AttackRollViewModel attackRoll)
+        {
+            <AttackRollDialog Vm="attackRoll" Done="log => Dialogs.Complete(request, log)" />
+        }
+        else if (request.Data is ResourceUseViewModel resourceUse)
+        {
+            <ResourceUseDialog Vm="resourceUse" Done="use => Dialogs.Complete(request, use)" />
         }
         else
         {

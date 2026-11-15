@@ -15,11 +15,11 @@
             <Grid.RowDefinitions>
                 <RowDefinition /><RowDefinition /><RowDefinition />
             </Grid.RowDefinitions>
-            <TextBlock Text="Installed version" Foreground="{StaticResource InkMuted}" />
+            <TextBlock Text="Installed version" Foreground="{DynamicResource InkMuted}" />
             <TextBlock Grid.Column="1" Text="{Binding CurrentVersion}" FontWeight="SemiBold" />
-            <TextBlock Grid.Row="1" Text="Release source" Foreground="{StaticResource InkMuted}" Margin="0,4,0,0" />
+            <TextBlock Grid.Row="1" Text="Release source" Foreground="{DynamicResource InkMuted}" Margin="0,4,0,0" />
             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Source}" Margin="0,4,0,0" />
-            <TextBlock Grid.Row="2" Text="Available" Foreground="{StaticResource InkMuted}" Margin="0,4,0,0" />
+            <TextBlock Grid.Row="2" Text="Available" Foreground="{DynamicResource InkMuted}" Margin="0,4,0,0" />
             <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" FontWeight="SemiBold"
                        Text="{Binding Available.Version, FallbackValue='—', TargetNullValue='—'}" />
         </Grid>

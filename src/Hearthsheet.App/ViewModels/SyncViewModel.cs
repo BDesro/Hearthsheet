@@ -40,6 +40,8 @@ public sealed class SyncViewModel : Observable
 
     public bool IsConfigured => _cloud is not null;
     public bool IsSignedIn => _cloud?.Auth.IsSignedIn == true;
+    /// <summary>Sync is set up but nobody is signed in: the toolbar offers Sign in.</summary>
+    public bool CanSignIn => IsConfigured && !IsSignedIn;
     public string AccountLabel => IsSignedIn ? $"Signed in as {_cloud!.Auth.Email}" : "Not signed in";
     public string AccountEmail => IsSignedIn ? _cloud!.Auth.Email ?? "" : "";
     public bool IsBusy { get; private set => Set(ref field, value); }
@@ -155,6 +157,7 @@ public sealed class SyncViewModel : Observable
         if (IsSignedIn) _timer.Start();
         else _timer.Stop();
         Raise(nameof(IsSignedIn));
+        Raise(nameof(CanSignIn));
         Raise(nameof(AccountLabel));
         Raise(nameof(AccountEmail));
         CommandManager.InvalidateRequerySuggested();

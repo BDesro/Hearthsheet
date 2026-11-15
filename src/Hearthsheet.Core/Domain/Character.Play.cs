@@ -135,6 +135,25 @@ public sealed partial class Character
         return true;
     }
 
+    /// <summary>Spends one use and applies the rolled total per the resource's Result (negative totals apply as 0).</summary>
+    public string UseResourceWithRoll(Resource resource, int total)
+    {
+        if (resource.Result == ResourceResult.Heal && CharacterRules.IsDead(this)) return "Character is dead; healing has no effect.";
+        if (!UseResource(resource)) return $"{resource.Name} has no uses left.";
+        var applied = Math.Max(0, total);
+        var text = $"Used {resource.Name} ({resource.Current}/{resource.Maximum} left): rolled {total}.";
+        switch (resource.Result)
+        {
+            case ResourceResult.Heal:
+                return $"{text} {Heal(applied)}";
+            case ResourceResult.TemporaryHp:
+                GrantTemporaryHitPoints(applied);
+                return $"{text} Temporary HP now {Combat.TemporaryHp}.";
+            default:
+                return text;
+        }
+    }
+
     public void RestoreResource(Resource resource, int amount = 1) =>
         resource.Current = Math.Min(resource.Maximum, resource.Current + Math.Max(0, amount));
 

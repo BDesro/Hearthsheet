@@ -11,7 +11,21 @@ namespace Hearthsheet.App;
 
 public partial class MainWindow
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        // Toolbar labels collapse to icons on narrow windows (tooltips and automation names keep the words).
+        SizeChanged += (_, _) => Toolbar.Tag = ActualWidth < 1100 ? "Compact" : null;
+    }
+
+    /// <summary>Help ▾ and ⋯ More: open the button's menu below it on a normal click.</summary>
+    private void OnOpenMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
 
     // On some monitors (e.g. a scaled 4K display) hardware-rendered video freezes on its first frame while the audio plays.
     // Draw in software for the intro only, then go back to the default once the app shows.

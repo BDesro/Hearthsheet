@@ -19,9 +19,10 @@ public static partial class CharacterJson
     /// <see cref="Deserialize(JsonObject, int)"/> before it is materialized. Version 2 only added fields (weapons, wondrous
     /// items, feature modifiers), so version 1 reads as is. Version 3 moved class, subclass, level, hit die, hit dice left
     /// and spellcasting ability into <c>identity.classes[]</c> (multiclassing); older documents are migrated into one entry.
+    /// Version 4 adds <c>Resource.roll</c>/<c>result</c>; it needs no migration (missing fields take their defaults).
     /// The bump stops older apps from loading and dropping them.
     /// </summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public static readonly JsonSerializerOptions Options = new()
     {
