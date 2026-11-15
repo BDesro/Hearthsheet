@@ -55,8 +55,13 @@ public sealed class ResourceUseViewModel : Observable
         }
     }
 
+    /// <summary>"Total 18 → Heal 18" (just "Total N" for Just show); empty until every box is valid.</summary>
+    public string SummaryText => Total is not { } total ? ""
+        : _result == ResourceResult.JustShow ? ResultText : $"Total {total} → {ResultText}";
+
     private void Changed()
     {
+        Raise(nameof(SummaryText));
         Raise(nameof(Total));
         Raise(nameof(ResultText));
         Raise(nameof(CanUse));

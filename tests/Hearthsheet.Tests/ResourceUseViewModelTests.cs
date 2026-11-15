@@ -97,6 +97,19 @@ public class ResourceUseViewModelTests
         Assert.Equal(expected, vm.ResultText);
     }
 
+    [Theory]
+    [InlineData("1d10 + 4", ResourceResult.Heal, "5", "Total 9 → Heal 9")]
+    [InlineData("1d10 + 4", ResourceResult.TemporaryHp, "5", "Total 9 → Gain 9 temporary HP")]
+    [InlineData("1d10 + 4", ResourceResult.JustShow, "5", "Total 9")]
+    [InlineData("1d4 - 5", ResourceResult.Heal, "4", "Total -1 → Heal 0")]
+    [InlineData("1d10 + 4", ResourceResult.Heal, "", "")]
+    public void Summary_text(string roll, ResourceResult result, string input, string expected)
+    {
+        var vm = Make(roll, result);
+        vm.Boxes[0].Input = input;
+        Assert.Equal(expected, vm.SummaryText);
+    }
+
     [Fact]
     public void Heal_with_negative_total_shows_zero()
     {
