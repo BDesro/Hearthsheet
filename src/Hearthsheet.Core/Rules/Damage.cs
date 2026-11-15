@@ -10,7 +10,7 @@ public sealed record DamagePart(string Type, IReadOnlyList<DiceTerm> Dice, int F
 /// <summary>Parses free-text damage such as "1d10 + 3 piercing + 1d6 cold" into typed parts.</summary>
 public static class DamageText
 {
-    private static readonly int[] ValidSides = [2, 3, 4, 6, 8, 10, 12, 20, 100];
+    internal static readonly int[] ValidSides = [2, 3, 4, 6, 8, 10, 12, 20, 100];
 
     private static readonly Regex Term = new(
         @"^\s*(?:(?<n>[0-9]*)d(?<s>[0-9]+)|(?<flat>[0-9]+))\s*(?<type>[A-Za-z]+)?\s*$",

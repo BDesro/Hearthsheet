@@ -4,7 +4,7 @@ using Hearthsheet.Presentation;
 
 namespace Hearthsheet.Web;
 
-public enum DialogKind { Confirm, Info, Error, NewCharacter, QuickAdd, ShortRest, LevelUp, AttackRoll }
+public enum DialogKind { Confirm, Info, Error, NewCharacter, QuickAdd, ShortRest, LevelUp, AttackRoll, ResourceUse }
 
 /// <summary>What the Quick add dialog offers: a type list (or none) and whether a description is asked for.</summary>
 public sealed record QuickAddRequest(IReadOnlyList<object>? Kinds, object? DefaultKind, bool WithDescription);
@@ -20,7 +20,7 @@ public sealed class DialogRequest(DialogKind kind, string title, string message,
     public DialogKind Kind { get; } = kind;
     public string Title { get; } = title;
     public string Message { get; } = message;
-    /// <summary>The dialog's input: a <see cref="QuickAddRequest"/>, <see cref="ShortRestRequest"/>, <see cref="LevelUpRequest"/> or an <see cref="AttackRollViewModel"/>.</summary>
+    /// <summary>The dialog's input: a <see cref="QuickAddRequest"/>, <see cref="ShortRestRequest"/>, <see cref="LevelUpRequest"/> <see cref="AttackRollViewModel"/> or <see cref="ResourceUseViewModel"/>.</summary>
     public object? Data { get; } = data;
     internal TaskCompletionSource<object?> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
@@ -74,6 +74,9 @@ public sealed class WebDialogs : IDialogs
 
     public async Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         await Ask(DialogKind.ShortRest, "Short rest", "", new ShortRestRequest(play, character)) is true;
+
+    public async Task<bool> UseResourceAsync(ResourceUseViewModel vm) =>
+        await Ask(DialogKind.ResourceUse, "Use resource", "", vm) is true;
 
     public async Task<bool> AttackRollAsync(AttackRollViewModel vm) =>
         await Ask(DialogKind.AttackRoll, "Attack roll", "", vm) is true;

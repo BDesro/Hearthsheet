@@ -21,4 +21,7 @@ public interface IDialogs
 
     /// <returns>True when the user chose Done (the roll is then logged).</returns>
     Task<bool> AttackRollAsync(AttackRollViewModel vm);
+
+    /// <returns>True when the user chose Use (the resource is then spent and the total applied).</returns>
+    Task<bool> UseResourceAsync(ResourceUseViewModel vm);
 }

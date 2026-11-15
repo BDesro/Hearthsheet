@@ -699,6 +699,38 @@
                             <DataGridTextColumn Header="Maximum" Width="Auto" MinWidth="75" Binding="{Binding Maximum}" />
                             <DataGridComboBoxColumn Header="Recovers" Width="Auto" MinWidth="150" ItemsSource="{x:Static vm:Lookups.RecoveryTimings}" SelectedItemBinding="{Binding Recovery}" />
                             <DataGridTextColumn Header="Amount" Width="Auto" MinWidth="70" Binding="{Binding RecoveryAmount, TargetNullValue=''}" />
+                            <DataGridTemplateColumn Header="Roll" Width="Auto" MinWidth="170">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Margin="4,0" VerticalAlignment="Center"
+                                                   ToolTip="{Binding Roll, Converter={StaticResource ResourceRollError}}"
+                                                   AutomationProperties.HelpText="{Binding Roll, Converter={StaticResource ResourceRollError}}">
+                                            <Run Text="{Binding Roll, Mode=OneWay}" />
+                                            <Run Text="{Binding Roll, Mode=OneWay, Converter={StaticResource ResourceRollError}, ConverterParameter=mark}" Foreground="{DynamicResource Danger}" />
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Loaded="OnCellEditorLoaded" Text="{Binding Roll, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Resource roll formula"
+                                                 AutomationProperties.HelpText="{Binding Roll, Converter={StaticResource ResourceRollError}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Result" Width="Auto" MinWidth="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate><TextBlock Margin="4,0" VerticalAlignment="Center" Text="{Binding Result, Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox Loaded="OnCellEditorLoaded" ItemsSource="{x:Static vm:Lookups.ResourceResults}" SelectedItem="{Binding Result}" AutomationProperties.Name="Resource roll result">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate><TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" /></DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
                             <DataGridTextColumn Header="Notes" Width="*" Binding="{Binding Notes}" />
                             <DataGridTemplateColumn Width="36" CellTemplate="{StaticResource RemoveCell}" />
                         </DataGrid.Columns>

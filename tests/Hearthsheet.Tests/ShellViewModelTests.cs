@@ -174,5 +174,6 @@ public sealed class ShellViewModelTests : IDisposable
             Task.FromResult<QuickAddResult?>(null);
         public Task<bool> ShortRestAsync(PlayViewModel play, Character character) => Task.FromResult(false);
         public Task<bool> AttackRollAsync(AttackRollViewModel vm) => Task.FromResult(false);
+        public Task<bool> UseResourceAsync(ResourceUseViewModel vm) => Task.FromResult(false);
     }
 }

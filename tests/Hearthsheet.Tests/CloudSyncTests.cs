@@ -408,7 +408,7 @@ public class CloudSyncTests : IDisposable
 
         _b.Repo.Save(c);
         Assert.Equal(CharacterJson.CurrentSchemaVersion, Assert.Single(_b.Repo.GetDirty()).SchemaVersion);
-        Assert.Equal(3, CharacterJson.CurrentSchemaVersion);
+        Assert.Equal(4, CharacterJson.CurrentSchemaVersion);
     }
 
     [Fact]

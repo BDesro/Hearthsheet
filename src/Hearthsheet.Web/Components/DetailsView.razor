@@ -457,11 +457,13 @@
                 <div class="toolbar"><button type="button" @onclick="() => Vm.AddResource.Execute(null)">+ Add resource</button></div>
                 <div class="table-scroll">
                     <table class="grid">
-                        <thead><tr><th>Name</th><th>Current</th><th>Maximum</th><th>Recovers</th><th>Amount</th><th>Notes</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
+                        <thead><tr><th>Name</th><th>Current</th><th>Maximum</th><th>Recovers</th><th>Amount</th><th>Roll</th><th>Result</th><th>Notes</th><th><span class="visually-hidden">Remove</span></th></tr></thead>
                         <tbody>
                             @foreach (var r in C.Resources)
                             {
                                 var name = Named(r.Name, "resource");
+                                var rollErrorId = $"resource-roll-error-{C.Resources.IndexOf(r)}";
+                                var rollError = Lookups.RollError(r.Roll);
                                 <tr @key="r">
                                     <td><input aria-label="Resource name" @bind="r.Name" /></td>
                                     <td><input type="number" class="num" min="0" aria-label="@name current" @bind="r.Current" /></td>
@@ -475,6 +477,22 @@
                                         </select>
                                     </td>
                                     <td><input type="number" class="num" min="0" aria-label="@name recovery amount" @bind="r.RecoveryAmount" /></td>
+                                    <td>
+                                        <input aria-label="@name roll" placeholder="e.g. 2d4+2" aria-describedby="@(rollError is null ? null : rollErrorId)"
+                                               @bind="r.Roll" @bind:event="oninput" />
+                                        @if (rollError is not null)
+                                        {
+                                            <small id="@(rollErrorId)" class="error">@rollError</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <select aria-label="@name result" @bind="r.Result">
+                                            @foreach (var result in Lookups.ResourceResults)
+                                            {
+                                                <option value="@result">@Lookups.Display(result)</option>
+                                            }
+                                        </select>
+                                    </td>
                                     <td><input aria-label="@name notes" @bind="r.Notes" /></td>
                                     <td>@Remove(r, name)</td>
                                 </tr>
