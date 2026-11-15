@@ -75,6 +75,8 @@ public sealed class WebDialogs : IDialogs
     public async Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         await Ask(DialogKind.ShortRest, "Short rest", "", new ShortRestRequest(play, character)) is true;
 
+    public Task<bool> UseResourceAsync(ResourceUseViewModel vm) => Task.FromResult(false);
+
     public async Task<bool> AttackRollAsync(AttackRollViewModel vm) =>
         await Ask(DialogKind.AttackRoll, "Attack roll", "", vm) is true;
 }

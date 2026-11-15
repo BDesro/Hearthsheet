@@ -41,8 +41,7 @@ public sealed class PlayViewModel : Observable
         ShortRest = new RelayCommand(DoShortRest);
         LongRest = new RelayCommand(DoLongRest);
         RollAttack = new RelayCommand(DoRollAttack, p => p is Attack);
-        UseResource = new RelayCommand<Resource>(r => Act($"Use {r.Name}", c =>
-            c.UseResource(r) ? $"Used {r.Name} ({r.Current}/{r.Maximum} left)." : $"{r.Name} has no uses left."));
+        UseResource = new RelayCommand(DoUseResource, p => p is Resource);
         RestoreResource = new RelayCommand<Resource>(r => Act($"Restore {r.Name}", c =>
         {
             c.RestoreResource(r);
@@ -195,6 +194,24 @@ public sealed class PlayViewModel : Observable
         if (parameter is not Attack attack) return;
         var vm = new AttackRollViewModel(Character, attack, Random.Shared);
         if (await _dialogs.AttackRollAsync(vm)) Record(vm.LogLine);
+    }
+
+    private async Task DoUseResource(object? parameter)
+    {
+        if (parameter is not Resource r) return;
+        var roll = r.Current == 0 || string.IsNullOrWhiteSpace(r.Roll) ? null : ResourceFormula.TryResolve(Character, r.Roll);
+        if (roll is null)
+        {
+            var unreadable = r.Current > 0 && !string.IsNullOrWhiteSpace(r.Roll);
+            Act($"Use {r.Name}", c =>
+                !c.UseResource(r) ? $"{r.Name} has no uses left."
+                : $"Used {r.Name} ({r.Current}/{r.Maximum} left).{(unreadable ? $" Couldn't read the roll \"{r.Roll.Trim()}\"." : "")}");
+            return;
+        }
+
+        var vm = new ResourceUseViewModel(Character, r, roll, Random.Shared);
+        if (await _dialogs.UseResourceAsync(vm) && vm.Total is int t)
+            Act($"Use {r.Name}", c => c.UseResourceWithRoll(r, t));
     }
 
     private async Task DoLongRest()

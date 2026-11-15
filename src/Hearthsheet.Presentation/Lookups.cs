@@ -53,6 +53,16 @@ public static class Lookups
         _ => SplitWords(value.ToString() ?? ""),
     };
 
+    /// <summary>Hover text for a resource: its notes and, when it has a roll, the formula and what it does.</summary>
+    public static string? ResourceTooltip(string notes, string roll, ResourceResult result)
+    {
+        var lines = new List<string>();
+        if (notes.Trim().Length > 0) lines.Add(notes.Trim());
+        if (roll.Trim().Length > 0)
+            lines.Add($"Roll: {roll.Trim()}{(result == ResourceResult.JustShow ? "" : $" ({Display(result)})")}");
+        return lines.Count == 0 ? null : string.Join("\n", lines);
+    }
+
     private static string SplitWords(string s) =>
         string.Concat(s.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));
 }

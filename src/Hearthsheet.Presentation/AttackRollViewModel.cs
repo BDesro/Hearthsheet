@@ -9,10 +9,12 @@ namespace Hearthsheet.Presentation;
 public sealed class DamageBox : Observable
 {
     private readonly Action _changed;
+    private readonly string _untypedLabel;
 
-    internal DamageBox(DamagePart part, Action changed)
+    internal DamageBox(DamagePart part, Action changed, string untypedLabel = "damage")
     {
         _changed = changed;
+        _untypedLabel = untypedLabel;
         Apply(part);
     }
 
@@ -41,7 +43,7 @@ public sealed class DamageBox : Observable
         (Min, Max) = AttackMath.Range(part);
         var dice = string.Join(" + ", part.Dice.Select(d => $"{d.Count}d{d.Sides}"));
         var flat = part.Flat > 0 ? $" + {part.Flat}" : part.Flat < 0 ? $" − {-part.Flat}" : "";
-        Label = $"{dice}{flat} {(part.Type.Length > 0 ? part.Type : "damage")}";
+        Label = $"{dice}{flat} {(part.Type.Length > 0 ? part.Type : _untypedLabel)}".TrimEnd();
         Validate();
         Raise(string.Empty);
     }
