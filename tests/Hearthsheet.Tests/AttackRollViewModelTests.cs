@@ -292,6 +292,17 @@ public class AttackRollViewModelTests
     }
 
     [Fact]
+    public void AttackRow_DisplayName_FallsBackToAttack_ButNameStaysEditable()
+    {
+        var (c, a) = Sword(withFire: false);
+        var blank = new Attack { Damage = "1d6" };
+        c.Attacks.Add(blank);
+        Assert.Equal("Attack", new AttackRow(c, blank).DisplayName);
+        Assert.Equal("", new AttackRow(c, blank).Name);
+        Assert.Equal("Longsword", new AttackRow(c, a).DisplayName);
+    }
+
+    [Fact]
     public void LogLine_UntypedPrintsAsDamage_AndNoD20Form()
     {
         var c = new Character();

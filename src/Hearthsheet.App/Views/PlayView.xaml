@@ -166,10 +166,10 @@
                                     <DockPanel Margin="0,0,0,6">
                                         <Button DockPanel.Dock="Right" Content="Roll" Padding="10,3" VerticalAlignment="Top"
                                                 Command="{Binding DataContext.Play.RollAttack, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Model}"
-                                                AutomationProperties.Name="{Binding Name, StringFormat=Roll {0}}" />
+                                                AutomationProperties.Name="{Binding DisplayName, StringFormat=Roll {0}}" />
                                         <StackPanel>
                                             <TextBlock>
-                                                <Run Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Run Text="{Binding DisplayName, Mode=OneWay}" FontWeight="SemiBold" />
                                                 <Run Text="{Binding AttackBonus, Mode=OneWay, Converter={StaticResource Mod}}" />
                                             </TextBlock>
                                             <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource InkMuted}" Text="{Binding DamageRoll}" />

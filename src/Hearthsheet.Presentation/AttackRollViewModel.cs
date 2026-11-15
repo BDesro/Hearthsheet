@@ -82,7 +82,7 @@ public sealed class AttackRollViewModel : Observable
     public AttackRollViewModel(Character c, Attack attack, Random random)
     {
         _random = random;
-        Name = new AttackRow(c, attack).Name is { Length: > 0 } n ? n : "Attack";
+        Name = new AttackRow(c, attack).DisplayName;
         AttackBonus = CharacterRules.AttackBonus(c, attack);
         BonusText = CharacterRules.FormatModifier(AttackBonus);
         RawDamage = CharacterRules.DamageRoll(c, attack);

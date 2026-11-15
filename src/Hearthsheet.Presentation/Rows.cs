@@ -60,6 +60,9 @@ public sealed class AttackRow(Character c, Attack attack) : RowBase
         set => attack.Name = Weapon is { } w && value == w.Name ? "" : value;
     }
 
+    /// <summary>The name to show where it can't be edited (Play, the roll window); a blank name reads "Attack".</summary>
+    public string DisplayName => Name is { Length: > 0 } n ? n : "Attack";
+
     public Ability? Ability
     {
         get => Weapon is { } w ? w.Ability : attack.Ability;

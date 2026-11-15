@@ -104,8 +104,8 @@
                 @foreach (var a in P.Attacks)
                 {
                     <li @key="a.Model" class="row">
-                        <span class="row-name"><strong>@a.Name</strong> @CharacterRules.FormatModifier(a.AttackBonus)<small>@a.DamageRoll</small></span>
-                        <button type="button" aria-label="Roll @a.Name" @onclick="() => P.RollAttack.Execute(a.Model)">Roll</button>
+                        <span class="row-name"><strong>@a.DisplayName</strong> @CharacterRules.FormatModifier(a.AttackBonus)<small>@a.DamageRoll</small></span>
+                        <button type="button" aria-label="Roll @a.DisplayName" @onclick="() => P.RollAttack.Execute(a.Model)">Roll</button>
                     </li>
                 }
             </ul>
