@@ -463,6 +463,7 @@
                             {
                                 var name = Named(r.Name, "resource");
                                 var rollErrorId = $"resource-roll-error-{C.Resources.IndexOf(r)}";
+                                var rollError = Lookups.RollError(r.Roll);
                                 <tr @key="r">
                                     <td><input aria-label="Resource name" @bind="r.Name" /></td>
                                     <td><input type="number" class="num" min="0" aria-label="@name current" @bind="r.Current" /></td>
@@ -477,11 +478,11 @@
                                     </td>
                                     <td><input type="number" class="num" min="0" aria-label="@name recovery amount" @bind="r.RecoveryAmount" /></td>
                                     <td>
-                                        <input aria-label="@name roll" placeholder="e.g. 2d4+2" aria-describedby="@(ResourceFormula.IsReadable(r.Roll) ? null : rollErrorId)"
+                                        <input aria-label="@name roll" placeholder="e.g. 2d4+2" aria-describedby="@(rollError is null ? null : rollErrorId)"
                                                @bind="r.Roll" @bind:event="oninput" />
-                                        @if (!ResourceFormula.IsReadable(r.Roll))
+                                        @if (rollError is not null)
                                         {
-                                            <small id="@(rollErrorId)" class="error">@ResourceFormula.ReadError</small>
+                                            <small id="@(rollErrorId)" class="error">@rollError</small>
                                         }
                                     </td>
                                     <td>

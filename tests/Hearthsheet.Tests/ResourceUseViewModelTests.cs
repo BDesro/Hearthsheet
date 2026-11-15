@@ -138,4 +138,12 @@ public class ResourceUseViewModelTests
     [InlineData("  ", " ", ResourceResult.Heal, null)]
     public void Tooltip_text(string notes, string roll, ResourceResult result, string? expected) =>
         Assert.Equal(expected, Lookups.ResourceTooltip(notes, roll, result));
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData("1d10 + fighter level", false)]
+    [InlineData("1d7", true)]
+    public void RollError_only_for_nonblank_unreadable(string roll, bool hasError) =>
+        Assert.Equal(hasError ? ResourceFormula.ReadError : null, Lookups.RollError(roll));
 }

@@ -110,8 +110,7 @@ public sealed class ResourceTooltipConverter : IMultiValueConverter
 public sealed class ResourceRollErrorConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is string { Length: > 0 } s && s.Trim().Length > 0 && !ResourceFormula.IsReadable(s)
-            ? (parameter as string == "mark" ? " ⚠" : ResourceFormula.ReadError) : null;
+        Lookups.RollError(value as string) is { } error ? (parameter as string == "mark" ? " ⚠" : error) : null;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

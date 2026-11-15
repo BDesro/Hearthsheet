@@ -63,6 +63,10 @@ public static class Lookups
         return lines.Count == 0 ? null : string.Join("\n", lines);
     }
 
+    /// <summary>The formula error for a non-blank roll that can't be read; null for a blank (no roll) or readable one.</summary>
+    public static string? RollError(string? roll) =>
+        string.IsNullOrWhiteSpace(roll) || ResourceFormula.IsReadable(roll) ? null : ResourceFormula.ReadError;
+
     private static string SplitWords(string s) =>
         string.Concat(s.Select((ch, i) => i > 0 && char.IsUpper(ch) ? " " + ch : ch.ToString()));
 }
