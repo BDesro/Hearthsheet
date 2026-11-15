@@ -52,7 +52,7 @@ Switch to **Play** when the game starts.
 - **Death saves**: at 0 hit points, record each **Success** or **Failure**, or a **Natural 20** or **Natural 1**.
 - **Spell slots and casting**: **Cast** a prepared spell and pick the slot level. Hearthsheet spends the slot and keeps track of concentration.
 - **Attacks**: press **Roll** next to an attack, enter your d20 and damage dice (or **Roll for me**). Hearthsheet adds your bonuses, doubles the dice on a critical hit and totals each damage type, and the result goes in the session log.
-- **Resources**: class features with limited uses (rage, ki, channel divinity and so on) have a **Use** button.
+- **Resources**: class features with limited uses (rage, ki, channel divinity and so on) have a **Use** button. In Details → Resources, give a resource a **Roll** such as `1d10 + fighter level` (dice, numbers, `level`, a class level, `proficiency` or an ability) and a **Result** (**Heal me**, **Temporary HP** or **Just show**). **Use** then opens a roll window, and hovering a resource on Play shows its notes and roll.
 - **Conditions and effects**: tick conditions as they happen, and add active effects that change your numbers for a while.
 - **Quick add**: pick up an item, a spell or a feature mid-session without leaving Play.
 - **Session log**: lists what you did this session.
