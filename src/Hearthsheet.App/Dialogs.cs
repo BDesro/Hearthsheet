@@ -56,7 +56,9 @@ public sealed class Dialogs : IDialogs
     public Task<bool> ShortRestAsync(PlayViewModel play, Character character) =>
         Task.FromResult(new ShortRestDialog(play, character) { Owner = Owner }.ShowDialog() == true);
 
-    public Task<bool> UseResourceAsync(ResourceUseViewModel vm) => Task.FromResult(false);
+    /// <returns>True when the user pressed Use; the caller then spends the resource.</returns>
+    public Task<bool> UseResourceAsync(ResourceUseViewModel vm) =>
+        Task.FromResult(new ResourceUseDialog { Owner = Owner, DataContext = vm }.ShowDialog() == true);
 
     /// <returns>True when the user pressed Done; the caller then logs the roll.</returns>
     public Task<bool> AttackRollAsync(AttackRollViewModel vm) =>

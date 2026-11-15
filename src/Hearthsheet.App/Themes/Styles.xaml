@@ -7,6 +7,8 @@
     <mvvm:EnumDisplayConverter x:Key="EnumDisplay" />
     <mvvm:AtLeastConverter x:Key="AtLeast" />
     <mvvm:SpellDcConverter x:Key="SpellDc" />
+    <mvvm:ResourceTooltipConverter x:Key="ResourceTooltip" />
+    <mvvm:ResourceRollErrorConverter x:Key="ResourceRollError" />
 
     <Style x:Key="FocusRing">
         <Setter Property="Control.Template">

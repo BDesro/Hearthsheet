@@ -95,3 +95,24 @@ public sealed class EnumDisplayConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 }
+
+/// <summary>Play tooltip for a resource from [notes, roll, result]; null (no tooltip) when there is nothing to say.</summary>
+public sealed class ResourceTooltipConverter : IMultiValueConverter
+{
+    public object? Convert(object[] values, Type targetType, object? parameter, CultureInfo culture) =>
+        values is [string notes, string roll, ResourceResult result] ? Lookups.ResourceTooltip(notes, roll, result) : null;
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>The formula error for a non-blank roll that can't be read; null otherwise. Parameter "mark" returns just the warning marker.</summary>
+public sealed class ResourceRollErrorConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is string { Length: > 0 } s && s.Trim().Length > 0 && !ResourceFormula.IsReadable(s)
+            ? (parameter as string == "mark" ? " ⚠" : ResourceFormula.ReadError) : null;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
