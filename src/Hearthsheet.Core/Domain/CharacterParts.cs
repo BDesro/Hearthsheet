@@ -242,6 +242,9 @@ public sealed class Resource : Observable
     /// <summary>Amount restored by the recovering rest; null restores to maximum.</summary>
     public int? RecoveryAmount { get; set => Set(ref field, value is null ? null : Math.Clamp(value.Value, 0, 999)); }
     public string Notes { get; set => Set(ref field, value ?? ""); } = "";
+    /// <summary>Optional dice formula rolled when the resource is spent, e.g. "1d10 + fighter level".</summary>
+    public string Roll { get; set => Set(ref field, value ?? ""); } = "";
+    public ResourceResult Result { get; set => Set(ref field, value); } = ResourceResult.JustShow;
 }
 
 /// <summary>A temporary or ongoing effect (Bless, a potion, a curse). Conditions are tracked separately.</summary>

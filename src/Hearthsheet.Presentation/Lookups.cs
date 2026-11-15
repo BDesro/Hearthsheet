@@ -19,6 +19,7 @@ public static class Lookups
     public static ProficiencyCategory[] ProficiencyCategories { get; } = Enum.GetValues<ProficiencyCategory>();
     public static FeatureSource[] FeatureSources { get; } = Enum.GetValues<FeatureSource>();
     public static RecoveryTiming[] RecoveryTimings { get; } = Enum.GetValues<RecoveryTiming>();
+    public static ResourceResult[] ResourceResults { get; } = Enum.GetValues<ResourceResult>();
     public static EffectExpiry[] EffectExpiries { get; } = Enum.GetValues<EffectExpiry>();
     public static ModifierKind[] ModifierKinds { get; } = Enum.GetValues<ModifierKind>();
     public static IReadOnlyList<string> StatTargetKeys => StatTargets.All;
@@ -42,6 +43,9 @@ public static class Lookups
         RecoveryTiming.ShortRest => "Short or long rest",
         RecoveryTiming.LongRest => "Long rest",
         RecoveryTiming.Manual => "Manual",
+        ResourceResult.JustShow => "Just show",
+        ResourceResult.Heal => "Heal me",
+        ResourceResult.TemporaryHp => "Temporary HP",
         EffectExpiry.ShortRest => "Ends on any rest",
         EffectExpiry.LongRest => "Ends on long rest",
         EffectExpiry.Manual => "Until removed",

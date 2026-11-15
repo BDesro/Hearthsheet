@@ -54,6 +54,32 @@ public class SerializationTests
     }
 
     [Fact]
+    public void Resource_roll_and_result_round_trip()
+    {
+        var c = Samples.Rich();
+        c.Resources.Add(new Resource { Name = "Second Wind", Roll = "1d10 + fighter level", Result = ResourceResult.Heal });
+        var copy = CharacterJson.Deserialize(CharacterJson.Serialize(c), CharacterJson.CurrentSchemaVersion);
+        var r = copy.Resources.Single(x => x.Name == "Second Wind");
+        Assert.Equal("1d10 + fighter level", r.Roll);
+        Assert.Equal(ResourceResult.Heal, r.Result);
+    }
+
+    [Fact]
+    public void Schema3_resource_loads_with_defaults()
+    {
+        var c = CharacterJson.Deserialize("""{"resources":[{"name":"Rage","maximum":3,"current":2}]}""", 3);
+        var r = Assert.Single(c.Resources);
+        Assert.Equal("Rage", r.Name);
+        Assert.Equal(3, r.Maximum);
+        Assert.Equal(2, r.Current);
+        Assert.Equal("", r.Roll);
+        Assert.Equal(ResourceResult.JustShow, r.Result);
+    }
+
+    [Fact]
+    public void Current_schema_is_4() => Assert.Equal(4, CharacterJson.CurrentSchemaVersion);
+
+    [Fact]
     public void SchemaOneCharacter_KeepsItsEntriesAsTheyWere()
     {
         // Shape written by 1.2.x: no weapons, wondrous items or feature modifiers.
