@@ -5,6 +5,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- First: ThemeManager swaps it for Themes/Dark.xaml. -->
+                <ResourceDictionary Source="Themes/Light.xaml" />
                 <ResourceDictionary Source="Themes/Styles.xaml" />
                 <ResourceDictionary Source="Themes/SheetStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>

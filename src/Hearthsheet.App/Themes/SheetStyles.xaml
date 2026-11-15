@@ -5,11 +5,12 @@
     <SolidColorBrush x:Key="SheetLine" Color="#2A2A2A" />
     <SolidColorBrush x:Key="SheetFaint" Color="#696969" /> <!-- 4.5:1 or more on white and on SheetShade -->
     <SolidColorBrush x:Key="SheetShade" Color="#F1EFEA" />
+    <SolidColorBrush x:Key="SheetPaper" Color="#FFFFFF" />
 
     <Style x:Key="SheetPage" TargetType="Border">
         <Setter Property="Width" Value="816" />
         <Setter Property="MinHeight" Value="1056" />
-        <Setter Property="Background" Value="White" />
+        <Setter Property="Background" Value="{StaticResource SheetPaper}" />
         <Setter Property="Padding" Value="28,26" />
         <Setter Property="Margin" Value="0,0,0,24" />
         <Setter Property="TextElement.Foreground" Value="{StaticResource SheetInk}" />
@@ -27,7 +28,7 @@
         <Setter Property="CornerRadius" Value="7" />
         <Setter Property="Padding" Value="6,5" />
         <Setter Property="Margin" Value="3" />
-        <Setter Property="Background" Value="White" />
+        <Setter Property="Background" Value="{StaticResource SheetPaper}" />
     </Style>
 
     <Style x:Key="SheetShadedBox" TargetType="Border" BasedOn="{StaticResource SheetBox}">
@@ -69,7 +70,7 @@
                 <Setter Property="BorderBrush" Value="{StaticResource SheetFaint}" />
             </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter Property="BorderBrush" Value="{StaticResource Accent}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
                 <Setter Property="Background" Value="#FBF6F4" />
             </Trigger>
             <Trigger Property="Validation.HasError" Value="True">

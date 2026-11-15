@@ -12,14 +12,14 @@
                  Text="{Binding Text, ElementName=Root, UpdateSourceTrigger=LostFocus}"
                  AutomationProperties.Name="{Binding (AutomationProperties.Name), ElementName=Root}" />
         <ToggleButton x:Name="Toggle" Grid.Column="1" Content="▾" Width="20" Padding="0" BorderThickness="0" Background="Transparent"
-                      Foreground="{StaticResource InkMuted}" ToolTip="Choose from the list" Visibility="Collapsed"
+                      Foreground="{DynamicResource InkMuted}" ToolTip="Choose from the list" Visibility="Collapsed"
                       AutomationProperties.Name="{Binding (AutomationProperties.Name), ElementName=Root, StringFormat={}{0} choices}" />
         <!-- Detached from this tree in code (see the constructor); bindings to it are set there too. -->
         <Popup x:Name="DropDown" StaysOpen="False" AllowsTransparency="True" Opened="OnOpened" Closed="OnClosed">
-            <Border x:Name="DropContent" Background="{StaticResource Surface}" BorderBrush="{StaticResource LineStrong}" BorderThickness="1" Padding="8,4">
+            <Border x:Name="DropContent" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource LineStrong}" BorderThickness="1" Padding="8,4">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,2">
-                        <TextBlock Text="Custom" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource InkMuted}" />
+                        <TextBlock Text="Custom" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource InkMuted}" />
                         <Button DockPanel.Dock="Right" Content="Add" Margin="6,0,0,0" Padding="8,1" Click="OnAddCustom" />
                         <TextBox x:Name="Custom" MinWidth="90" KeyDown="OnCustomKeyDown" AutomationProperties.Name="Custom type" />
                     </DockPanel>

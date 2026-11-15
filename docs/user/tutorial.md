@@ -10,13 +10,15 @@ Hearthsheet keeps one D&D 5e character in one place and shows it three ways. Thi
 - **Details** shows the same character sorted into sections (Identity, Abilities & Saves, Skills, Combat, Features, Equipment, Spells and more). It's the comfortable place to fill things in.
 - **Play** is your dashboard at the table: hit points, death saves, rests, spell slots, resources, conditions and a session log.
 
-All three show the same character, so a change in one view appears in the others straight away. Switch views with the tabs at the top, from the **View** menu, or with Ctrl+1, Ctrl+2 and Ctrl+3.
+All three show the same character, so a change in one view appears in the others straight away. Switch views with the tabs at the top, or with Ctrl+1, Ctrl+2 and Ctrl+3.
+
+The toolbar along the top has the everyday commands as buttons: **New character**, **Save**, **Print sheet**, **Sync now** and **Help**. Everything else (import and export, zoom, the theme, your account, updates) is under **⋯ More**. On a narrow window the buttons shrink to icons; hover one to see its name.
 
 ![The Character sheet view of a level 3 wizard](images/sheet-view.png)
 
 ## Creating a character
 
-On the desktop, choose **File → New character…** (Ctrl+N), or **Create character** when nothing is open. On the web, click **+ New** above the character list.
+Click **New character** in the toolbar (Ctrl+N on the desktop), **+ New** above the character list, or **Create character** when nothing is open.
 
 ![The New character dialog, filled in for a level 3 elf wizard](images/new-character.png)
 
@@ -64,20 +66,24 @@ Switch to **Play** when the game starts.
 
 ## Saving, backups and sharing
 
-- Changes save by themselves a couple of seconds after you make them. **File → Save** (Ctrl+S) saves right away.
+- Changes save by themselves a couple of seconds after you make them. **Save** in the toolbar (Ctrl+S) saves right away.
 - Hearthsheet keeps a daily backup of your characters.
-- **File → Export character…** writes a portable .dndchar file you can back up or share, and **Import character…** reads one back.
-- **File → Print sheet…** (Ctrl+P) prints the three-page sheet.
+- **Export…** under the character list (or **⋯ More → Export character…**) writes a portable .dndchar file you can back up or share, and **Import…** reads one back.
+- **Print sheet** in the toolbar (Ctrl+P) prints the three-page sheet.
 
 ## Using more than one device
 
-If you want the same characters on another computer or in the web app, sign in from the **Account** menu. Your characters stay on this computer too, and everything keeps working offline.
+If you want the same characters on another computer or in the web app, sign in with **Sign in…** in the toolbar (or **⋯ More → Sign in…**). Your characters stay on this computer too, and everything keeps working offline.
 
 ## Getting help
 
-The **Help** menu (on the web, the menu under your email address) opens this tutorial, the beginner's guide and the legal notes at any time, and links to the D&D 5e wikidot for looking up rules.
+**Help** in the toolbar (also under **⋯ More**) opens this tutorial, the beginner's guide and the legal notes at any time, and links to the D&D 5e wikidot for looking up rules.
 
 ![The Help menu](images/help-menu.png)
+
+## Light and dark
+
+Choose **⋯ More → Light**, **Dark** or **Match system**. Match system follows your computer's or browser's setting and is the default. The character sheet stays white in dark mode, like paper on a dark desk, and always prints white.
 
 ## Keyboard shortcuts (desktop)
 
