@@ -173,5 +173,6 @@ public sealed class ShellViewModelTests : IDisposable
         public Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription) =>
             Task.FromResult<QuickAddResult?>(null);
         public Task<bool> ShortRestAsync(PlayViewModel play, Character character) => Task.FromResult(false);
+        public Task<bool> AttackRollAsync(AttackRollViewModel vm) => Task.FromResult(false);
     }
 }

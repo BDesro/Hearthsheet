@@ -95,6 +95,23 @@
 
     <div class="play-column">
         <section class="card">
+            <h3>Attacks</h3>
+            @if (C.Attacks.Count == 0)
+            {
+                <p class="hint">No attacks yet. Add them in Details → Combat.</p>
+            }
+            <ul class="rows">
+                @foreach (var a in P.Attacks)
+                {
+                    <li @key="a.Model" class="row">
+                        <span class="row-name"><strong>@a.Name</strong> @CharacterRules.FormatModifier(a.AttackBonus)<small>@a.DamageRoll</small></span>
+                        <button type="button" aria-label="Roll @a.Name" @onclick="() => P.RollAttack.Execute(a.Model)">Roll</button>
+                    </li>
+                }
+            </ul>
+        </section>
+
+        <section class="card">
             <h3>Resources</h3>
             @if (C.Resources.Count == 0)
             {

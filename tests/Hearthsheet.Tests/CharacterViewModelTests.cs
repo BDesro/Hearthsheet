@@ -41,6 +41,29 @@ public class CharacterViewModelTests
         Assert.Single(_posted);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RollAttack_LogsOnlyWhenDone(bool done)
+    {
+        var attack = new Attack { Name = "Club", Damage = "1d6 bludgeoning" };
+        _vm.Character.Attacks.Add(attack);
+        _dialogs.AttackRollAnswer = done;
+        string? line = null;
+        _dialogs.OnAttackRoll = vm =>
+        {
+            vm.Boxes[0].Input = "4";
+            line = vm.LogLine;
+        };
+
+        _vm.Play.RollAttack.Execute(attack);
+        await Task.Yield();
+
+        Assert.Equal("Club: 4 bludgeoning", line);
+        if (done) Assert.EndsWith(line, _vm.Play.ActivityLog[0]);
+        else Assert.Empty(_vm.Play.ActivityLog);
+    }
+
     [Fact]
     public async Task LongRest_DoesNothing_WhenNotConfirmed()
     {
@@ -78,5 +101,12 @@ public class CharacterViewModelTests
         public Task<QuickAddResult?> QuickAddAsync(string title, IReadOnlyList<object>? kinds, object? defaultKind, bool withDescription) =>
             Task.FromResult<QuickAddResult?>(null);
         public Task<bool> ShortRestAsync(PlayViewModel play, Character character) => Task.FromResult(false);
+        public bool AttackRollAnswer { get; set; }
+        public Action<AttackRollViewModel>? OnAttackRoll { get; set; }
+        public Task<bool> AttackRollAsync(AttackRollViewModel vm)
+        {
+            OnAttackRoll?.Invoke(vm);
+            return Task.FromResult(AttackRollAnswer);
+        }
     }
 }
