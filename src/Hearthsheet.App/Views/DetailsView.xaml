@@ -712,7 +712,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>
                                     <DataTemplate>
-                                        <TextBox Text="{Binding Roll, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Resource roll formula"
+                                        <TextBox Loaded="OnCellEditorLoaded" Text="{Binding Roll, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Resource roll formula"
                                                  AutomationProperties.HelpText="{Binding Roll, Converter={StaticResource ResourceRollError}}" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellEditingTemplate>
@@ -723,7 +723,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                                 <DataGridTemplateColumn.CellEditingTemplate>
                                     <DataTemplate>
-                                        <ComboBox ItemsSource="{x:Static vm:Lookups.ResourceResults}" SelectedItem="{Binding Result}" AutomationProperties.Name="Resource roll result">
+                                        <ComboBox Loaded="OnCellEditorLoaded" ItemsSource="{x:Static vm:Lookups.ResourceResults}" SelectedItem="{Binding Result}" AutomationProperties.Name="Resource roll result">
                                             <ComboBox.ItemTemplate>
                                                 <DataTemplate><TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" /></DataTemplate>
                                             </ComboBox.ItemTemplate>
