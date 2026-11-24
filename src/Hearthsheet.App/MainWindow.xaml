@@ -5,7 +5,7 @@
         xmlns:app="clr-namespace:Hearthsheet.Core.Application;assembly=Hearthsheet.Core"
         Title="Hearthsheet"
         Style="{StaticResource AppWindow}" Width="1360" Height="900" MinWidth="900" MinHeight="600"
-        WindowStartupLocation="CenterScreen" WindowState="Maximized" Closing="OnClosing">
+        WindowStartupLocation="CenterScreen" WindowState="Maximized" Closing="OnClosing" PreviewKeyDown="OnIntroKey">
     <Window.InputBindings>
         <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCharacter}" />
         <KeyBinding Key="N" Modifiers="Control" Command="{Binding NewCharacter}" />
@@ -24,7 +24,7 @@
     </Window.CommandBindings>
 
     <Grid>
-    <!-- Hidden (laid out but not drawn) while the intro plays, so the software-rendered video has the renderer to itself. -->
+    <!-- Hidden (laid out but not drawn) while the intro covers it; laid out so the tiger can find HeaderLogo. -->
     <DockPanel x:Name="AppRoot" Visibility="Hidden">
         <!-- Toolbar: large buttons for the common commands; Help ▾ and ⋯ More open flat menus. Labels collapse below 1100 wide. -->
         <Border DockPanel.Dock="Top" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1">
@@ -71,6 +71,8 @@
                                   AutomationProperties.Name="Theme: light" />
                         <MenuItem Header="Dar_k" Command="{Binding SetTheme}" CommandParameter="Dark" IsChecked="{Binding IsDarkTheme, Mode=OneWay}"
                                   AutomationProperties.Name="Theme: dark" />
+                        <MenuItem Header="Intro _sound" IsCheckable="True" IsChecked="{Binding IntroSound}"
+                                  ToolTip="Play the logo intro's sound at launch" AutomationProperties.Name="Intro sound" />
                         <Separator Visibility="{Binding Sync.IsConfigured, Converter={StaticResource VisibleWhen}}" />
                         <MenuItem Header="{Binding Sync.AccountLabel}" IsEnabled="False" Visibility="{Binding Sync.IsConfigured, Converter={StaticResource VisibleWhen}}" />
                         <MenuItem Header="Sign i_n…" Command="{Binding Sync.SignIn}" Visibility="{Binding Sync.IsConfigured, Converter={StaticResource VisibleWhen}}" />
@@ -92,6 +94,9 @@
             </TextBlock>
 
             <StackPanel Orientation="Horizontal">
+                <!-- The intro's tiger flies here; shown once it lands. -->
+                <Image x:Name="HeaderLogo" Source="Assets/intro-tiger.png" Height="28" Margin="4,0,10,0" Opacity="0"
+                       RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="TigriSoft logo" />
                 <Button Style="{StaticResource ToolbarButton}" Command="{Binding NewCharacter}" ToolTip="New character (Ctrl+N)" AutomationProperties.Name="New character">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource ToolbarGlyph}" Text="&#xE710;" />
@@ -281,10 +286,20 @@
         </Grid>
     </DockPanel>
 
-    <!-- Logo intro: plays over black on launch; a click skips it. -->
-    <Grid x:Name="Intro" Background="{DynamicResource IntroBackdrop}" ClipToBounds="True" Cursor="Hand" MouseDown="OnIntroDown">
-        <MediaElement x:Name="IntroVideo" LoadedBehavior="Manual" Stretch="Uniform" IsHitTestVisible="False"
-                      Loaded="OnIntroLoaded" MediaOpened="OnIntroOpened" MediaEnded="OnIntroDone" MediaFailed="OnIntroDone" />
+    <!-- Logo intro over pure black (the video opens on black frames, so its start is invisible). The stage is the video's
+         1920×1080 frame scaled Uniform, so the native tiger and wordmark sit exactly where the video's last frame draws them;
+         they take over when it ends, then the tiger flies into HeaderLogo. A click or key skips to that. -->
+    <Grid x:Name="Intro" Cursor="Hand" MouseDown="OnIntroDown">
+        <Border x:Name="IntroBlack" Background="{DynamicResource IntroBackdrop}" />
+        <Viewbox x:Name="IntroStage" IsHitTestVisible="False">
+            <Canvas Width="1920" Height="1080">
+                <!-- Cut from the video's last frame, black keyed to alpha; positions are that cut's pixel offsets. -->
+                <Image x:Name="IntroTiger" Source="Assets/intro-tiger.png" Canvas.Left="627" Canvas.Top="113" Width="686" Height="673" Opacity="0" />
+                <Image x:Name="IntroWordmark" Source="Assets/intro-wordmark.png" Canvas.Left="693" Canvas.Top="851" Width="534" Height="76" Opacity="0" />
+                <!-- Frames come from VideoFrames (full-range colour, unlike MediaElement on many GPUs). -->
+                <Image x:Name="IntroVideo" Width="1920" Height="1080" Loaded="OnIntroLoaded" />
+            </Canvas>
+        </Viewbox>
     </Grid>
     </Grid>
 </Window>
