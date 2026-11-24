@@ -7,6 +7,10 @@ updates:
       interval: weekly
     cooldown:
       default-days: 7
+    ignore:
+      # Tracks the target framework (net10.0); 11.x needs the .NET 11 runtime to run the dev server.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
     groups:
       microsoft-extensions:
         patterns: ["Microsoft.*", "System.*"]
