@@ -63,11 +63,7 @@ public sealed class MainViewModel : Observable
         {
             if (!Enum.TryParse<ThemeChoice>(p as string, out var choice)) return;
             Themes.ThemeManager.Apply(choice);
-            try { UiPreferences.SaveTheme(AppPaths.UiPreferences, choice); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            {
-                _log.LogWarning(ex, "Couldn't save the theme choice"); // the theme still applies for this session
-            }
+            SaveUi(UiPreferences.Load(AppPaths.UiPreferences) with { Theme = choice }); // the theme still applies if this fails
             Raise(nameof(IsSystemTheme));
             Raise(nameof(IsLightTheme));
             Raise(nameof(IsDarkTheme));
@@ -79,6 +75,26 @@ public sealed class MainViewModel : Observable
     public bool IsSystemTheme => Themes.ThemeManager.Choice == ThemeChoice.System;
     public bool IsLightTheme => Themes.ThemeManager.Choice == ThemeChoice.Light;
     public bool IsDarkTheme => Themes.ThemeManager.Choice == ThemeChoice.Dark;
+
+    /// <summary>Play the launch intro's audio. Off by default; takes effect on the next start.</summary>
+    public bool IntroSound
+    {
+        get => UiPreferences.Load(AppPaths.UiPreferences).IntroSound;
+        set
+        {
+            SaveUi(UiPreferences.Load(AppPaths.UiPreferences) with { IntroSound = value });
+            Raise();
+        }
+    }
+
+    private void SaveUi(UiSettings settings)
+    {
+        try { UiPreferences.Save(AppPaths.UiPreferences, settings); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _log.LogWarning(ex, "Couldn't save the display preferences");
+        }
+    }
 
     public ShellViewModel Shell { get; }
     public UpdateViewModel Update { get; }

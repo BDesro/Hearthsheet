@@ -22,6 +22,6 @@
     <SolidColorBrush x:Key="DangerSoft" Color="#FBEFED" />
     <!-- Behind the white sheet pages. -->
     <SolidColorBrush x:Key="SheetBackdrop" Color="#D9D4CB" />
-    <!-- Behind the intro video: dark in both themes. -->
-    <SolidColorBrush x:Key="IntroBackdrop" Color="#101212" />
+    <!-- Behind the intro video: pure black in both themes, to match its opening frames and letterbox. -->
+    <SolidColorBrush x:Key="IntroBackdrop" Color="#000000" />
 </ResourceDictionary>
