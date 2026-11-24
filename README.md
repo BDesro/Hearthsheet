@@ -85,7 +85,7 @@ gh pr create --base main --head dev --title "Release 1.3.0" --body "Changes: ...
 
 When CI passes, merge the PR (merge commit). The **Release** workflow then runs on `main` by itself: it reads `<Version>`, and if it is newer than the latest release it runs the tests, builds the installer, zip and checksums, and publishes the GitHub release, creating the tag on the merge commit. Otherwise it does nothing. Watch it with `gh run watch`, or in the repository's Actions tab. Installed copies show an "Update 1.3.0 available" button within a startup or two.
 
-- Use [semantic versions](https://semver.org): patch for fixes, minor for features, major for breaking changes. Tags must be plain `X.Y.Z`; there is no pre-release channel.
+- Use [semantic versions](https://semver.org): patch for fixes, minor for features, major for breaking changes. Tags are `vX.Y.Z` (the Release workflow creates them); there is no pre-release channel.
 - If a release is broken, don't move or delete the tag (the ruleset blocks it anyway). Fix forward with the next patch version, through `dev` as usual.
 
 ## Configuration
