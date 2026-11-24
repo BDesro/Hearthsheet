@@ -2,7 +2,6 @@
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Hearthsheet.App.ViewModels;
@@ -25,16 +24,6 @@ public partial class MainWindow
         menu.PlacementTarget = button;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
         menu.IsOpen = true;
-    }
-
-    // On some monitors (e.g. a scaled 4K display) hardware-rendered video freezes on its first frame while the audio plays.
-    // Draw in software for the intro only, then go back to the default once the app shows.
-    private static HwndTarget? Target(Window w) => (PresentationSource.FromVisual(w) as HwndSource)?.CompositionTarget;
-
-    protected override void OnSourceInitialized(EventArgs e)
-    {
-        base.OnSourceInitialized(e);
-        if (Target(this) is { } t) t.RenderMode = RenderMode.SoftwareOnly;
     }
 
     private MainViewModel? Vm => DataContext as MainViewModel;
@@ -73,46 +62,49 @@ public partial class MainWindow
         }
     }
 
-    private void OnIntroLoaded(object sender, RoutedEventArgs e)
-    {
-        var file = Path.Combine(AppContext.BaseDirectory, "Assets", "tigrisoft-intro-short.mp4");
-        if (!File.Exists(file)) { OnIntroDone(sender, e); return; }
-        IntroVideo.Source = new Uri(file);
-        IntroVideo.Pause(); // Manual mode only opens the media on Play/Pause.
-    }
-
-    // Playing before the media has opened can leave WPF audible but with the video stuck on its first frame.
-    private void OnIntroOpened(object sender, RoutedEventArgs e)
-    {
-        FitIntro();
-        IntroVideo.Play();
-    }
-
-    // Show the video 1:1 in physical pixels. Stretching it across a scaled 4K window makes software rendering choppy.
-    private void FitIntro()
-    {
-        if (IntroVideo.NaturalVideoWidth == 0) return;
-        var dpi = VisualTreeHelper.GetDpi(this);
-        IntroVideo.Width = IntroVideo.NaturalVideoWidth / dpi.DpiScaleX;
-        IntroVideo.Height = IntroVideo.NaturalVideoHeight / dpi.DpiScaleY;
-    }
-
-    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
-    {
-        base.OnDpiChanged(oldDpi, newDpi);
-        FitIntro();
-    }
-
-    private void OnIntroDown(object sender, MouseButtonEventArgs e) => OnIntroDone(sender, e);
+    // ---- Logo intro: video → native logo → the tiger flies into the toolbar while the black fades over the app.
 
     private bool _introDone;
+    private VideoFrames? _video;
+    private MediaPlayer? _sound;
 
-    private void OnIntroDone(object sender, RoutedEventArgs e)
+    private void OnIntroLoaded(object sender, RoutedEventArgs e)
+    {
+        var file = Path.Combine(AppContext.BaseDirectory, "Assets", "tigrisoft-intro-app.mp4");
+        // Reduced motion (or no video): skip it and show the static logo for a moment instead.
+        if (!SystemParameters.ClientAreaAnimation || !File.Exists(file)) { Handoff(TimeSpan.FromSeconds(1)); return; }
+        if (Vm?.IntroSound == true)
+        {
+            _sound = new MediaPlayer(); // audio only: the picture comes from VideoFrames
+            _sound.Open(new Uri(file));
+        }
+        _video = new VideoFrames(file, IntroVideo);
+        _video.Started += () => _sound?.Play();
+        // The app cut ends on a still that the native logo underneath matches exactly, so hiding the video changes nothing.
+        _video.Ended += () => Handoff(TimeSpan.Zero);
+        _video.Failed += _ => Handoff(TimeSpan.FromSeconds(1));
+        _video.Start();
+    }
+
+    private void OnIntroDown(object sender, MouseButtonEventArgs e) => Handoff(TimeSpan.Zero);
+
+    private void OnIntroKey(object sender, KeyEventArgs e)
+    {
+        if (_introDone) return;
+        e.Handled = true;
+        Handoff(TimeSpan.Zero);
+    }
+
+    /// <summary>Swap the video for the native logo, show the app, then turn the logo into the toolbar's after <paramref name="hold"/>.</summary>
+    private void Handoff(TimeSpan hold)
     {
         if (_introDone) return;
         _introDone = true;
+        _video?.Dispose();
+        IntroVideo.Visibility = Visibility.Collapsed;
+        IntroTiger.Opacity = IntroWordmark.Opacity = 1;
+        Intro.IsHitTestVisible = false;
         AppRoot.Visibility = Visibility.Visible;
-        if (Target(this) is { } t) t.RenderMode = RenderMode.Default;
 
         // The title reads just "Hearthsheet" during the intro; hand it to the character title once the app shows.
         SetBinding(TitleProperty, new Binding("Shell.Current.Title")
@@ -120,15 +112,46 @@ public partial class MainWindow
             StringFormat = "{0} — Hearthsheet", FallbackValue = "Hearthsheet", TargetNullValue = "Hearthsheet",
         });
 
-        // Fade the intro out over the app instead of cutting to it.
-        Intro.IsHitTestVisible = false;
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(700)) { EasingFunction = new QuadraticEase() };
-        fade.Completed += (_, _) =>
+        void Done()
         {
-            IntroVideo.Close();
+            _sound?.Close();
+            HeaderLogo.Opacity = 1;
             Intro.Visibility = Visibility.Collapsed;
-        };
-        Intro.BeginAnimation(OpacityProperty, fade);
+        }
+
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            Fade(Intro, hold, 400, Done); // no movement: just fade over the app
+            return;
+        }
+
+        // Map the tiger's on-screen rect onto the header logo's. The transform acts before the stage's Uniform scale k.
+        UpdateLayout();
+        var from = IntroTiger.TransformToAncestor(this).TransformBounds(new Rect(IntroTiger.RenderSize));
+        var to = HeaderLogo.TransformToAncestor(this).TransformBounds(new Rect(HeaderLogo.RenderSize));
+        var k = from.Width / IntroTiger.ActualWidth;
+        var scale = new ScaleTransform();
+        var move = new TranslateTransform();
+        IntroTiger.RenderTransform = new TransformGroup { Children = { scale, move } };
+
+        var fly = TimeSpan.FromMilliseconds(850);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+        DoubleAnimation To(double value) => new(value, fly) { BeginTime = hold, EasingFunction = ease };
+        var last = To(to.Width / from.Width);
+        last.Completed += (_, _) => Done();
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, To(to.Width / from.Width));
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, last);
+        move.BeginAnimation(TranslateTransform.XProperty, To((to.X - from.X) / k));
+        move.BeginAnimation(TranslateTransform.YProperty, To((to.Y - from.Y) / k));
+        Fade(IntroWordmark, hold, 250);
+        Fade(IntroBlack, hold + TimeSpan.FromMilliseconds(150), 650);
+    }
+
+    private static void Fade(UIElement element, TimeSpan begin, int ms, Action? completed = null)
+    {
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(ms)) { BeginTime = begin, EasingFunction = new QuadraticEase() };
+        if (completed is not null) fade.Completed += (_, _) => completed();
+        element.BeginAnimation(OpacityProperty, fade);
     }
 
     private void OnExit(object sender, RoutedEventArgs e) => Close();

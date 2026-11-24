@@ -22,8 +22,8 @@
     <SolidColorBrush x:Key="DangerSoft" Color="#3D2220" />
     <!-- Behind the white sheet pages. -->
     <SolidColorBrush x:Key="SheetBackdrop" Color="#141110" />
-    <!-- Behind the intro video: dark in both themes. -->
-    <SolidColorBrush x:Key="IntroBackdrop" Color="#101212" />
+    <!-- Behind the intro video: pure black in both themes, to match its opening frames and letterbox. -->
+    <SolidColorBrush x:Key="IntroBackdrop" Color="#000000" />
     <!--
         Dark only: Windows' own control parts (a table cell's edit box, a scroll corner, disabled text) read these
         system colours. Light mode keeps Windows' values, so they aren't in Light.xaml (ThemeTests skip {x:Static} keys).
